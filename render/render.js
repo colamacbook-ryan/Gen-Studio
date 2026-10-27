@@ -18,17 +18,26 @@ function mimeOf(buf) {
   if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
   if (buf.length > 12 && buf.slice(0, 4).toString() === 'RIFF' && buf.slice(8, 12).toString() === 'WEBP') return 'image/webp';
   if (buf.slice(0, 4).toString() === 'GIF8') return 'image/gif';
-  const head = buf.slice(0, 2048).toString('utf8');
-  if (/<svg[\s>]/i.test(head)) return 'image/svg+xml';
+  // SVG: phần tử GỐC phải là <svg> (cho phép BOM, khai báo <?xml ?> và chú thích đứng trước), không chỉ "có chứa" chuỗi svg
+  const head = buf.slice(0, 2048).toString('utf8').replace(/^\uFEFF/, '').replace(/^\s*(<\?xml[^>]{0,200}\?>\s*)?(<!--[\s\S]{0,500}?-->\s*)*/, '');
+  if (/^<svg[\s>]/i.test(head)) return 'image/svg+xml';
   return null;
 }
-function resolveAssets(plan, errors) {
+// Chỉ đọc file NẰM TRONG assetRoot (kho asset), kiểm sau khi phân giải symlink; không có assetRoot → không đọc file nào.
+function insideRoot(file, assetRoot) {
+  if (!assetRoot) throw new Error('chưa cấu hình thư mục asset');
+  const root = fs.realpathSync(assetRoot);
+  const real = fs.realpathSync(path.resolve(root, file));
+  if (real !== root && !real.startsWith(root + path.sep)) throw new Error('ngoài thư mục asset');
+  return real;
+}
+function resolveAssets(plan, errors, assetRoot) {
   const data = {};
   plan.beats.filter(b => b.block === 'illustration').forEach(b => {
-    const a = b.params.asset; if (data[a]) return;
-    if (/^data:image\//.test(a)) { data[a] = a; return; }
+    const a = String(b.params.asset || ''); if (data[a]) return;
+    if (/^data:image\/(png|jpeg|webp|gif);base64,/.test(a)) { data[a] = a; return; }
     try {
-      const file = a.replace(/^file:\/\//, ''), buf = fs.readFileSync(file);
+      const file = insideRoot(a.replace(/^file:\/\//, ''), assetRoot), buf = fs.readFileSync(file);
       if (buf.length > MAX_ASSET) throw new Error('lớn hơn 8 MB');
       const mime = mimeOf(buf); if (!mime) throw new Error('không phải PNG/JPEG/WebP/GIF/SVG');
       data[a] = 'data:' + mime + ';base64,' + buf.toString('base64');
@@ -43,7 +52,7 @@ async function renderPlan(opts) {
   fs.rmSync(framesDir, { recursive: true, force: true });
   fs.mkdirSync(framesDir, { recursive: true }); fs.mkdirSync(sfxDir, { recursive: true });
   const fontCss = opts.fontCss !== undefined ? opts.fontCss : (fs.existsSync(LOCAL_FONTS) ? fs.readFileSync(LOCAL_FONTS, 'utf8') : '');
-  const plan2 = Object.assign({}, plan, { assetData: resolveAssets(plan, errors), fontCss });
+  const plan2 = Object.assign({}, plan, { assetData: resolveAssets(plan, errors, opts.assetRoot), fontCss });
 
   const ch = await chromium.launch({ path: opts.chromiumPath });
   let client = null;
@@ -98,4 +107,4 @@ async function renderPlan(opts) {
   }
 }
 
-module.exports = { renderPlan, mimeOf };
+module.exports = { renderPlan, mimeOf, insideRoot };

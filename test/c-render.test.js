@@ -24,7 +24,7 @@ test('render thật 2 s @12 fps: đủ khung, 0 lỗi, sfx WAV, cover', { skip: 
     { id: 'B3', block: 'prob-card', anchor: { line: 'LN-2', word: 'Hà Nội' }, params: { prompt: 'Thủ đô là', options: [['Hà Nội', 92], ['Huế', 4]], pick: 0 } }] } });
   plan.duration_ms = 2000;   // chỉ lấy 2 giây đầu để test nhanh
   const t0 = Date.now(), progress = [];
-  const r = await renderPlan({ plan, outDir: dir, onProgress: p => progress.push(p) });
+  const r = await renderPlan({ plan, outDir: dir, assetRoot: dir, onProgress: p => progress.push(p) });
   const secs = (Date.now() - t0) / 1000;
   assert.deepStrictEqual(r.errors, []);
   assert.strictEqual(r.frames, 24); assert.strictEqual(r.fps, 12);
@@ -49,4 +49,20 @@ test('asset illustration không đọc được → báo lỗi, không sập', {
   const r = await renderPlan({ plan, outDir: dir });
   assert.ok(r.errors.some(e => /illustration/.test(e)));
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('asset illustration ngoài thư mục asset hoặc qua symlink ra ngoài bị từ chối; SVG phải có gốc <svg>', () => {
+  const { insideRoot, mimeOf } = require('../render/render');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-c-root-')), out = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-c-out-'));
+  fs.writeFileSync(path.join(out, 'x.svg'), SVG); fs.writeFileSync(path.join(root, 'ok.svg'), SVG);
+  fs.symlinkSync(path.join(out, 'x.svg'), path.join(root, 'link.svg'));
+  assert.ok(insideRoot('ok.svg', root).endsWith('ok.svg'));
+  assert.throws(() => insideRoot(path.join(out, 'x.svg'), root), /ngoài thư mục asset/);
+  assert.throws(() => insideRoot('../' + path.basename(out) + '/x.svg', root), /ngoài thư mục asset/);
+  assert.throws(() => insideRoot('link.svg', root), /ngoài thư mục asset/);
+  assert.throws(() => insideRoot('ok.svg', null), /chưa cấu hình/);
+  assert.strictEqual(mimeOf(Buffer.from(SVG)), 'image/svg+xml');
+  assert.strictEqual(mimeOf(Buffer.from('<?xml version="1.0"?><!-- c --><svg viewBox="0 0 1 1"></svg>')), 'image/svg+xml');
+  assert.strictEqual(mimeOf(Buffer.from('<html><svg></svg></html>')), null);
+  fs.rmSync(root, { recursive: true, force: true }); fs.rmSync(out, { recursive: true, force: true });
 });
