@@ -15,6 +15,7 @@ const grids = require('./grids.js');
 const J = grids.J;
 const SYS = { type: 'system', id: 'pipeline', entry: 'system' };
 const LEASE_MS = 60000;
+const MAX_RERUNS = 5;
 const FPS = 30;
 const MAX_REGEN = 2;
 const LIVE = new Set(['queued', 'voicing', 'judging', 'aligning', 'rendering', 'mixing', 'gating', 'retrying', 'waiting_quota']);
@@ -283,8 +284,12 @@ async function execute(ctx, run, renderId) {
     const registry = D('registry');
     const manifest = buildManifest(ctx, B, items, plan, tts, judgeP, registry);
     render = row(db, 'SELECT * FROM renders WHERE id=?', renderId);
+    // chạy tiếp: manifest đã đóng băng phải khớp dữ liệu hiện tại (bỏ qua `engine` — môi trường chạy có thể đổi); lệch → chặn, cần bản dựng mới
+    if (render.manifest) {
+      const strip = m => JSON.stringify(Object.assign({}, m, { engine: undefined }));
+      if (strip(render.manifest) !== strip(manifest)) throw new Block('manifest_changed', 'Kênh/nhân vật/nhà cung cấp đã đổi kể từ khi bản dựng này bắt đầu; manifest đã đóng băng không còn khớp. Hãy nộp lại bài để tạo bản dựng mới.', null);
+    }
     goto('rendering', render.manifest ? {} : { manifest });
-    const frozen = (row(db, 'SELECT manifest FROM renders WHERE id=?', renderId) || {}).manifest || manifest;
     const r = await D('render').renderPlan({ plan, outDir: path.join(tmp, 'frames'), chromiumPath: config.chromiumPath, assetRoot: config.dataDir, onProgress: p => { try { progress(0.33 + 0.47 * Math.max(0, Math.min(1, p))); } catch (e) { if (e instanceof Abort) return; throw e; } } })
       .catch(e => { if (e && (e.code === 'render_timeout' || e.code === 'cdp_timeout')) throw new Block('render_timeout', 'Dựng khung hình bị treo/quá hạn; đã đóng trình duyệt. Chạy lại được.', { message: e.message }); throw e; });
     alive();
@@ -337,7 +342,7 @@ async function execute(ctx, run, renderId) {
     }
     alive();
     state.transitionRender(db, renderId, 'awaiting_review', { progress: 1 });
-    return { manifest: !!frozen };
+    return { manifest: true };
   } finally {
     if (!keep) fs.rmSync(tmp, { recursive: true, force: true });
   }
@@ -470,13 +475,17 @@ function startWorkers(ctx, opts = {}) {
 }
 
 // ---------- chạy lại ----------
+// actor: chuỗi ('user'/'agent'/'system') hoặc object {type,id}. Agent chỉ được chạy lại bản blocked/waiting_quota — không rút bản dựng khỏi hàng chờ duyệt của chủ xưởng.
 function requeueRender(ctx, render, { actor } = {}) {
   const { db } = ctx;
   const r = db.json(render);
+  const isAgent = actor === 'agent' || (actor && actor.type === 'agent');
+  const actorName = state.actorStr(actor || 'system');
+  const tAct = actor && typeof actor === 'object' ? { actor } : {};
   const out = id => db.json(db.get('SELECT * FROM renders WHERE id=?', id));
   if (r.state === 'blocked') {
-    state.transitionRender(db, r.id, 'queued', {});
-    queue.enqueue(db, { kind: 'voicing', render_id: r.id, payload: { render_id: r.id, by: actor || 'system' }, created_by: 'system' });
+    state.transitionRender(db, r.id, 'queued', tAct);
+    queue.enqueue(db, { kind: 'voicing', render_id: r.id, payload: { render_id: r.id, by: actorName }, created_by: 'system' });
     return out(r.id);
   }
   if (r.state === 'waiting_quota') {
@@ -486,9 +495,13 @@ function requeueRender(ctx, render, { actor } = {}) {
   if (['queued', 'voicing', 'judging', 'aligning', 'rendering', 'mixing', 'gating', 'retrying'].includes(r.state)) {
     throw fail('conflict', `Bản dựng ${r.display_id} đang chạy (${r.state}); chưa cần chạy lại.`);
   }
-  // đã xong/duyệt/bỏ: tạo Render mới từ cùng lesson version
+  if (isAgent) throw fail('forbidden', `Agent chỉ chạy lại được bản dựng bị chặn hoặc chờ hạn mức; ${r.display_id} đang "${r.state}" thuộc quyền chủ xưởng.`, { state: r.state });
+  // đã xong/duyệt/bỏ: tạo Render mới từ cùng lesson version (trần MAX_RERUNS lần chạy lại mỗi phiên bản bài)
+  if (db.get('SELECT COUNT(*) AS n FROM renders WHERE lesson_version_id=?', r.lesson_version_id).n > MAX_RERUNS) {
+    throw fail('conflict', `Phiên bản bài này đã chạy lại ${MAX_RERUNS} lần; hãy sửa bài rồi nộp phiên bản mới thay vì chạy lại tiếp.`, { max: MAX_RERUNS });
+  }
   return db.tx(() => {
-    if (r.state === 'awaiting_review') state.transitionRender(db, r.id, 'superseded', {});
+    if (r.state === 'awaiting_review') state.transitionRender(db, r.id, 'superseded', tAct);
     const nr = db.insertRow('renders', { lesson_version_id: r.lesson_version_id, state: 'queued', state_changed_at: db.now(), progress: 0, created_by: 'system' }, { prefix: 'RD' });
     const lv = db.get('SELECT lesson_id FROM lesson_versions WHERE id=?', r.lesson_version_id);
     db.update('lessons', lv.lesson_id, { latest_render_id: nr.id });

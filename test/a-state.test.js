@@ -131,3 +131,15 @@ test('state WO: cạnh hợp lệ, sai thì conflict', () => {
   assert.throws(() => state.transitionWorkOrder(t.db, wo.id, 'open'), code('conflict'));
   t.clean();
 });
+
+test('blocked lặp lại sau khi đã stalled không tạo thêm WO stalled trùng', () => {
+  const { t, b, r } = setup();
+  let cur = r.render;
+  for (let i = 1; i <= 5; i++) {
+    walk(t.db, cur.id, ['voicing']);
+    state.transitionRender(t.db, cur.id, 'blocked', { blocked_reason: { code: 'gate_fail', text_human: 'x', detail: null } });
+    cur = t.write(b.o, 'lesson.submit', lessonBody(b, { lesson: r.lesson.display_id })).render;
+  }
+  assert.equal(t.db.get(`SELECT COUNT(*) n FROM work_orders WHERE kind='unblock' AND state='stalled'`).n, 1);
+  t.clean();
+});

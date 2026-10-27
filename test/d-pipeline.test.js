@@ -148,3 +148,41 @@ test('d-pipeline: heartbeat chỉ gia hạn lease khi run còn tiến triển', 
     } finally { hb.stop(); }
   } finally { t.clean(); }
 });
+
+test('d-pipeline: chạy tiếp khi manifest đã đóng băng mà kênh đã đổi → blocked manifest_changed', async () => {
+  const t = tmpDb(); delete process.env.GS_FAKE_FAIL;
+  try {
+    const b = basics(t.write, t.db);
+    const ctx = mkctx(t);
+    const r = await submitAndRun(t, ctx, b);
+    assert.equal(r.state, 'awaiting_review'); assert.ok(r.manifest);
+    t.db.run("UPDATE renders SET state='blocked' WHERE id=?", r.id);   // mô phỏng chặn sau khi đã đóng băng manifest
+    // chạy tiếp khi dữ liệu không đổi → vẫn qua
+    pipeline.requeueRender(ctx, t.db.get('SELECT * FROM renders WHERE id=?', r.id), { actor: 'user' });
+    let w = pipeline.startWorkers(ctx, { pollMs: 20 });
+    try { await w.idle(60000); } finally { w.stop(); }
+    assert.equal(t.db.get('SELECT state FROM renders WHERE id=?', r.id).state, 'awaiting_review');
+    // đổi kênh (version mới) rồi chạy tiếp → chặn
+    t.write(b.o, 'channel.update', { channel: b.ch.display_id, data: { style: { a: 2 } } });
+    t.db.run("UPDATE renders SET state='blocked' WHERE id=?", r.id);
+    pipeline.requeueRender(ctx, t.db.get('SELECT * FROM renders WHERE id=?', r.id), { actor: 'user' });
+    w = pipeline.startWorkers(ctx, { pollMs: 20 });
+    try { await w.idle(60000); } finally { w.stop(); }
+    const after = t.db.json(t.db.get('SELECT * FROM renders WHERE id=?', r.id));
+    assert.equal(after.state, 'blocked');
+    assert.equal(after.blocked_reason.code, 'manifest_changed');
+    assert.deepEqual(after.manifest, r.manifest, 'manifest đóng băng không bị sửa');
+  } finally { t.clean(); }
+});
+
+test('d-pipeline: chạy lại bản đã xong có trần số lần mỗi phiên bản bài', async () => {
+  const t = tmpDb(); delete process.env.GS_FAKE_FAIL;
+  try {
+    const b = basics(t.write, t.db);
+    const ctx = mkctx(t);
+    let last = t.db.get('SELECT * FROM renders WHERE display_id=?', t.write(b.o, 'lesson.submit', lessonBody(b)).render.display_id);
+    const again = () => { t.db.run("UPDATE renders SET state='rejected' WHERE id=?", last.id); return pipeline.requeueRender(ctx, t.db.get('SELECT * FROM renders WHERE id=?', last.id), { actor: 'user' }); };
+    for (let i = 0; i < 5; i++) last = again();
+    assert.throws(again, e => e.code === 'conflict' && /5 lần/.test(e.message));
+  } finally { t.clean(); }
+});

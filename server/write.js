@@ -363,9 +363,11 @@ function createWriter(db, opts = {}) {
       asset_ids: r.b.asset_ids || null, created_by: c.by }));
 
     // render cũ chưa duyệt → superseded
-    const olds = db.all(`SELECT r.id FROM renders r JOIN lesson_versions lv ON lv.id=r.lesson_version_id
+    const olds = db.all(`SELECT r.id, r.state, r.display_id FROM renders r JOIN lesson_versions lv ON lv.id=r.lesson_version_id
        WHERE lv.lesson_id=? AND r.state NOT IN ('approved','changes_requested','rejected','superseded')`, lesson.id);
-    for (const o of olds) state.transitionRender(db, o.id, 'superseded');
+    // agent không được đè lên bản đang chờ chủ xưởng duyệt
+    if (c.a.type === 'agent') { const w = olds.find(o => o.state === 'awaiting_review'); if (w) throw err('forbidden', `Bản dựng ${w.display_id} đang chờ chủ xưởng duyệt; agent không nộp đè lên được.`, { render: w.display_id }); }
+    for (const o of olds) state.transitionRender(db, o.id, 'superseded', { actor: c.a });
 
     const render = db.insertRow('renders', { lesson_version_id: version.id, state: 'queued', state_changed_at: db.now(), progress: 0, created_by: c.by }, { prefix: 'RD' });
     const run = queue.enqueue(db, { kind: 'voicing', render_id: render.id, payload: { render_id: render.display_id, lesson_version_id: version.id }, created_by: c.by });

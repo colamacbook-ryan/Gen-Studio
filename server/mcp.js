@@ -238,8 +238,8 @@ function createMcp(ctx) {
     return { text: `Bản dựng ${r.display_id} (${v.render.lesson_display_id} v${v.render.version}): ${r.state}, tiến độ ${Math.round((r.progress || 0) * 100)}%${r.waiting_until ? ', chạy tiếp lúc ' + r.waiting_until : ''}${v.render.blocked_reason ? '\nBị chặn: ' + v.render.blocked_reason.text_human : ''}\nCổng: ` + v.gates.map(g => g.gate + '=' + g.result).join(' '), data: v };
   });
   tool('run_lesson', 'run', 'Chạy lại pipeline cho bài (bản dựng mới hoặc chạy tiếp bản đang chặn/chờ).', { lesson: S }, ['lesson'], () => null);
-  T[T.length - 1].run = a => {
-    const out = pipeline.requeueRender(ctx, renderOf({ lesson: a.lesson }), { actor: 'agent' });
+  T[T.length - 1].run = (a, c) => {
+    const out = pipeline.requeueRender(ctx, renderOf({ lesson: a.lesson }), { actor: actorOf(c) });
     return { text: `Bản dựng ${out.display_id} đã vào hàng đợi (${out.state}).`, data: { render: out.display_id, state: out.state } };
   };
   tool('get_run', 'read', 'Xem một Run.', { run: S }, ['run'], a => {
@@ -247,10 +247,10 @@ function createMcp(ctx) {
     const rd = r.render_id ? db.get('SELECT display_id FROM renders WHERE id=?', r.render_id) : null;
     return { text: `Run ${r.display_id} (${r.kind}) ${r.state}, tiến độ ${Math.round((r.progress || 0) * 100)}%${r.error ? ', lỗi: ' + r.error.text_human : ''}`, data: { run: { display_id: r.display_id, kind: r.kind, state: r.state, attempt: r.attempt, progress: r.progress, render: rd && rd.display_id, error: r.error, waiting_until: r.waiting_until } } };
   });
-  tool('retry_run', 'run', 'Thử lại: chạy tiếp bản dựng của Run đã lỗi/bị huỷ.', { run: S }, ['run'], a => {
+  tool('retry_run', 'run', 'Thử lại: chạy tiếp bản dựng của Run đã lỗi/bị huỷ.', { run: S }, ['run'], (a, c) => {
     const r = need('runs', a.run, 'lượt chạy');
     if (!r.render_id) throw fail('invalid', 'Run này không gắn với bản dựng nên không thử lại được.');
-    const out = pipeline.requeueRender(ctx, db.json(db.get('SELECT * FROM renders WHERE id=?', r.render_id)), { actor: 'agent' });
+    const out = pipeline.requeueRender(ctx, db.json(db.get('SELECT * FROM renders WHERE id=?', r.render_id)), { actor: actorOf(c) });
     return { text: `Bản dựng ${out.display_id} đã vào hàng đợi (${out.state}).`, data: { render: out.display_id, state: out.state } };
   });
   tool('list_review_notes', 'read', 'Ghi chú duyệt (chỉ đọc) của một bản dựng hoặc bài.', { render: S, lesson: S }, [], a => {

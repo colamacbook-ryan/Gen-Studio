@@ -152,3 +152,33 @@ test('d-mcp: agent báo lỗi → lệnh không bị trả lại mãi; tối đa
     assert.equal((await call(c, 'get_next_task')).structuredContent.task, null);
   } finally { t.clean(); }
 });
+
+test('d-mcp: agent scope run không rút bản dựng khỏi hàng chờ duyệt; blocked thì chạy lại được, audit ghi agent:<id>', async () => {
+  const { t, b, mk, call } = setup();
+  try {
+    const { c, r } = mk(['read', 'compose', 'run']);
+    const sub = await call(c, 'submit_lesson', lesson(b));
+    const rd = sub.structuredContent.render;
+    const setState = s => t.db.run('UPDATE renders SET state=? WHERE display_id=?', s, rd);
+    const stateOf = () => t.db.get('SELECT state FROM renders WHERE display_id=?', rd).state;
+    for (const s of ['awaiting_review', 'rejected', 'changes_requested']) {
+      setState(s);
+      const x = await call(c, 'run_lesson', { lesson: sub.structuredContent.lesson });
+      assert.ok(x.isError && /forbidden/.test(x.content[0].text), s);
+      assert.equal(stateOf(), s, 'không đổi trạng thái');
+      assert.equal(t.db.get('SELECT COUNT(*) AS n FROM renders').n, 1, 'không tạo render mới');
+    }
+    // blocked → chạy lại được, audit ghi đúng agent
+    setState('blocked');
+    const ok = await call(c, 'run_lesson', { lesson: sub.structuredContent.lesson });
+    assert.ok(!ok.isError, ok.content[0].text);
+    assert.equal(stateOf(), 'queued');
+    const au = t.db.get("SELECT actor FROM audit_log WHERE action='render.queued' ORDER BY rowid DESC LIMIT 1");
+    assert.match(au.actor, /^agent:/);
+    // lesson.submit của agent không đè lên bản đang chờ duyệt
+    setState('awaiting_review');
+    const again = await call(c, 'submit_lesson', Object.assign(lesson(b), { lesson: sub.structuredContent.lesson }));
+    assert.ok(again.isError && /forbidden/.test(again.content[0].text), again.content[0].text);
+    assert.equal(stateOf(), 'awaiting_review');
+  } finally { t.clean(); }
+});

@@ -100,6 +100,9 @@ function openUnblockWo(db, render, reason) {
   const n = db.get(`SELECT COUNT(*) AS n FROM work_orders WHERE kind='unblock' AND lesson_id=? AND state!='cancelled'`, lesson.id).n;
   const brief = `Bản dựng ${render.display_id} bị chặn: ${reason.text_human || reason.code}. Hãy sửa bài ${lesson.display_id} và nộp phiên bản mới.`;
   if (n >= MAX_UNBLOCK) {
+    // đã có lệnh stalled cho bài này thì không tạo thêm bản trùng
+    const dup = db.get(`SELECT id FROM work_orders WHERE kind='unblock' AND lesson_id=? AND state='stalled' LIMIT 1`, lesson.id);
+    if (dup) return byRef(db, 'work_orders', dup.id);
     return createWorkOrder(db, { channel_id: lesson.channel_id, kind: 'unblock', lesson_id: lesson.id, render_id: render.id, state: 'stalled',
       brief, summary: `Đã đạt trần ${MAX_UNBLOCK} lệnh gỡ chặn cho bài này; cần chủ xưởng xem.` });
   }
@@ -183,4 +186,4 @@ function review(db, { user, renderId, decision, notes = [], reviewSeconds = null
   });
 }
 
-module.exports = { review, transitionRender, transitionWorkOrder, createWorkOrder, RENDER_EDGES, WO_EDGES, MAX_UNBLOCK };
+module.exports = { actorStr, review, transitionRender, transitionWorkOrder, createWorkOrder, RENDER_EDGES, WO_EDGES, MAX_UNBLOCK };
