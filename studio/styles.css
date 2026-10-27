@@ -1,4 +1,6 @@
 /* © 2026 Gen Labs — All rights reserved. Data Console tokens (BUILD-BRIEF §2). */
+/* Thuộc tính hidden phải thắng mọi display của component (.row, .btn…) */
+[hidden]{display:none !important}
 :root{
   --canvas:#111012;--surface:#18171A;--raised:#201F23;--sunken:#0C0B0D;--theater:#08080A;
   --b1:#26252A;--b2:#34333A;--tx:#ECEAE6;--tx2:#A8A49D;--tx3:#8A857E;

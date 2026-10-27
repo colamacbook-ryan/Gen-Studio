@@ -70,7 +70,9 @@ async function render() {
     let needsOwner = false;
     try { const st = await get('/api/setup/state'); needsOwner = !!(st && (st.needs_owner ?? (st.has_owner === false) ?? (st.owner_exists === false))); } catch { needsOwner = false; }
     if (mySeq !== seq) return;
-    location.hash = needsOwner ? '#/setup' : '#/login';
+    // link của installer/server có dạng /?k=<khoá>: mang khoá sang #/setup?k=… (trước đây bị rơi → bước tạo chủ xưởng luôn 403)
+    const k = new URLSearchParams(location.search).get('k');
+    location.hash = needsOwner ? '#/setup' + (k ? '?k=' + encodeURIComponent(k) : '') : '#/login';
     return;
   }
   const theater = (route.path === 'review' && route.id) || PUBLIC.has(route.path);

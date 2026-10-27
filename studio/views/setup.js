@@ -12,7 +12,7 @@ import { badge } from '../components/states.js';
 const STEPS = ['owner', 'provider', 'agent', 'channel'];
 
 export function mount(container, ctx) {
-  const key = ctx.route.query.k || '';
+  const key = ctx.route.query.k || new URLSearchParams(location.search).get('k') || '';
   let step = ctx.me ? 1 : 0; // đã có phiên (vd tải lại trang) thì sang bước 2
   const stepper = h('ol', { class: 'stepper' });
   const panel = h('div', { class: 'step-panel' });
@@ -34,11 +34,13 @@ export function mount(container, ctx) {
   function formShell(title, hint, fields, onSubmit, submitLabel, extra) {
     const msg = h('div');
     const submit = h('button', { type: 'submit', class: 'btn primary' }, submitLabel);
+    // hàng nút gửi/bỏ qua — bước xong thì ẩn đi để chỉ còn MỘT nút chính (Tiếp tục), theo STD-07
+    const row = h('div', { class: 'row' }, submit, extra || null);
     return h('form', { class: 'step-form', onsubmit: async (e) => {
       e.preventDefault(); submit.disabled = true; clear(msg);
-      try { await onSubmit(msg); } catch (ex) { msg.append(errorBanner(ex)); }
+      try { await onSubmit(msg, row); } catch (ex) { msg.append(errorBanner(ex)); }
       submit.disabled = false;
-    } }, h('h2', null, title), h('p', { class: 'muted' }, hint), fields, msg, h('div', { class: 'row' }, submit, extra || null));
+    } }, h('h2', null, title), h('p', { class: 'muted' }, hint), fields, msg, row);
   }
 
   function ownerStep() {
@@ -60,7 +62,7 @@ export function mount(container, ctx) {
     const k = input('password', 'su-key', { autocomplete: 'new-password' });
     const result = h('div', { class: 'scan' });
     return formShell(t('setup.provider.title'), t('setup.provider.hint'), [inField(t('prov.key'), k), result],
-      async () => {
+      async (msg, row) => {
         clear(result);
         const saved = await post('/api/providers', { vendor: 'gemini', kind: 'tts', key: k.value.trim() });
         k.value = '';
@@ -76,6 +78,7 @@ export function mount(container, ctx) {
           }
         }
         result.append(h('button', { type: 'button', class: 'btn primary', onclick: next }, t('common.next')));
+        row.hidden = true;
       }, t('prov.save_scan'), skipBtn());
   }
 
@@ -83,9 +86,10 @@ export function mount(container, ctx) {
     const name = input('text', 'su-agent'); name.value = 'Claude Code';
     const out = h('div');
     return formShell(t('setup.agent.title'), t('setup.agent.hint'), [inField(t('agent.name'), name), out],
-      async () => {
+      async (msg, row) => {
         const res = await post('/api/agents', { name: name.value.trim(), scopes: ['read', 'compose', 'run'] });
         clear(out); out.append(tokenResult(res), h('button', { type: 'button', class: 'btn primary', onclick: next }, t('common.next')));
+        row.hidden = true; name.disabled = true;
       }, t('agent.issue'), skipBtn());
   }
 

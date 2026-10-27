@@ -113,7 +113,7 @@ export function tokenResult(res) {
   const box = h('div', { class: 'token-once' },
     h('div', { class: 'banner warn' }, icon('warn'), h('span', null, t('agent.token_once'))),
     h('code', { class: 'mono token' }, token));
-  box.append(btn(t('common.copy'), async (e) => { e.currentTarget.textContent = (await copyText(token)) ? t('common.copied') : t('common.copy_failed'); }, 'btn primary'));
+  box.append(btn(t('common.copy'), async (e) => { e.currentTarget.textContent = (await copyText(token)) ? t('common.copied') : t('common.copy_failed'); }, 'btn'));
   return box;
 }
 export function agentForm(onDone) {
