@@ -66,3 +66,11 @@ test('asset illustration ngoài thư mục asset hoặc qua symlink ra ngoài b�
   assert.strictEqual(mimeOf(Buffer.from('<html><svg></svg></html>')), null);
   fs.rmSync(root, { recursive: true, force: true }); fs.rmSync(out, { recursive: true, force: true });
 });
+
+test('c-render: Cdp.send không có phản hồi → reject cdp_timeout và gỡ khỏi pending', async () => {
+  const { Cdp } = require('../render/cdp');
+  const ws = { addEventListener() {}, send() { /* không bao giờ trả lời */ }, close() {} };
+  const c = new Cdp(ws, { sendTimeoutMs: 50 });
+  await assert.rejects(c.send('Page.enable'), e => e.code === 'cdp_timeout');
+  assert.equal(c.pending.size, 0);
+});

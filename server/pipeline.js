@@ -285,7 +285,8 @@ async function execute(ctx, run, renderId) {
     render = row(db, 'SELECT * FROM renders WHERE id=?', renderId);
     goto('rendering', render.manifest ? {} : { manifest });
     const frozen = (row(db, 'SELECT manifest FROM renders WHERE id=?', renderId) || {}).manifest || manifest;
-    const r = await D('render').renderPlan({ plan, outDir: path.join(tmp, 'frames'), chromiumPath: config.chromiumPath, assetRoot: config.dataDir, onProgress: p => { try { progress(0.33 + 0.47 * Math.max(0, Math.min(1, p))); } catch (e) { if (e instanceof Abort) return; throw e; } } });
+    const r = await D('render').renderPlan({ plan, outDir: path.join(tmp, 'frames'), chromiumPath: config.chromiumPath, assetRoot: config.dataDir, onProgress: p => { try { progress(0.33 + 0.47 * Math.max(0, Math.min(1, p))); } catch (e) { if (e instanceof Abort) return; throw e; } } })
+      .catch(e => { if (e && (e.code === 'render_timeout' || e.code === 'cdp_timeout')) throw new Block('render_timeout', 'Dựng khung hình bị treo/quá hạn; đã đóng trình duyệt. Chạy lại được.', { message: e.message }); throw e; });
     alive();
 
     // --- mixing ---
@@ -417,6 +418,22 @@ function pumpQueued(ctx) {
     .forEach(r => queue.enqueue(db, { kind: 'voicing', render_id: r.id, payload: { render_id: r.id }, created_by: 'system' }));
 }
 
+// Gia hạn lease CHỈ khi run còn tiến triển (progress/state đổi trong staleMs); đứng yên quá hạn → để lease hết, run chạy bù được.
+function startHeartbeat(db, runId, o = {}) {
+  const staleMs = o.heartbeatStaleMs || 120000, every = o.heartbeatMs || 15000;
+  const key = () => { const r = db.get('SELECT progress, state, (SELECT state FROM renders WHERE id=runs.render_id) AS rs FROM runs WHERE id=?', runId); return r ? r.progress + '|' + r.state + '|' + r.rs : ''; };
+  let last = key(), lastChange = Date.now();
+  const t = setInterval(() => {
+    try {
+      const k = key();
+      if (k !== last) { last = k; lastChange = Date.now(); }
+      if (Date.now() - lastChange <= staleMs) queue.heartbeat(db, runId, o.leaseMs || LEASE_MS);
+    } catch (e) { events.logError('heartbeat', e); }
+  }, every);
+  t.unref();
+  return { stop() { clearInterval(t); } };
+}
+
 function startWorkers(ctx, opts = {}) {
   const workerId = 'w-' + process.pid + '-' + crypto.randomBytes(3).toString('hex');
   ctx.pipelineOpts = Object.assign({}, ctx.pipelineOpts, opts);
@@ -428,9 +445,8 @@ function startWorkers(ctx, opts = {}) {
       pumpQueued(ctx);
       const run = queue.lease(ctx.db, ['voicing'], workerId, LEASE_MS);
       if (!run) return false;
-      const hb = setInterval(() => { try { queue.heartbeat(ctx.db, run.id, LEASE_MS); } catch (e) { events.logError('heartbeat', e); } }, 15000);
-      hb.unref();
-      try { await runOne(ctx, run); } finally { clearInterval(hb); }
+      const hb = startHeartbeat(ctx.db, run.id, ctx.pipelineOpts);
+      try { await runOne(ctx, run); } finally { hb.stop(); }
       return true;
     } finally { busy = false; }
   }
@@ -525,4 +541,4 @@ async function scanProvider(ctx, pv, actor) {
   return { models: (res.models || []).map(m => ({ model: m.model, kind: m.kind, available: m.available, quota: m.quota })), voices: scan.voices, scan };
 }
 
-module.exports = { startWorkers, requeueRender, exportRender, scanProvider, extractTerms, assetFile, localParts, nextMidnightIso, wsTz, aggregateGates, SYS };
+module.exports = { startWorkers, startHeartbeat, requeueRender, exportRender, scanProvider, extractTerms, assetFile, localParts, nextMidnightIso, wsTz, aggregateGates, SYS };

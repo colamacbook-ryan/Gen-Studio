@@ -8,7 +8,8 @@ class CdpError extends Error {
 }
 
 class Cdp {
-  constructor(ws) {
+  constructor(ws, opts) {
+    this.sendTimeoutMs = (opts && opts.sendTimeoutMs) || 30000;   // mỗi lệnh CDP phải có phản hồi trong hạn này, không treo vô hạn
     this.ws = ws; this.nextId = 1; this.pending = new Map(); this.handlers = new Map(); this.closed = false;
     ws.addEventListener('message', ev => this._onMessage(ev.data));
     ws.addEventListener('close', () => this._onClose('kết nối CDP đã đóng'));
@@ -32,7 +33,14 @@ class Cdp {
     if (this.closed) return Promise.reject(new Error('kết nối CDP đã đóng'));
     const id = this.nextId++, msg = { id, method, params: params || {} };
     if (sessionId) msg.sessionId = sessionId;
-    return new Promise((resolve, reject) => { this.pending.set(id, { resolve, reject, method }); this.ws.send(JSON.stringify(msg)); });
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pending.delete(id);
+        const e = new Error('quá hạn chờ phản hồi CDP: ' + method); e.code = 'cdp_timeout'; reject(e);
+      }, this.sendTimeoutMs);
+      this.pending.set(id, { resolve: v => { clearTimeout(timer); resolve(v); }, reject: e => { clearTimeout(timer); reject(e); }, method });
+      try { this.ws.send(JSON.stringify(msg)); } catch (e) { this.pending.delete(id); clearTimeout(timer); reject(e); }
+    });
   }
   on(event, fn) { if (!this.handlers.has(event)) this.handlers.set(event, []); this.handlers.get(event).push(fn); return this; }
   // chờ một sự kiện (tuỳ chọn lọc theo session), có hạn
@@ -57,11 +65,11 @@ class Cdp {
   close() { try { this.ws.close(); } catch (e) { /* đã đóng */ } }
 }
 
-function connect(wsUrl, timeoutMs) {
+function connect(wsUrl, timeoutMs, opts) {
   if (typeof WebSocket === 'undefined') return Promise.reject(new Error('Node thiếu WebSocket toàn cục (cần Node 22+)'));
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(wsUrl), timer = setTimeout(() => reject(new Error('quá hạn kết nối CDP')), timeoutMs || 15000);
-    ws.addEventListener('open', () => { clearTimeout(timer); resolve(new Cdp(ws)); });
+    ws.addEventListener('open', () => { clearTimeout(timer); resolve(new Cdp(ws, opts)); });
     ws.addEventListener('error', () => { clearTimeout(timer); reject(new Error('không kết nối được CDP ' + wsUrl)); });
   });
 }

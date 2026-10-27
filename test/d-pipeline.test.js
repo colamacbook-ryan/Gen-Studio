@@ -126,3 +126,25 @@ test('d-pipeline: bài mới khi render cũ chưa duyệt → render cũ superse
     assert.equal(t.db.get("SELECT COUNT(*) AS n FROM renders WHERE state='awaiting_review'").n, 1);
   } finally { t.clean(); }
 });
+
+test('d-pipeline: heartbeat chỉ gia hạn lease khi run còn tiến triển', async () => {
+  const t = tmpDb();
+  try {
+    const b = basics(t.write, t.db);
+    const run = require('../server/queue.js').enqueue(t.db, { kind: 'voicing', render_id: null, payload: {} });
+    const leaseOf = () => t.db.get('SELECT lease_until FROM runs WHERE id=?', run.id).lease_until;
+    t.db.update('runs', run.id, { state: 'running', lease_until: new Date(0).toISOString() });
+    const hb = pipeline.startHeartbeat(t.db, run.id, { heartbeatMs: 10, heartbeatStaleMs: 80, leaseMs: 60000 });
+    try {
+      await new Promise(r => setTimeout(r, 40));
+      assert.ok(Date.parse(leaseOf()) > Date.now(), 'còn tiến triển/chưa quá hạn → được gia hạn');
+      await new Promise(r => setTimeout(r, 150));           // đứng yên quá staleMs → ngừng gia hạn
+      t.db.update('runs', run.id, { lease_until: new Date(0).toISOString() });
+      await new Promise(r => setTimeout(r, 60));
+      assert.equal(leaseOf(), new Date(0).toISOString(), 'đứng yên → lease không được gia hạn');
+      t.db.update('runs', run.id, { progress: 0.5 });       // tiến triển trở lại → gia hạn lại
+      await new Promise(r => setTimeout(r, 60));
+      assert.ok(Date.parse(leaseOf()) > Date.now());
+    } finally { hb.stop(); }
+  } finally { t.clean(); }
+});

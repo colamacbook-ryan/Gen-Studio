@@ -55,9 +55,26 @@ async function renderPlan(opts) {
   const plan2 = Object.assign({}, plan, { assetData: resolveAssets(plan, errors, opts.assetRoot), fontCss });
 
   const ch = await chromium.launch({ path: opts.chromiumPath });
-  let client = null;
+  let client = null, deadline = null;
+  // hạn tổng: max(120 s, 5× độ dài clip); quá hạn → đóng Chromium và ném lỗi có mã, không để pipeline treo mãi
+  const limitMs = opts.deadlineMs || Math.max(120000, 5 * plan.duration_ms);
+  const expired = new Promise((_, reject) => {
+    deadline = setTimeout(() => {
+      const e = new Error('Dựng khung hình quá hạn ' + Math.round(limitMs / 1000) + ' giây.'); e.code = 'render_timeout';
+      try { if (client) client.close(); } catch (x) { /* đã đóng */ }
+      ch.close().catch(() => {}); reject(e);
+    }, limitMs);
+  });
   try {
-    client = await cdp.connect(ch.wsUrl);
+    return await Promise.race([execute(), expired]);
+  } finally {
+    clearTimeout(deadline);
+    if (client) client.close();
+    await ch.close();
+  }
+
+  async function execute() {
+    client = await cdp.connect(ch.wsUrl, undefined, { sendTimeoutMs: opts.sendTimeoutMs });
     const { targetId } = await client.send('Target.createTarget', { url: 'about:blank' });
     const { sessionId } = await client.send('Target.attachToTarget', { targetId, flatten: true });
     const page = client.session(sessionId);
@@ -101,9 +118,6 @@ async function renderPlan(opts) {
     }
     if (opts.onProgress) opts.onProgress(1);
     return { framesPattern: path.join(framesDir, 'f%05d.jpg'), frames: N, fps, errors, sfx, cover, render_ms: renderMs, render_fps: +(N / (renderMs / 1000)).toFixed(2) };
-  } finally {
-    if (client) client.close();
-    await ch.close();
   }
 }
 
