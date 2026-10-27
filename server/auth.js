@@ -149,6 +149,8 @@ function limiter() {
       f.n++;
       return f.n > max;
     },
+    // đã chạm trần chưa (không tính thêm): dùng để chỉ đếm các yêu cầu THẤT BẠI
+    peek(key, max) { const f = m.get(key); return !!(f && Date.now() <= f.until && f.n >= max); },
   };
 }
 

@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS auth_requests (
   scopes_requested TEXT NOT NULL, scopes_granted TEXT,
   redirect_uri TEXT, pkce_challenge TEXT, state TEXT, resource TEXT, source_ip TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','denied','expired')),
-  expires_at TEXT NOT NULL, last_poll_at TEXT,
+  expires_at TEXT NOT NULL, last_poll_at TEXT, consumed_at TEXT,   -- consumed_at: device_code đã đổi token (một lần)
   decided_by TEXT REFERENCES users(id), decided_at TEXT, agent_id TEXT REFERENCES agents(id), replaces_agent_id TEXT REFERENCES agents(id),
   created_at TEXT NOT NULL,
   UNIQUE (workspace_id, display_id)
@@ -60,6 +60,7 @@ ALTER TABLE agent_tokens ADD COLUMN kind TEXT NOT NULL DEFAULT 'static' CHECK (k
 ALTER TABLE agent_tokens ADD COLUMN expires_at TEXT;
 ALTER TABLE agent_tokens ADD COLUMN audience TEXT;
 ALTER TABLE agent_tokens ADD COLUMN scopes TEXT;
+ALTER TABLE agent_tokens ADD COLUMN grant_id TEXT;   -- refresh grant đã cấp cùng access token (thu hồi theo cặp)
 CREATE INDEX IF NOT EXISTS idx_agent_tokens_agent ON agent_tokens(agent_id, kind);
 CREATE INDEX IF NOT EXISTS idx_agent_tokens_expires ON agent_tokens(expires_at) WHERE kind='access';
 

@@ -466,7 +466,7 @@ test('ghép thiết bị: runner (kênh nội bộ) → internal, duyệt thẳn
   } finally { await t.clean(); }
 });
 
-test('ghép thiết bị: trần pending theo kênh — đẩy bỏ hàng cũ nhất, kênh nội bộ có chỗ riêng; hạn tần suất theo kênh', async () => {
+test('trần pending: theo kênh/nguồn/client, quá trần thì TỪ CHỐI (không đẩy bỏ yêu cầu cũ); kênh nội bộ có chỗ riêng; "Nguồn" hiện kênh', async () => {
   const t = await boot({ config: { deviceIntervalMs: 20 } });
   try {
     const db = dbOf(t);
@@ -474,20 +474,159 @@ test('ghép thiết bị: trần pending theo kênh — đẩy bỏ hàng cũ nh
     const first = (await startDevice(t, {}, INTERNAL)).json;
     await openWindow(t, 'loopback');
     for (let i = 0; i < 6; i++) assert.equal((await startDevice(t, { client_name: 'CLI ' + i })).status, 200);
-    // 12 yêu cầu OAuth từ loopback không chiếm hết chỗ: quá 10 thì hàng cũ nhất bị đẩy, yêu cầu mới vẫn vào
+    // một client chỉ có tối đa 2 yêu cầu chờ; yêu cầu thứ 3 bị từ chối bằng redirect lỗi, hai yêu cầu cũ còn nguyên
     const cid = await register(t.base);
-    for (let i = 0; i < 12; i++) assert.equal((await authorize(t.base, cid, 'http://127.0.0.1:53682/callback', { challenge: pkce().challenge })).status, 302);
+    const ok = [];
+    for (let i = 0; i < 2; i++) { const a = await authorize(t.base, cid, 'http://127.0.0.1:53682/callback', { challenge: pkce().challenge }); assert.equal(a.status, 302); ok.push(reqIdOf(a.location)); }
+    const third = await authorize(t.base, cid, 'http://127.0.0.1:53682/callback', { challenge: pkce().challenge });
+    assert.match(third.location, /^http:\/\/127\.0\.0\.1:53682\/callback\?error=temporarily_unavailable/);
+    assert.equal(db.all("SELECT * FROM auth_requests WHERE status='pending' AND client_id=?", cid).length, 2);
+    assert.ok(ok.every(id => db.get('SELECT status FROM auth_requests WHERE display_id=?', id).status === 'pending'), 'không đẩy bỏ yêu cầu cũ');
+    // trần kênh loopback (10): nhiều client cũng không vượt; yêu cầu nội bộ vẫn còn
+    for (let i = 0; i < 8; i++) { const c = await register(t.base); await authorize(t.base, c, 'http://127.0.0.1:53682/callback', { challenge: pkce().challenge }); }
     const pend = db.all("SELECT * FROM auth_requests WHERE status='pending'");
-    assert.equal(pend.filter(r => r.channel !== 'internal').length, 10);
+    assert.ok(pend.filter(r => r.channel === 'loopback').length <= 10, 'không vượt trần kênh loopback');
     assert.equal(pend.filter(r => r.channel === 'internal').length, 1, 'yêu cầu nội bộ còn nguyên');
     assert.equal((await token(t.base, { grant_type: DEV, device_code: first.device_code, client_id: first.client_id }, INTERNAL)).json.error, 'authorization_pending');
-    // nguồn "kênh" hiển thị, không phải IP
     const rows = (await t.call('GET', '/api/grid/auth_requests')).json.rows;
     assert.ok(rows.every(r => /^(trong máy|qua Internet)/.test(r.channel)) && !rows.some(r => /127\.0\.0\.1/.test(r.channel)));
     let last; for (let i = 0; i < 14; i++) last = await startDevice(t, {});
-    assert.equal(last.status, 429);
+    assert.ok([429].includes(last.status)); assert.ok(['temporarily_unavailable', 'too_many_pending'].includes(last.json.error));
     await openWindow(t);
     assert.equal((await startDevice(t, {}, INTERNAL)).status, 200, 'kênh nội bộ không bị kênh loopback làm cạn hạn');
+  } finally { await t.clean(); }
+});
+
+test('PoC P1: hạn tần suất theo nguồn — một kẻ tấn công (IP công khai) không khoá client khác; /oauth/token chỉ đếm yêu cầu thất bại', async () => {
+  const t = await boot();
+  try {
+    const pubIp = ip => ({ 'X-Forwarded-For': ip + ', 10.0.0.1' });
+    const reg = (ip) => request(t.base, 'POST', '/oauth/register', { body: { client_name: 'X', redirect_uris: ['https://claude.ai/api/mcp/auth_callback'] }, headers: pubIp(ip) });
+    for (let i = 0; i < 5; i++) assert.equal((await reg('198.51.100.1')).status, 201);
+    assert.equal((await reg('198.51.100.1')).status, 429, 'nguồn tấn công bị giới hạn nhỏ');
+    assert.equal((await reg('160.79.104.10')).status, 201, 'nguồn khác (claude.ai) vẫn đăng ký được');
+    // /oauth/token: kẻ dò mã bị 429 sau 20 lần LỖI, client hợp lệ ở nguồn khác không bị ảnh hưởng
+    const g = await getCode(t, t.call); const tk = (await exchange(t.base, g)).json;
+    let last; for (let i = 0; i < 25; i++) last = await token(t.base, { grant_type: 'refresh_token', refresh_token: 'gsr_sai', client_id: 'cl_khac' }, pubIp('198.51.100.7'));
+    assert.equal(last.status, 429);
+    assert.equal((await token(t.base, { grant_type: 'refresh_token', refresh_token: 'gsr_sai2', client_id: 'cl_khac2' }, pubIp('198.51.100.7'))).status, 429, 'cùng nguồn vẫn bị chặn');
+    // thành công không tiêu hạn mức: 30 lần refresh hợp lệ liên tiếp từ một nguồn công khai đều 200
+    let cur = tk.refresh_token;
+    for (let i = 0; i < 30; i++) { const r = await token(t.base, { grant_type: 'refresh_token', refresh_token: cur, client_id: g.clientId }, pubIp('160.79.104.10')); assert.equal(r.status, 200, 'lần ' + i); cur = r.json.refresh_token; }
+    // theo client_id: 30 lỗi từ nhiều nguồn khác nhau vào cùng một client_id
+    for (let i = 0; i < 30; i++) await token(t.base, { grant_type: 'refresh_token', refresh_token: 'gsr_x' + i, client_id: 'cl_muc_tieu' }, pubIp('203.0.113.' + i));
+    assert.equal((await token(t.base, { grant_type: 'refresh_token', refresh_token: 'gsr_y', client_id: 'cl_muc_tieu' }, pubIp('203.0.113.200'))).status, 429);
+  } finally { await t.clean(); }
+});
+
+test('PoC P2: flood authorize không đẩy bỏ yêu cầu của chủ xưởng và không làm ngập Chờ duyệt', async () => {
+  const t = await boot();
+  try {
+    const pubIp = ip => ({ 'X-Forwarded-For': ip });
+    const claude = 'https://claude.ai/api/mcp/auth_callback';
+    const legit = (await request(t.base, 'POST', '/oauth/register', { body: { client_name: 'Claude', redirect_uris: [claude] }, headers: pubIp('160.79.104.10') })).json.client_id;
+    const a = await authorize(t.base, legit, claude, { challenge: pkce().challenge, headers: pubIp('160.79.104.10') });
+    const id = reqIdOf(a.location);
+    const evil = (await request(t.base, 'POST', '/oauth/register', { body: { client_name: 'E', redirect_uris: ['https://evil.example/cb'] }, headers: pubIp('198.51.100.1') })).json.client_id;
+    const codes = [];
+    for (let i = 0; i < 12; i++) codes.push((await authorize(t.base, evil, 'https://evil.example/cb', { challenge: pkce().challenge, headers: pubIp('198.51.100.1') })).location);
+    assert.equal(codes.filter(l => /^\/#\/authorize/.test(l)).length, 2, 'tối đa 2 yêu cầu chờ cho mỗi client');
+    assert.ok(codes.some(l => /error=temporarily_unavailable/.test(l)));
+    const pend = (await t.call('GET', '/api/auth-requests')).json.requests;
+    assert.ok(pend.length <= 3 && pend.some(r => r.id === id), 'yêu cầu của chủ xưởng còn nguyên, danh sách không bị ngập');
+    const ap = await t.call('POST', `/api/auth-requests/${id}/approve`, { confirm: true });
+    assert.equal(ap.status, 200, ap.text);
+    // nhiều client từ cùng nguồn công khai: trần theo nguồn (3)
+    for (let i = 0; i < 4; i++) { const c = (await request(t.base, 'POST', '/oauth/register', { body: { client_name: 'E' + i, redirect_uris: ['https://evil.example/cb'] }, headers: pubIp('198.51.100.2') })).json.client_id; if (c) await authorize(t.base, c, 'https://evil.example/cb', { challenge: pkce().challenge, headers: pubIp('198.51.100.9') }); }
+    assert.ok(dbOf(t).get("SELECT COUNT(*) AS n FROM auth_requests WHERE status='pending' AND source_ip='198.51.100.9'").n <= 3);
+  } finally { await t.clean(); }
+});
+
+test('PoC P3: device_code đã đổi token không dùng lại được kể cả khi grant bị dọn; approved quá hạn ⇒ expired_token', async () => {
+  const t = await boot({ config: { deviceIntervalMs: 20 } });
+  try {
+    const db = dbOf(t);
+    await openWindow(t, 'loopback');
+    const d = (await startDevice(t, { client_name: 'cli' })).json;
+    const rq = byCode(t, d.user_code);
+    assert.equal((await t.call('POST', `/api/auth-requests/${rq.display_id}/approve`, { user_code: d.user_code })).status, 200);
+    const poll = () => token(t.base, { grant_type: DEV, device_code: d.device_code, client_id: d.client_id });
+    await wait(); assert.equal((await poll()).status, 200);
+    assert.ok(db.get('SELECT consumed_at FROM auth_requests WHERE id=?', rq.id).consumed_at);
+    db.raw.exec('PRAGMA foreign_keys=OFF'); db.run('DELETE FROM oauth_grants'); db.raw.exec('PRAGMA foreign_keys=ON');   // mô phỏng sweep đã dọn chuỗi refresh
+    db.run("UPDATE auth_requests SET expires_at='2000-01-01T00:00:00.000Z' WHERE id=?", rq.id);
+    await wait(); assert.notEqual((await poll()).status, 200);
+    db.run("UPDATE auth_requests SET expires_at='2099-01-01T00:00:00.000Z' WHERE id=?", rq.id);
+    await wait(); const again = await poll(); assert.equal(again.status, 400); assert.equal(again.json.error, 'invalid_grant', 'consumed_at chặn dùng lại dù không còn grant');
+    // approved nhưng chưa đổi và đã quá hạn ⇒ expired_token
+    await openWindow(t, 'loopback');
+    const e = (await startDevice(t, {})).json;
+    await t.call('POST', `/api/auth-requests/${byCode(t, e.user_code).display_id}/approve`, { user_code: e.user_code });
+    db.run("UPDATE auth_requests SET expires_at='2000-01-01T00:00:00.000Z' WHERE user_code_hash=?", byCode(t, e.user_code).user_code_hash);
+    await wait(); assert.equal((await token(t.base, { grant_type: DEV, device_code: e.device_code, client_id: e.client_id })).json.error, 'expired_token');
+  } finally { await t.clean(); }
+});
+
+test('Content-Type chỉ json/form (không đoán theo /json/i); register/device từ chối Origin lạ; token chỉ nhận form', async () => {
+  const t = await boot();
+  try {
+    const body = JSON.stringify({ client_name: 'X', redirect_uris: ['http://127.0.0.1:9/cb'] });
+    for (const ct of ['text/plain; charset=json', 'text/json', 'application/jsonx', 'multipart/form-data']) {
+      const r = await request(t.base, 'POST', '/oauth/register', { body, headers: { 'Content-Type': ct } });
+      assert.equal(r.status, 400, ct); assert.equal(r.json.error, 'invalid_request');
+    }
+    assert.equal((await request(t.base, 'POST', '/oauth/register', { body, headers: { 'Content-Type': 'Application/JSON; charset=utf-8' } })).status, 201);
+    const fm = await request(t.base, 'POST', '/oauth/register', { body: 'client_name=F&redirect_uris=http%3A%2F%2F127.0.0.1%3A9%2Fcb', headers: FORM });
+    assert.equal(fm.json.error, 'invalid_redirect_uri', 'form được nhận và phân tích (redirect_uris dạng chuỗi đơn không phải mảng → bị từ chối đúng lý do)');
+    // JSON ở /oauth/token bị từ chối (RFC 6749: form)
+    assert.equal((await request(t.base, 'POST', '/oauth/token', { body: { grant_type: 'refresh_token', refresh_token: 'x' } })).status, 400);
+    // Origin lạ (trình duyệt của trang khác) bị từ chối ở register/device; Origin của chính xưởng thì được
+    const evil = { Origin: 'https://evil.example.com' };
+    assert.equal((await request(t.base, 'POST', '/oauth/register', { body, headers: evil })).status, 403);
+    assert.equal((await request(t.base, 'POST', '/oauth/device', { body: { client_name: 'x' }, headers: evil })).status, 403);
+    assert.equal((await request(t.base, 'POST', '/oauth/register', { body, origin: t.base })).status, 201);
+  } finally { await t.clean(); }
+});
+
+test('thu hồi: hết hiệu lực yêu cầu chờ của client, đóng mọi cửa sổ ghép, ân hạn thu hồi access token của cặp con bị thay', async () => {
+  const t = await boot();
+  try {
+    const db = dbOf(t);
+    // (1) thu hồi agent oauth: yêu cầu chờ khác của cùng client hết hiệu lực; cửa sổ ghép đóng
+    const g = await getCode(t, t.call);
+    const tk = (await exchange(t.base, g)).json;
+    const a2 = await authorize(t.base, g.clientId, g.redirect, { challenge: pkce().challenge });
+    const id2 = reqIdOf(a2.location);
+    await openWindow(t, 'loopback');
+    const ag = db.get("SELECT display_id FROM agents WHERE kind='oauth'");
+    assert.equal((await t.call('POST', `/api/agents/${ag.display_id}/revoke`, {})).status, 200);
+    assert.equal(db.get('SELECT status FROM auth_requests WHERE display_id=?', id2).status, 'expired');
+    assert.equal((await t.call('POST', `/api/auth-requests/${id2}/approve`, {})).status, 409, 'không duyệt lại yêu cầu cũ của client đã thu hồi');
+    assert.equal((await t.call('GET', '/api/runner-status')).json.pairing.open, false, 'thu hồi bất kỳ agent nào đóng cửa sổ ghép');
+    void tk;
+    // (2) ân hạn: access token đi kèm cặp con bị thay cũng bị thu hồi
+    const g2 = await getCode(t, t.call); const t2 = (await exchange(t.base, g2)).json;
+    const rf = o => token(t.base, Object.assign({ grant_type: 'refresh_token', client_id: g2.clientId }, o));
+    const c1 = (await rf({ refresh_token: t2.refresh_token })).json;
+    assert.equal((await mcp(t.base, c1.access_token)).status, 200);
+    const c2 = await rf({ refresh_token: t2.refresh_token });   // ân hạn: c1 bị thay
+    assert.equal(c2.status, 200);
+    assert.equal((await mcp(t.base, c1.access_token)).status, 401, 'access token của cặp bị thay đã bị thu hồi');
+    assert.equal((await mcp(t.base, c2.json.access_token)).status, 200);
+  } finally { await t.clean(); }
+});
+
+test('kênh loopback đòi cả socket loopback; Host studio:7490 từ mạng Docker không có bí mật ⇒ công khai; có bí mật ⇒ internal', async () => {
+  const t = await boot();
+  try {
+    const ing = t.app.ctx.oauth.ingress;
+    const mk = (host, addr, extra) => ({ headers: Object.assign({ host }, extra), socket: { remoteAddress: addr } });
+    for (const a of ['127.0.0.1', '127.9.9.9', '::1', '::ffff:127.0.0.1']) assert.equal(ing(mk('localhost:7490', a)), 'loopback', a);
+    for (const a of ['172.18.0.5', '10.0.0.2', '::ffff:192.168.1.5', '2001:db8::1']) assert.equal(ing(mk('localhost:7490', a)), 'public', 'Host loopback nhưng socket ngoài: ' + a);
+    assert.equal(ing(mk('studio:7490', '172.18.0.5')), 'public', 'Docker không có bí mật');
+    assert.equal(ing(mk('studio:7490', '172.18.0.5', { 'x-gs-pairing': SECRET })), 'internal');
+    assert.equal(ing(mk('studio:7490', '127.0.0.1')), 'loopback');
+    assert.equal(ing(mk('studio:7490', '172.18.0.5', { 'x-gs-pairing': 'sai' })).forbidden, true);
   } finally { await t.clean(); }
 });
 

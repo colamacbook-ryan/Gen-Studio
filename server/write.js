@@ -27,7 +27,9 @@ const err = (code, text, detail) => new WriteError(code, text, detail);
 const SCOPES = ['read', 'compose', 'run'];
 const CODE_TTL_MS = 60e3, ACCESS_TTL_MS = 3600e3, REFRESH_TTL_MS = 30 * 86400e3, REQUEST_TTL_MS = 10 * 60e3, DEVICE_TTL_MS = 15 * 60e3, CLIENT_PENDING_MS = 3600e3;
 const PAIRING_WINDOW_MS = 10 * 60e3, REFRESH_GRACE_MS = 30e3, PURGE_AFTER_MS = 7 * 86400e3;
-const MAX_PENDING = { internal: 3, other: 10 }, MAX_PENDING_CLIENTS = 30;   // trần theo KÊNH VÀO (CNS-066); quá trần thì đẩy bỏ hàng cũ nhất
+// Trần yêu cầu/client đang chờ theo KÊNH VÀO, theo NGUỒN và theo client (CNS-066). Quá trần thì TỪ CHỐI yêu cầu mới (too_many_pending), không bao giờ đẩy bỏ yêu cầu cũ (kẻ flood sẽ xoá mất yêu cầu của chủ xưởng).
+const PENDING_CHANNEL = { internal: 3, loopback: 10, public: 10 }, PENDING_SOURCE = { internal: 3, loopback: 10, public: 3 }, PENDING_CLIENT = 2;
+const CLIENTS_CHANNEL = { internal: 30, loopback: 30, public: 30 }, CLIENTS_SOURCE = { internal: 30, loopback: 15, public: 5 };
 const SELF_DECLARED = ' (tự khai)';
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
 const rnd = (prefix, n = 32) => prefix + crypto.randomBytes(n).toString('base64url');
@@ -493,6 +495,9 @@ function createWriter(db, opts = {}) {
     db.run('UPDATE agent_tokens SET revoked_at=? WHERE agent_id=? AND revoked_at IS NULL', t, agentId);
     db.run('UPDATE oauth_clients SET revoked_at=? WHERE agent_id=? AND revoked_at IS NULL', t, agentId);
     db.run('UPDATE oauth_grants SET revoked_at=? WHERE agent_id=? AND revoked_at IS NULL', t, agentId);
+    // yêu cầu quyền còn chờ của các client đó hết hiệu lực; đóng mọi cửa sổ ghép (thu hồi = dừng, không để yêu cầu cũ/cửa sổ cũ cấp lại quyền)
+    db.run("UPDATE auth_requests SET status='expired' WHERE status='pending' AND client_id IN (SELECT client_id FROM oauth_clients WHERE agent_id=?)", agentId);
+    putSetting('pairing_window', null, 'system');
   };
   const getSetting = (key) => { const r = db.get('SELECT value FROM settings WHERE workspace_id=? AND key=?', ws(), key); if (!r) return null; try { return JSON.parse(r.value); } catch { return null; } };
   const putSetting = (key, value, by) => db.run(`INSERT INTO settings(workspace_id,key,value,updated_at,updated_by) VALUES(?,?,?,?,?)
@@ -517,14 +522,12 @@ function createWriter(db, opts = {}) {
   const clientOk = (cl) => !!cl && !cl.revoked_at && (!cl.expires_at || cl.expires_at >= db.now());   // client chưa có agent hết hạn sau 1 h
   const codeHash = (code) => sha256(String(code || '').trim().toUpperCase());
   const redirectWith = (uri, params) => { const u = new URL(uri); for (const [k, v] of Object.entries(params)) if (v != null && v !== '') u.searchParams.set(k, v); return u.toString(); };
-  // đẩy bỏ yêu cầu pending cũ nhất của cùng nhóm kênh khi quá trần (không từ chối yêu cầu mới); trả mã hiển thị đã bị đẩy
-  const makeRoom = (channel) => {
-    const internal = channel === 'internal', cap = internal ? MAX_PENDING.internal : MAX_PENDING.other;
-    const cond = internal ? "channel='internal'" : "COALESCE(channel,'')!='internal'";
-    const rows = db.all(`SELECT id, display_id FROM auth_requests WHERE workspace_id=? AND status='pending' AND ${cond} ORDER BY created_at`, ws());
-    const evict = rows.slice(0, Math.max(0, rows.length - cap + 1));
-    evict.forEach((r) => db.run("UPDATE auth_requests SET status='expired' WHERE id=?", r.id));
-    return evict.map((r) => r.display_id);
+  // Trần theo kênh / nguồn / client: quá trần thì TỪ CHỐI (không đẩy bỏ yêu cầu cũ). source = p.ip (kênh công khai: IP đầu của header proxy)
+  const checkPending = (chan, src, clientId) => {
+    const now = db.now();
+    const n = (sql, ...a) => db.get(`SELECT COUNT(*) AS n FROM auth_requests WHERE workspace_id=? AND status='pending' AND expires_at>=? AND ${sql}`, ws(), now, ...a).n;
+    const full = n('channel=?', chan) >= (PENDING_CHANNEL[chan] || 10) || (src && n('channel=? AND source_ip=?', chan, src) >= (PENDING_SOURCE[chan] || 3)) || (clientId && n('client_id=?', clientId) >= PENDING_CLIENT);
+    if (full) throw oerr('rate_limited', 'too_many_pending', 'Đang có quá nhiều yêu cầu chờ duyệt. Chủ xưởng cần xử lý bớt rồi hãy thử lại.');
   };
 
   // lần đầu: sinh server_id (định danh ổn định của xưởng, dùng làm audience của access token — không phụ thuộc URL)
@@ -556,8 +559,8 @@ function createWriter(db, opts = {}) {
     const uris = Array.isArray(p.redirect_uris) ? p.redirect_uris : [];
     if (!uris.length || uris.length > 5 || !uris.every(redirectUriOk)) throw oerr('invalid', 'invalid_redirect_uri', 'redirect_uris phải là 1–5 địa chỉ https (hoặc http://127.0.0.1 | localhost cho máy cục bộ).');
     const chan = p.channel || 'public';
-    const pend = db.all("SELECT client_id FROM oauth_clients WHERE workspace_id=? AND kind='dcr' AND agent_id IS NULL AND revoked_at IS NULL AND expires_at>=? AND created_channel=? ORDER BY created_at", ws(), db.now(), chan);
-    pend.slice(0, Math.max(0, pend.length - MAX_PENDING_CLIENTS + 1)).forEach((r) => db.run('UPDATE oauth_clients SET expires_at=? WHERE client_id=?', new Date(Date.now() - 1000).toISOString(), r.client_id));
+    const pc = (sql, ...a) => db.get(`SELECT COUNT(*) AS n FROM oauth_clients WHERE workspace_id=? AND kind='dcr' AND agent_id IS NULL AND revoked_at IS NULL AND expires_at>=? AND created_channel=? ${sql}`, ws(), db.now(), chan, ...a).n;
+    if (pc('') >= (CLIENTS_CHANNEL[chan] || 30) || (p.ip && pc('AND created_ip=?', p.ip) >= (CLIENTS_SOURCE[chan] || 5))) throw oerr('rate_limited', 'too_many_pending', 'Đang có quá nhiều client chờ dùng. Thử lại sau.');
     const name = cleanName(p.client_name, 'Agent') + SELF_DECLARED;
     const row = db.insertRow('oauth_clients', { client_id: rnd('cl_', 16), kind: 'dcr', redirect_uris: uris, name, created_channel: chan, created_ip: p.ip || null, expires_at: new Date(Date.now() + CLIENT_PENDING_MS).toISOString() });
     return { result: { client_id: row.client_id, name, redirect_uris: uris }, entity: ['oauth_client', row.client_id], before: null, after: { name, redirect_uris: uris, channel: chan, ip: p.ip || null } };
@@ -576,7 +579,7 @@ function createWriter(db, opts = {}) {
       if (!win || win.channel !== chan || !win.open_until || win.open_until < db.now()) throw oerr('invalid', 'pairing_closed', 'Cửa sổ ghép đang đóng. Chủ xưởng bấm "Bật agent nội bộ" / "Mở lại ghép" (hoặc "Ghép CLI") trên giao diện trước.');
       const internal = chan === 'internal';    // chỉ kênh nội bộ (Host studio:7490 trong mạng Docker) mới là runner; mọi nguồn khác là oauth, tên tự khai
       const name = internal ? 'Agent nội bộ' : cleanName(p.client_name, 'Agent') + SELF_DECLARED;
-      const evicted = makeRoom(chan);
+      checkPending(chan, p.ip, null);
       const device = rnd('gsd_', 32);
       let code, tries = 0;
       do {
@@ -589,19 +592,19 @@ function createWriter(db, opts = {}) {
       const row = db.insertRow('auth_requests', { kind: 'device', client_id: cid, client_name: name, user_code_hash: codeHash(code), device_code_hash: sha256(device),
         scopes_requested: scopes, resource: null, channel: chan, source_ip: p.ip || null, expires_at: new Date(Date.now() + DEVICE_TTL_MS).toISOString() }, { prefix: 'AR' });
       return { result: { id: row.display_id, client_id: cid, device_code: device, user_code: code, expires_in: DEVICE_TTL_MS / 1000 }, entity: ['auth_request', row.display_id], before: null,
-        after: { kind: 'device', client_name: name, channel: chan, scopes, ignored_scopes: ignored, evicted, ip: p.ip || null } };
+        after: { kind: 'device', client_name: name, channel: chan, scopes, ignored_scopes: ignored, ip: p.ip || null } };
     }
     const cl = getClient(p.client_id);
     if (!clientOk(cl) || cl.kind !== 'dcr') throw oerr('invalid', 'invalid_client', 'client_id không tồn tại, đã bị thu hồi hoặc hết hạn.');
     if (!redirectMatches(cl.redirect_uris, String(p.redirect_uri || ''))) throw oerr('invalid', 'invalid_redirect_uri', 'redirect_uri không khớp địa chỉ đã đăng ký.');
     if (!nonEmpty(p.code_challenge) || !/^[A-Za-z0-9\-._~]{43,128}$/.test(p.code_challenge)) throw oerr('invalid', 'invalid_request', 'Thiếu code_challenge PKCE hợp lệ.');
     if (p.code_challenge_method !== 'S256') throw oerr('invalid', 'invalid_request', 'Chỉ nhận code_challenge_method=S256.');
-    const evicted = makeRoom(chan);
+    checkPending(chan, p.ip, cl.client_id);
     const row = db.insertRow('auth_requests', { kind: 'oauth', client_id: cl.client_id, client_name: cl.name, scopes_requested: scopes,
       redirect_uri: p.redirect_uri, pkce_challenge: p.code_challenge, state: p.state ? String(p.state).slice(0, 512) : null, resource: p.resource || null,
       channel: chan, source_ip: p.ip || null, expires_at: new Date(Date.now() + REQUEST_TTL_MS).toISOString() }, { prefix: 'AR' });
     return { result: { id: row.display_id }, entity: ['auth_request', row.display_id], before: null,
-      after: { kind: 'oauth', client: cl.client_id, client_name: cl.name, channel: chan, scopes, ignored_scopes: ignored, evicted, ip: p.ip || null } };
+      after: { kind: 'oauth', client: cl.client_id, client_name: cl.name, channel: chan, scopes, ignored_scopes: ignored, ip: p.ip || null } };
   });
 
   // p: {id, scopes?, user_code? (bắt buộc với ghép CLI ngoài: chủ xưởng TỰ GÕ mã), confirm? (bắt buộc khi redirect không phải loopback)}
@@ -648,8 +651,9 @@ function createWriter(db, opts = {}) {
   // scopes của refresh con = base (không bao giờ rộng hơn agents.scopes); access có thể hẹp hơn nếu client xin thu hẹp.
   const issueTokens = (ag, base, narrow, audience, { clientId, requestId, parentId }) => {
     const access = rnd('gsa_', 32), refresh = rnd('gsr_', 32);
-    db.insertRow('agent_tokens', { agent_id: ag.id, token_hash: sha256(access), prefix: access.slice(0, 8), kind: 'access', audience, scopes: narrow, expires_at: new Date(Date.now() + ACCESS_TTL_MS).toISOString() });
-    const child = db.insertRow('oauth_grants', { kind: 'refresh', token_hash: sha256(refresh), client_id: clientId, agent_id: ag.id, auth_request_id: requestId || null,
+    const gid = ulid();
+    db.insertRow('agent_tokens', { agent_id: ag.id, token_hash: sha256(access), prefix: access.slice(0, 8), kind: 'access', audience, scopes: narrow, grant_id: gid, expires_at: new Date(Date.now() + ACCESS_TTL_MS).toISOString() });
+    const child = db.insertRow('oauth_grants', { id: gid, kind: 'refresh', token_hash: sha256(refresh), client_id: clientId, agent_id: ag.id, auth_request_id: requestId || null,
       scopes: base, parent_id: parentId || null, expires_at: new Date(Date.now() + REFRESH_TTL_MS).toISOString() });
     if (parentId) db.run('UPDATE oauth_grants SET child_id=? WHERE id=?', child.id, parentId);
     db.run('UPDATE oauth_clients SET last_used_at=? WHERE client_id=?', db.now(), clientId);
@@ -674,14 +678,15 @@ function createWriter(db, opts = {}) {
       const rq = db.json(db.get('SELECT * FROM auth_requests WHERE workspace_id=? AND device_code_hash=?', ws(), sha256(p.device_code || '')));
       if (!rq || rq.kind !== 'device') throw oerr('invalid', 'invalid_grant', 'device_code không hợp lệ.');
       if (p.client_id && p.client_id !== rq.client_id) throw oerr('invalid', 'invalid_grant', 'client_id không khớp.');
-      if (rq.status === 'approved' && db.get('SELECT 1 AS x FROM oauth_grants WHERE auth_request_id=?', rq.id)) throw oerr('invalid', 'invalid_grant', 'device_code đã được dùng.');   // đã đổi token một lần
+      if (rq.consumed_at) throw oerr('invalid', 'invalid_grant', 'device_code đã được dùng.');   // đã đổi token một lần (kể cả khi grant đã bị dọn)
+      if (rq.status === 'approved' && rq.expires_at < db.now()) throw oerr('invalid', 'expired_token', 'Yêu cầu đã hết hạn. Hãy xin mã mới.');
       if (rq.status === 'denied') throw oerr('forbidden', 'access_denied', 'Chủ xưởng đã từ chối yêu cầu này.');
       if (rq.status === 'expired' || (rq.status === 'pending' && rq.expires_at < db.now())) throw oerr('invalid', 'expired_token', 'Yêu cầu đã hết hạn. Hãy xin mã mới.');
       if (rq.status === 'pending') throw oerr('conflict', 'authorization_pending', 'Chủ xưởng chưa duyệt.');
       const ag = liveAgent(rq.agent_id);
       if (!ag) throw oerr('invalid', 'invalid_grant', 'Agent đã bị thu hồi.');
       const sc = scopesFor(ag, rq.scopes_granted, p.scope);
-      db.update('auth_requests', rq.id, { last_poll_at: db.now() });
+      db.update('auth_requests', rq.id, { last_poll_at: db.now(), consumed_at: db.now() });
       db.run('UPDATE oauth_clients SET last_used_at=? WHERE client_id=?', db.now(), rq.client_id);
       const body = issueTokens(ag, sc.base, sc.narrow, p.audience, { clientId: rq.client_id, requestId: rq.id });
       return { result: body, entity: ['agent', ag.display_id], before: null, after: { grant: 'device', agent: ag.display_id, scopes: sc.narrow } };
@@ -731,7 +736,8 @@ function createWriter(db, opts = {}) {
       const child = db.get("SELECT id FROM oauth_grants WHERE parent_id=? AND kind='refresh' AND used_at IS NULL AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 1", g.id);
       const graced = db.get("SELECT 1 AS x FROM oauth_grants WHERE parent_id=? AND revoke_reason='grace'", g.id);
       if (!child || graced || Date.now() - Date.parse(g.used_at) > REFRESH_GRACE_MS) return reuse();
-      db.run("UPDATE oauth_grants SET revoked_at=?, revoke_reason='grace' WHERE id=?", db.now(), child.id);   // cặp con chưa dùng bị thay (không lưu được token thô để trả lại đúng cặp cũ)
+      db.run("UPDATE oauth_grants SET revoked_at=?, revoke_reason='grace' WHERE id=?", db.now(), child.id);
+      db.run('UPDATE agent_tokens SET revoked_at=? WHERE grant_id=? AND revoked_at IS NULL', db.now(), child.id);   // access token đi kèm cặp con bị thay cũng bị thu hồi   // cặp con chưa dùng bị thay (không lưu được token thô để trả lại đúng cặp cũ)
       grace = true;
     }
     if (g.expires_at < db.now()) throw oerr('invalid', 'invalid_grant', 'refresh_token đã hết hạn.');

@@ -11,7 +11,8 @@ const { redirectMatches, SCOPES } = require('./write.js');
 const DEVICE_GRANT = 'urn:ietf:params:oauth:grant-type:device_code';
 const PATHS = new Set(['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp', '/.well-known/oauth-authorization-server', '/.well-known/openid-configuration',
   '/oauth/register', '/oauth/authorize', '/oauth/token', '/oauth/device', '/oauth/pairing-status']);
-const STATUS = { invalid_client: 401 };
+const STATUS = { invalid_client: 401, too_many_pending: 429 };
+const TOKEN_FAILS = new Set(['invalid_grant', 'invalid_client', 'invalid_scope', 'invalid_target', 'invalid_request', 'unsupported_grant_type']);
 const FORWARD = ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'forwarded', 'cf-connecting-ip', 'cf-ray', 'x-real-ip'];
 const LOOP = new Set(['localhost', '127.0.0.1', '[::1]']);
 const RUNNER_STATES = new Set(['unpaired', 'waiting', 'paired', 'error']);
@@ -22,12 +23,28 @@ function create(ctx, { hosts }) {
   const polls = new Map();                                   // device_code (băm) → {t, ms}: chống poll dồn (slow_down), chỉ giữ trong bộ nhớ
   const baseMs = () => Number(config.deviceIntervalMs) || 5000;
   const internalHost = () => String(config.internalHost || 'studio:7490').toLowerCase();
-  // [tối đa, cửa sổ ms] theo kênh vào; config.authLimits.<loại> ghi đè cho mọi kênh (dùng trong test)
-  const limit = (kind, chan) => {
-    const d = { register: { internal: [60, 3600e3], loopback: [20, 3600e3], public: [10, 3600e3] }, device: { internal: [20, 600e3], loopback: [10, 600e3], public: [10, 600e3] },
-      token: { internal: [600, 60e3], loopback: [300, 60e3], public: [120, 60e3] }, status: { internal: [600, 60e3], loopback: [120, 60e3], public: [60, 60e3] } };
-    return (config.authLimits && config.authLimits[kind]) || d[kind][chan];
+  // Hạn tần suất 2 tầng: trần theo KÊNH (cận trên) + hạn nhỏ hơn theo NGUỒN (kênh công khai: IP đầu của cf-connecting-ip / X-Forwarded-For vì đứng sau proxy; còn lại: địa chỉ socket).
+  // [tối đa, cửa sổ ms]; config.authLimits.<loại> ghi đè cho cả hai tầng (dùng trong test).
+  const LIM = {
+    register: { w: 3600e3, internal: [60, 30], loopback: [20, 15], public: [60, 5] },
+    req: { w: 600e3, internal: [60, 30], loopback: [60, 30], public: [60, 10] },
+    device: { w: 600e3, internal: [20, 20], loopback: [10, 10], public: [10, 10] },
+    tokfail: { w: 60e3, internal: [600, 300], loopback: [300, 60], public: [120, 20] },     // chỉ đếm yêu cầu THẤT BẠI; thành công không tiêu hạn mức chung
+    status: { w: 60e3, internal: [600, 600], loopback: [120, 120], public: [60, 60] },
   };
+  const lims = (kind, chan) => { const o = config.authLimits && config.authLimits[kind]; const d = LIM[kind]; return o ? { ch: o, src: o } : { ch: [d[chan][0], d.w], src: [d[chan][1], d.w] }; };
+  const isLoopbackAddr = a => /^(127\.|::1$|::ffff:127\.)/.test(String(a || ''));
+  const sockAddr = req => req.socket.remoteAddress || '?';
+  function sourceOf(req, chan) {
+    if (chan === 'public') {
+      const h = req.headers;
+      const ip = String(h['cf-connecting-ip'] || String(h['x-forwarded-for'] || '').split(',')[0] || h['x-real-ip'] || '').trim();
+      if (ip) return ip.slice(0, 64);
+    }
+    return sockAddr(req);
+  }
+  // true nếu vượt trần kênh HOẶC trần nguồn
+  const hitBoth = (kind, chan, src) => { const l = lims(kind, chan); const a = lim.hit(`${kind}:${chan}`, ...l.ch), b = lim.hit(`${kind}:${chan}:${src}`, ...l.src); return a || b; };
   const act = id => ({ type: 'client', id: id || 'anonymous', entry: 'oauth' });
   const sysAct = { type: 'system', entry: 'system' };
   let sid = null;
@@ -44,7 +61,8 @@ function create(ctx, { hosts }) {
     if (FORWARD.some(h => req.headers[h])) return 'public';
     const host = String(req.headers.host || '').toLowerCase();
     if (host === internalHost() && valid) return 'internal';
-    if (host === internalHost() || LOOP.has(host.replace(/:\d+$/, ''))) return 'loopback';
+    // loopback chỉ khi Host là loopback/studio:7490 VÀ kết nối thật sự đến từ loopback; nếu không (vd từ mạng Docker không có bí mật) thì coi là công khai
+    if ((host === internalHost() || LOOP.has(host.replace(/:\d+$/, ''))) && isLoopbackAddr(sockAddr(req))) return 'loopback';
     return 'public';
   }
   const proto = req => (req.socket.encrypted || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http');
@@ -66,6 +84,7 @@ function create(ctx, { hosts }) {
   const canonRes = r => [...resourceSet()].find(a => normRes(a) === normRes(r)) || null;
   const metadataUrl = req => { const b = baseUrl(req); return b ? b + '/.well-known/oauth-protected-resource' : null; };
   const ipOf = req => req.socket.remoteAddress || '?';
+  const allowedOrigin = req => { const o = req.headers.origin; if (o === undefined) return true; try { return hosts().has(new URL(o).host.toLowerCase()); } catch { return false; } };
 
   const noStore = { 'Cache-Control': 'no-store', Pragma: 'no-cache' };
   const json = (res, status, obj, extra) => apiMod.send(res, status, obj, Object.assign({}, noStore, extra));
@@ -79,10 +98,13 @@ function create(ctx, { hosts }) {
     if (e && e.code === 'rate_limited') return json(res, 429, oerrBody('temporarily_unavailable', e.text_human), { 'Retry-After': '60' });
     throw e;
   }
-  async function readParams(req) {
+  // Chỉ nhận application/json (bỏ qua tham số) và application/x-www-form-urlencoded; loại khác bị từ chối (không đoán JSON theo /json/i)
+  async function readParams(req, { jsonOk = true } = {}) {
     const raw = (await apiMod.readBody(req, 64 * 1024)).toString('utf8');
-    if (/json/i.test(req.headers['content-type'] || '')) { try { const v = JSON.parse(raw || '{}'); return v && typeof v === 'object' ? v : {}; } catch { throw apiMod.fail('invalid', 'Nội dung không phải JSON hợp lệ.'); } }
-    return Object.fromEntries(new URLSearchParams(raw));
+    const mt = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+    if (mt === 'application/json' && jsonOk) { try { const v = JSON.parse(raw || '{}'); return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; } catch { throw apiMod.fail('invalid', 'Nội dung không phải JSON hợp lệ.'); } }
+    if (mt === 'application/x-www-form-urlencoded') return Object.fromEntries(new URLSearchParams(raw));
+    throw apiMod.fail('invalid', jsonOk ? 'Content-Type phải là application/json hoặc application/x-www-form-urlencoded.' : 'Content-Type phải là application/x-www-form-urlencoded.');
   }
   const str = (v, max = 2048) => (typeof v === 'string' && v.length <= max ? v : '');
 
@@ -101,10 +123,11 @@ function create(ctx, { hosts }) {
 
   // ---- đăng ký client động ----
   async function register(req, res, chan) {
-    if (lim.hit('reg:' + chan, ...limit('register', chan))) return json(res, 429, oerrBody('temporarily_unavailable', 'Đăng ký quá nhiều lần. Thử lại sau.'), { 'Retry-After': '300' });
+    if (!allowedOrigin(req)) return json(res, 403, oerrBody('invalid_request', 'Origin không được phép.'));   // trình duyệt của trang lạ không đăng ký client hộ được
+    if (hitBoth('register', chan, sourceOf(req, chan))) return json(res, 429, oerrBody('temporarily_unavailable', 'Đăng ký quá nhiều lần. Thử lại sau.'), { 'Retry-After': '300' });
     const b = await readParams(req);
     try {
-      const r = write(act(), 'auth.register', { client_name: str(b.client_name, 200), redirect_uris: b.redirect_uris, channel: chan, ip: ipOf(req) });
+      const r = write(act(), 'auth.register', { client_name: str(b.client_name, 200), redirect_uris: b.redirect_uris, channel: chan, ip: sourceOf(req, chan) });
       return json(res, 201, { client_id: r.client_id, client_id_issued_at: Math.floor(Date.now() / 1000), client_name: r.name, redirect_uris: r.redirect_uris,
         grant_types: ['authorization_code', 'refresh_token'], response_types: ['code'], token_endpoint_auth_method: 'none' });
     } catch (e) { return mapError(res, e); }
@@ -127,20 +150,21 @@ function create(ctx, { hosts }) {
     if (q.get('code_challenge_method') !== 'S256' || !q.get('code_challenge')) return back('invalid_request', 'PKCE S256 là bắt buộc (code_challenge + code_challenge_method=S256).');
     let resource = q.get('resource');
     if (resource) { resource = canonRes(resource); if (!resource) return back('invalid_target', 'resource không phải tài nguyên /mcp của máy chủ này.'); }
-    if (lim.hit('req:' + chan, 60, 600e3)) return back('temporarily_unavailable', 'Quá nhiều yêu cầu. Thử lại sau.');
+    if (hitBoth('req', chan, sourceOf(req, chan))) return back('temporarily_unavailable', 'Quá nhiều yêu cầu. Thử lại sau.');
     let r;
-    try { r = write(act(clientId), 'auth.request', { kind: 'oauth', client_id: clientId, redirect_uri: redirectUri, scope: q.get('scope') || '', state: q.get('state') || '', resource, code_challenge: q.get('code_challenge'), code_challenge_method: 'S256', channel: chan, ip: ipOf(req) }); }
-    catch (e) { if (e && e.detail && e.detail.oauth) return back(e.detail.oauth, e.text_human); if (e && e.code === 'rate_limited') return back('temporarily_unavailable', e.text_human); throw e; }
+    try { r = write(act(clientId), 'auth.request', { kind: 'oauth', client_id: clientId, redirect_uri: redirectUri, scope: q.get('scope') || '', state: q.get('state') || '', resource, code_challenge: q.get('code_challenge'), code_challenge_method: 'S256', channel: chan, ip: sourceOf(req, chan) }); }
+    catch (e) { if (e && e.detail && e.detail.oauth) return back(e.detail.oauth === 'too_many_pending' ? 'temporarily_unavailable' : e.detail.oauth, e.text_human); if (e && e.code === 'rate_limited') return back('temporarily_unavailable', e.text_human); throw e; }
     res.writeHead(302, { Location: '/#/authorize?req=' + encodeURIComponent(r.id), 'Cache-Control': 'no-store' }); res.end();
   }
 
   // ---- ghép thiết bị: xin mã (chỉ trong máy, chỉ khi cửa sổ ghép mở) ----
   async function device(req, res, chan, base) {
     if (chan === 'public') return json(res, 403, oerrBody('access_denied', 'Ghép thiết bị chỉ dùng trong máy chủ. Từ xa hãy dùng OAuth (Claude Code, claude.ai) hoặc token tay.'));
-    if (lim.hit('dev:' + chan, ...limit('device', chan))) return json(res, 429, oerrBody('temporarily_unavailable', 'Xin mã ghép quá nhiều lần. Thử lại sau vài phút.'), { 'Retry-After': '120' });
+    if (!allowedOrigin(req)) return json(res, 403, oerrBody('invalid_request', 'Origin không được phép.'));
+    if (hitBoth('device', chan, sourceOf(req, chan))) return json(res, 429, oerrBody('temporarily_unavailable', 'Xin mã ghép quá nhiều lần. Thử lại sau vài phút.'), { 'Retry-After': '120' });
     const b = await readParams(req);
     try {
-      const r = write(act(), 'auth.request', { kind: 'device', client_name: str(b.client_name, 200), scope: str(b.scope, 200), channel: chan, ip: ipOf(req) });
+      const r = write(act(), 'auth.request', { kind: 'device', client_name: str(b.client_name, 200), scope: str(b.scope, 200), channel: chan, ip: sourceOf(req, chan) });
       // verification_uri KHÔNG kèm mã: chủ xưởng phải tự gõ mã thiết bị đang in ra (ghép CLI ngoài)
       return json(res, 200, { device_code: r.device_code, user_code: r.user_code, client_id: r.client_id, verification_uri: base + '/#/pair', expires_in: r.expires_in, interval: Math.max(1, Math.ceil(baseMs() / 1000)) });
     } catch (e) { return mapError(res, e); }
@@ -148,7 +172,7 @@ function create(ctx, { hosts }) {
 
   // ---- trạng thái ghép (công khai, không bí mật): runner hỏi định kỳ rồi chỉ xin mã khi cửa sổ mở ----
   function pairingStatus(req, res, url, chan) {
-    if (lim.hit('ps:' + chan, ...limit('status', chan))) return json(res, 429, oerrBody('temporarily_unavailable', 'Hỏi quá dày.'), { 'Retry-After': '10' });
+    if (hitBoth('status', chan, sourceOf(req, chan))) return json(res, 429, oerrBody('temporarily_unavailable', 'Hỏi quá dày.'), { 'Retry-After': '10' });
     const owner = auth.ownerExists(db);
     const sr = (key) => { const r = db.get('SELECT value FROM settings WHERE workspace_id=? AND key=?', db.ws, key); try { return r ? JSON.parse(r.value) : null; } catch { return null; } };
     const win = sr('pairing_window');
@@ -163,28 +187,38 @@ function create(ctx, { hosts }) {
   }
 
   // ---- token ----
+  // Hạn mức /oauth/token chỉ đếm yêu cầu THẤT BẠI (theo kênh, nguồn và client_id): kẻ dò mã không làm client hợp lệ bị 429, thành công không tiêu hạn mức chung.
   async function token(req, res, chan) {
-    if (lim.hit('tok:' + chan, ...limit('token', chan))) return json(res, 429, oerrBody('temporarily_unavailable', 'Quá nhiều yêu cầu.'), { 'Retry-After': '30' });
-    const b = await readParams(req);
+    const src = sourceOf(req, chan), l = lims('tokfail', chan);
+    const b = await readParams(req, { jsonOk: false });
+    const cid = str(b.client_id, 100);
+    const blocked = lim.peek(`tokfail:${chan}`, l.ch[0]) || lim.peek(`tokfail:${chan}:${src}`, l.src[0]) || (cid && lim.peek(`tokfail:c:${cid}`, 30));
+    if (blocked) return json(res, 429, oerrBody('temporarily_unavailable', 'Quá nhiều yêu cầu lỗi. Thử lại sau.'), { 'Retry-After': '30' });
+    const failed = () => { lim.hit(`tokfail:${chan}`, ...l.ch); lim.hit(`tokfail:${chan}:${src}`, ...l.src); if (cid) lim.hit(`tokfail:c:${cid}`, 30, l.ch[1]); };
+    const bad = (status, error, desc) => { if (TOKEN_FAILS.has(error)) failed(); return json(res, status, oerrBody(error, desc)); };
     let resource;
-    if (b.resource) { resource = canonRes(b.resource); if (!resource) return json(res, 400, oerrBody('invalid_target', 'resource không phải tài nguyên /mcp của máy chủ này.')); }
+    if (b.resource) { resource = canonRes(b.resource); if (!resource) return bad(400, 'invalid_target', 'resource không phải tài nguyên /mcp của máy chủ này.'); }
     const audience = serverId();
     try {
       let r;
       const gt = b.grant_type;
-      if (gt === 'authorization_code') r = write(act(str(b.client_id)), 'auth.exchange', { grant: 'code', code: str(b.code), client_id: str(b.client_id), redirect_uri: str(b.redirect_uri), code_verifier: str(b.code_verifier, 200), resource, scope: str(b.scope, 200), audience });
-      else if (gt === 'refresh_token') r = write(act(str(b.client_id)), 'auth.refresh', { refresh_token: str(b.refresh_token), client_id: str(b.client_id), scope: str(b.scope, 200), audience });
+      if (gt === 'authorization_code') r = write(act(cid), 'auth.exchange', { grant: 'code', code: str(b.code), client_id: cid, redirect_uri: str(b.redirect_uri), code_verifier: str(b.code_verifier, 200), resource, scope: str(b.scope, 200), audience });
+      else if (gt === 'refresh_token') r = write(act(cid), 'auth.refresh', { refresh_token: str(b.refresh_token), client_id: cid, scope: str(b.scope, 200), audience });
       else if (gt === DEVICE_GRANT) {
         const dc = str(b.device_code, 300);
         const key = secrets.hashToken(dc), now = Date.now(), prev = polls.get(key);
         if (prev && now - prev.t < prev.ms) { prev.ms += baseMs(); prev.t = now; return json(res, 400, oerrBody('slow_down', 'Hỏi quá dày; hãy tăng khoảng cách giữa các lần hỏi.')); }
         if (polls.size > 2000) polls.delete(polls.keys().next().value);
         polls.set(key, { t: now, ms: prev ? prev.ms : baseMs() });
-        r = write(act(str(b.client_id)), 'auth.exchange', { grant: 'device', device_code: dc, client_id: str(b.client_id), scope: str(b.scope, 200), audience });
-      } else return json(res, 400, oerrBody('unsupported_grant_type', 'grant_type không được hỗ trợ.'));
-      if (r.error) return json(res, 400, oerrBody(r.error, r.error_description));
+        r = write(act(cid), 'auth.exchange', { grant: 'device', device_code: dc, client_id: cid, scope: str(b.scope, 200), audience });
+      } else return bad(400, 'unsupported_grant_type', 'grant_type không được hỗ trợ.');
+      if (r.error) return bad(400, r.error, r.error_description);
       return json(res, 200, r);
-    } catch (e) { return mapError(res, e); }
+    } catch (e) {
+      const o = e && e.detail && e.detail.oauth;
+      if (o && TOKEN_FAILS.has(o)) failed();
+      return mapError(res, e);
+    }
   }
 
   const owns = p => PATHS.has(p);
