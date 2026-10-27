@@ -59,7 +59,7 @@ class TokenAuth {
     // bí mật ghép: gửi CHỈ tới /oauth/device và /oauth/pairing-status (chứng minh runner thật khi chủ xưởng mở cửa sổ ghép); không bao giờ log, không gửi tới /mcp hay token
     this.pairHeaders = Object.assign({}, this.headers, pairingSecret ? { 'X-GS-Pairing': pairingSecret } : {});
     this.isStopped = isStopped || (() => false);
-    this.tok = null; this.loaded = false; this.pending = null; this.state = 'unpaired'; this.message = ''; this.lastBeat = 0;
+    this.tok = null; this.loaded = false; this.pending = null; this.state = 'unpaired'; this.code = ''; this.lastBeat = 0;
     if (!this.file) log('GS_AGENT_STATE chưa đặt: token chỉ giữ trong bộ nhớ, khởi động lại sẽ phải ghép lại.');
   }
   load() {
@@ -77,10 +77,11 @@ class TokenAuth {
     fs.renameSync(tmp, this.file);   // ghi nguyên tử: mất điện giữa chừng không để lại refresh token đã xoay mà chưa lưu
   }
   clear() { this.tok = null; if (this.file) { try { fs.unlinkSync(this.file); } catch { /* chưa có */ } } }
-  setState(state, message) { this.state = state; this.message = message || ''; }
+  // state ∈ unpaired|waiting_window|requested|paired|error; code = mã ngắn (revoked, denied, expired, no_owner, studio_unreachable, request_failed, cli_missing) để giao diện tự dịch
+  setState(state, code) { this.state = state; this.code = code || ''; }
   // báo trạng thái cho studio (kênh nội bộ) và nhận {owner_exists, window_open}
   status() {
-    const q = '?runner=' + encodeURIComponent(this.state) + '&msg=' + encodeURIComponent(this.message.slice(0, 120));
+    const q = '?runner=' + encodeURIComponent(this.state) + '&code=' + encodeURIComponent(this.code);
     return getJson(this.base + '/oauth/pairing-status' + q, this.pairHeaders);
   }
   // nhịp sống khi đã ghép (tối đa mỗi 60 s), không để lỗi mạng làm hỏng việc chính
@@ -99,7 +100,7 @@ class TokenAuth {
     if (r.status === 200) return this.save(r.json, this.tok.client_id);
     if (r.json.error === 'invalid_grant') {
       // bị thu hồi ("Tắt agent nội bộ") hoặc token hết hạn: về unpaired, KHÔNG tự xin lại cho tới khi chủ xưởng mở cửa sổ ghép
-      log('quyền đã bị thu hồi hoặc hết hạn — chờ chủ xưởng mở ghép.'); this.clear(); this.setState('unpaired', 'quyền đã bị thu hồi'); return this.pair();
+      log('quyền đã bị thu hồi hoặc hết hạn — chờ chủ xưởng mở ghép.'); this.clear(); this.setState('unpaired', 'revoked'); return this.pair();
     }
     throw new Error('refresh token lỗi (HTTP ' + r.status + (r.json.error ? ' ' + r.json.error : '') + ')');
   }
@@ -110,13 +111,13 @@ class TokenAuth {
       if (this.isStopped()) throw new Error('đã dừng');
       let st;
       try { st = await this.status(); every = this.statusMs; }
-      catch (e) { this.setState('error', 'không gọi được studio'); note('không gọi được studio: ' + e.message); every = Math.min(every * 2, 60000); await sleep(every); continue; }   // lùi dần khi lỗi
-      if (!st.owner_exists) { this.setState('unpaired', 'chờ chủ xưởng thiết lập'); note('chờ chủ xưởng thiết lập xưởng.'); await sleep(every); continue; }
-      if (!st.window_open) { denied = false; if (this.state !== 'error' || this.message) this.setState('unpaired', 'chờ chủ xưởng bật ghép'); note('chờ chủ xưởng bấm "Bật agent nội bộ" / "Mở lại ghép" trên giao diện.'); await sleep(every); continue; }
+      catch (e) { this.setState('error', 'studio_unreachable'); note('không gọi được studio: ' + e.message); every = Math.min(every * 2, 60000); await sleep(every); continue; }   // lùi dần khi lỗi
+      if (!st.owner_exists) { this.setState('unpaired', 'no_owner'); note('chờ chủ xưởng thiết lập xưởng.'); await sleep(every); continue; }
+      if (!st.window_open) { denied = false; if (this.code !== 'denied' && this.code !== 'expired' && this.code !== 'revoked') this.setState('waiting_window', ''); else this.setState('waiting_window', this.code); note('chờ chủ xưởng bấm "Bật agent nội bộ" / "Mở lại ghép" trên giao diện.'); await sleep(every); continue; }
       if (denied) { await sleep(every); continue; }   // đã bị từ chối trong cửa sổ này: đợi cửa sổ đóng rồi mở lại mới xin tiếp
       const d = await postForm(this.base + '/oauth/device', { client_name: this.clientName, scope: this.scope }, this.pairHeaders);
-      if (d.status !== 200) { if (d.json.error === 'pairing_closed') { await sleep(every); continue; } this.setState('error', 'xin mã ghép lỗi'); await sleep(every); continue; }
-      this.setState('waiting', 'đã xin mã, chờ Duyệt'); noted = ''; this.status().catch(() => {});   // báo ngay để giao diện thấy 'waiting'
+      if (d.status !== 200) { if (d.json.error === 'pairing_closed') { await sleep(every); continue; } this.setState('error', 'request_failed'); await sleep(every); continue; }
+      this.setState('requested', ''); noted = ''; this.status().catch(() => {});   // báo ngay để giao diện thấy 'requested'
       log(`Mã ghép: ${d.json.user_code} — chờ chủ xưởng Duyệt trên giao diện (Agent & MCP › Chờ duyệt).`);
       let wait = this.pollMs || Math.max(1, Number(d.json.interval) || 5) * 1000;
       const deadline = Date.now() + Number(d.json.expires_in || 900) * 1000;
@@ -128,8 +129,8 @@ class TokenAuth {
         const e = r.json.error;
         if (e === 'authorization_pending') continue;
         if (e === 'slow_down') { wait += this.pollMs || 5000; continue; }
-        if (e === 'access_denied') { log('chủ xưởng đã từ chối yêu cầu ghép.'); denied = true; this.setState('unpaired', 'yêu cầu ghép bị từ chối'); break; }
-        if (e === 'expired_token') { log('mã ghép đã hết hạn.'); this.setState('unpaired', 'mã ghép hết hạn'); break; }
+        if (e === 'access_denied') { log('chủ xưởng đã từ chối yêu cầu ghép.'); denied = true; this.setState('waiting_window', 'denied'); break; }
+        if (e === 'expired_token') { log('mã ghép đã hết hạn.'); this.setState('waiting_window', 'expired'); break; }
         throw new Error('ghép thiết bị lỗi: ' + (e || 'HTTP ' + r.status));
       }
     }

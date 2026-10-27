@@ -128,7 +128,6 @@ export const VI = {
   'auth.need_code': 'Gõ mã ghép mà thiết bị đang in ra', 'auth.code_ph': 'ABCD-1234', 'auth.find': 'Tìm yêu cầu', 'auth.self_declared': 'Tên do agent tự khai, chưa được xác minh.',
   'auth.type_code_first': 'Yêu cầu ghép từ thiết bị ngoài: mở Ghép thiết bị và tự gõ mã mà thiết bị đang in ra.', 'auth.open_pair': 'Mở Ghép thiết bị',
   'pair.type_hint': 'Không có danh sách để chọn và liên kết không điền sẵn mã: bạn phải tự gõ mã thiết bị đang in ra.', 'pair.not_found': 'Không có yêu cầu nào khớp mã này.',
-  'runner.state.unpaired': 'Runner chưa có quyền, đang chờ', 'runner.state.waiting': 'Runner đã xin mã, chờ bạn Duyệt', 'runner.state.paired': 'Runner đã ghép', 'runner.state.error': 'Runner báo lỗi',
   'runner.offline': 'Chưa thấy runner (container agent) kết nối. Kiểm tra: genstudio status', 'runner.window': 'Cửa sổ ghép đang mở đến {at}.',
   'setup.agent.login_note': 'Claude Code cần đăng nhập chính chủ một lần trên máy chủ: chạy lệnh dưới đây (giao diện chưa làm được thay bạn).',
   'setup.agent.reopen': 'Mở lại ghép', 'setup.agent.many': 'Có hơn một yêu cầu nội bộ đang chờ: không rõ cái nào là runner của bạn. Xem tab Chờ duyệt rồi thử lại.',
@@ -136,6 +135,15 @@ export const VI = {
   'ov.pairing_lost': 'Agent nội bộ {id} bị thu hồi tự động (token bị dùng lại bất thường)', 'ov.repair': 'Ghép lại', 'agent.disable_internal': 'Tắt agent nội bộ',
   'adv.pair_title': 'Ghép CLI (mã thiết bị)', 'adv.pair_hint': 'Cho CLI/script trên máy chủ không có trình duyệt: bấm Ghép CLI, chạy CLI để nó in mã, rồi TỰ GÕ mã đó ở trang Ghép thiết bị.',
   'adv.pair_btn': 'Ghép CLI', 'adv.pair_opened': 'Đã mở cửa sổ ghép 10 phút cho CLI.', 'adv.token_cli': 'Hoặc cấp token trên máy chủ',
+  'runner.state.unpaired': 'Runner chưa có quyền', 'runner.state.waiting_window': 'Runner đang chờ bạn bật ghép', 'runner.state.requested': 'Runner đã xin mã, chờ bạn Duyệt', 'runner.state.paired': 'Runner đã ghép', 'runner.state.error': 'Runner báo lỗi',
+  'runner.code.no_owner': 'chờ thiết lập xưởng', 'runner.code.revoked': 'quyền đã bị thu hồi', 'runner.code.denied': 'yêu cầu bị từ chối', 'runner.code.expired': 'mã ghép hết hạn',
+  'runner.code.studio_unreachable': 'không gọi được studio', 'runner.code.request_failed': 'xin mã ghép lỗi', 'runner.code.cli_missing': 'chưa có Claude Code CLI trong container',
+  'k0.title': 'Agent nội bộ', 'k0.on': 'Đang bật · {id}', 'k0.off': 'Đang tắt', 'k0.pending_link': 'Xem yêu cầu ở Chờ duyệt',
+  'pending.deny_all': 'Từ chối tất cả yêu cầu ngoài', 'pending.denied_n': 'Đã từ chối {n} yêu cầu ngoài',
+  'ov.internal_off': 'Agent nội bộ đang tắt', 'ov.internal_on': 'Bật lại',
+  'col.display_id': 'ID', 'col.name': 'Tên', 'col.kind': 'Loại', 'col.scopes': 'Phạm vi', 'col.status': 'Trạng thái', 'col.last_call_at': 'Gọi gần nhất', 'col.wake_limit_per_day': 'Lượt/ngày',
+  'col.expires_at': 'Hết hạn', 'col.created_at': 'Tạo lúc', 'col.client_name': 'Tên client', 'col.scopes_requested': 'Phạm vi xin', 'col.channel': 'Nguồn', 'col.redirect_uri': 'Chuyển về',
+  'kind.internal': 'Nội bộ', 'kind.oauth': 'OAuth', 'kind.token': 'Token tay', 'kind.device': 'Ghép thiết bị',
 };
 
 export const EN = {
@@ -265,7 +273,6 @@ export const EN = {
   'auth.need_code': 'Type the pairing code the device is printing', 'auth.code_ph': 'ABCD-1234', 'auth.find': 'Find request', 'auth.self_declared': 'The name is self-declared by the agent and unverified.',
   'auth.type_code_first': 'Pairing request from an external device: open Device pairing and type the code the device is printing yourself.', 'auth.open_pair': 'Open Device pairing',
   'pair.type_hint': 'There is no list to pick from and the link never prefills the code: you must type the code the device prints.', 'pair.not_found': 'No request matches this code.',
-  'runner.state.unpaired': 'The runner has no access yet and is waiting', 'runner.state.waiting': 'The runner asked for a code and waits for your approval', 'runner.state.paired': 'The runner is paired', 'runner.state.error': 'The runner reports an error',
   'runner.offline': 'No runner (agent container) seen yet. Check: genstudio status', 'runner.window': 'The pairing window is open until {at}.',
   'setup.agent.login_note': 'Claude Code needs a one-time sign-in on the server: run the command below (the UI cannot do it for you yet).',
   'setup.agent.reopen': 'Reopen pairing', 'setup.agent.many': 'More than one internal request is waiting: it is unclear which is your runner. See the Pending tab and try again.',
@@ -273,6 +280,15 @@ export const EN = {
   'ov.pairing_lost': 'Internal agent {id} was revoked automatically (a token was reused unexpectedly)', 'ov.repair': 'Pair again', 'agent.disable_internal': 'Turn off internal agent',
   'adv.pair_title': 'CLI pairing (device code)', 'adv.pair_hint': 'For a CLI/script on the server without a browser: press Pair CLI, run the CLI so it prints a code, then TYPE that code on the Device pairing page.',
   'adv.pair_btn': 'Pair CLI', 'adv.pair_opened': 'Pairing window opened for 10 minutes for the CLI.', 'adv.token_cli': 'Or issue a token on the server',
+  'runner.state.unpaired': 'The runner has no access yet', 'runner.state.waiting_window': 'The runner is waiting for you to enable pairing', 'runner.state.requested': 'The runner asked for a code and waits for your approval', 'runner.state.paired': 'The runner is paired', 'runner.state.error': 'The runner reports an error',
+  'runner.code.no_owner': 'waiting for workshop setup', 'runner.code.revoked': 'access was revoked', 'runner.code.denied': 'request was denied', 'runner.code.expired': 'pairing code expired',
+  'runner.code.studio_unreachable': 'cannot reach the studio', 'runner.code.request_failed': 'pairing request failed', 'runner.code.cli_missing': 'Claude Code CLI is missing in the container',
+  'k0.title': 'Internal agent', 'k0.on': 'On · {id}', 'k0.off': 'Off', 'k0.pending_link': 'See the request in Pending',
+  'pending.deny_all': 'Deny all outside requests', 'pending.denied_n': 'Denied {n} outside request(s)',
+  'ov.internal_off': 'The internal agent is off', 'ov.internal_on': 'Turn on',
+  'col.display_id': 'ID', 'col.name': 'Name', 'col.kind': 'Type', 'col.scopes': 'Scopes', 'col.status': 'Status', 'col.last_call_at': 'Last call', 'col.wake_limit_per_day': 'Wakes/day',
+  'col.expires_at': 'Expires', 'col.created_at': 'Created', 'col.client_name': 'Client name', 'col.scopes_requested': 'Scopes asked', 'col.channel': 'Source', 'col.redirect_uri': 'Redirects to',
+  'kind.internal': 'Internal', 'kind.oauth': 'OAuth', 'kind.token': 'Manual token', 'kind.device': 'Device pairing',
 };
 
 const DICTS = { vi: VI, en: EN };

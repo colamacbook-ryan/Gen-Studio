@@ -191,11 +191,12 @@ function create(ctx) {
     if (db.get("SELECT 1 AS x FROM agents WHERE kind='internal' AND status!='revoked' AND deleted_at IS NULL")) return null;
     return { agent: ag.display_id };
   };
+  // từng có agent nội bộ nhưng hiện không có cái nào đang bật (đã tắt/thu hồi): Tổng quan nhắc và dẫn tới thẻ runner
+  const internalOff = () => !!db.get("SELECT 1 AS x FROM agents WHERE kind='internal' AND deleted_at IS NULL") && !db.get("SELECT 1 AS x FROM agents WHERE kind='internal' AND status!='revoked' AND deleted_at IS NULL");
   add('GET', '/api/overview', { sess: true }, async () => {
     const n = (sql, ...p) => db.get(sql, ...p).n;
     const ACTIVE = "('queued','voicing','judging','aligning','rendering','mixing','gating','retrying','waiting_quota')";
-    const d0 = new Date(); d0.setHours(0, 0, 0, 0);
-    const y0 = new Date(d0.getTime() - 86400e3).toISOString(), t0 = d0.toISOString();
+    const t0 = new Date().toISOString(), y0 = new Date(Date.now() - 86400e3).toISOString();   // 24 giờ gần nhất (cuốn chiếu), không phải "hôm qua" theo lịch
     const done = db.all("SELECT kind, opened_at, closed_at FROM work_orders WHERE workspace_id=? AND state='fulfilled' AND closed_at>=? AND closed_at<?", db.ws, y0, t0);
     const mins = done.map(w => (Date.parse(w.closed_at) - Date.parse(w.opened_at)) / 60000).filter(Number.isFinite).sort((x, y) => x - y);
     const med = mins.length ? mins[mins.length >> 1] : null;
@@ -212,6 +213,7 @@ function create(ctx) {
       running: n('SELECT COUNT(*) AS n FROM renders WHERE workspace_id=? AND state IN ' + ACTIVE, db.ws),
       pending_auth: n("SELECT COUNT(*) AS n FROM auth_requests WHERE workspace_id=? AND status='pending' AND expires_at>=?", db.ws, new Date().toISOString()),
       pairing_lost: pairingLost(),
+      internal_agent_off: internalOff(),
       stalled_work_orders: db.all("SELECT w.display_id, w.kind, w.brief, w.summary, w.opened_at, a.display_id AS agent FROM work_orders w LEFT JOIN agents a ON a.id=w.agent_id WHERE w.workspace_id=? AND w.state='stalled' ORDER BY w.opened_at", db.ws),
       yesterday: {
         work_orders: done.length,
@@ -284,6 +286,7 @@ function create(ctx) {
     if (!r) throw fail('not_found', 'Không tìm thấy yêu cầu cấp quyền.');
     return { request: authRequestView(db, r) };
   });
+  add('POST', '/api/auth-requests/deny-all', { sess: true, ui: true, strictOrigin: true }, async c => ({ ok: true, denied: write(actorOf(c), 'auth.deny_all', {}).denied }));
   add('POST', '/api/auth-requests/:id/approve', { sess: true, ui: true, strictOrigin: true }, async c => {
     const r = write(actorOf(c), 'auth.approve', { id: c.params.id, scopes: c.body.scopes, user_code: c.body.user_code, confirm: c.body.confirm === true });
     return { ok: true, redirect: r.redirect || null, agent: r.agent };
@@ -296,7 +299,7 @@ function create(ctx) {
   add('POST', '/api/pairing/open', { sess: true, ui: true, strictOrigin: true }, async c => ({ ok: true, open_until: write(actorOf(c), 'auth.pairing_open', { channel: c.body.channel }).open_until }));
   add('GET', '/api/runner-status', { sess: true }, async () => {
     const rs = settingVal(db, 'runner_status'), win = settingVal(db, 'pairing_window');
-    return { runner: rs && { state: rs.state, message: rs.message, seen_at: rs.at, online: !!ctx.runnerSeenAt && Date.now() - ctx.runnerSeenAt < 90e3 },
+    return { runner: rs && { state: rs.state, code: rs.code || '', seen_at: rs.at, online: !!ctx.runnerSeenAt && Date.now() - ctx.runnerSeenAt < 90e3 },
       pairing: { open: !!(win && win.open_until > new Date().toISOString()), channel: win ? win.channel : null, open_until: win ? win.open_until : null } };
   });
   add('POST', '/api/agents', { sess: true }, async c => {

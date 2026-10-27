@@ -171,3 +171,20 @@ test('mọi module giao diện nạp được trong Node (cú pháp ESM hợp l�
     await load(path.relative(STUDIO, f));
   }
 });
+
+test('runner: mọi trạng thái (enum của máy chủ) và mã code runner có chữ vi/en — giao diện không hiện câu chữ tự do', async () => {
+  const { VI, EN } = await load('i18n.js');
+  const root = path.join(__dirname, '..');
+  const oauth = fs.readFileSync(path.join(root, 'server', 'oauth.js'), 'utf8');
+  const states = /RUNNER_STATES = new Set\(\[([^\]]+)\]\)/.exec(oauth)[1].match(/'([a-z_]+)'/g).map((x) => x.replace(/'/g, ''));
+  assert.deepEqual(states.sort(), ['error', 'paired', 'requested', 'unpaired', 'waiting_window']);
+  const runner = fs.readFileSync(path.join(root, 'agent', 'runner.js'), 'utf8');
+  const used = new Set([...runner.matchAll(/setState\('([a-z_]+)'(?:, '([a-z_]+)')?\)/g)].flatMap((m) => [m[1] && 'state:' + m[1], m[2] && 'code:' + m[2]]).filter(Boolean));
+  assert.ok(used.size >= 8);
+  for (const u of used) {
+    const [kind, v] = u.split(':');
+    const key = (kind === 'state' ? 'runner.state.' : 'runner.code.') + v;
+    assert.ok(key in VI && key in EN, key);
+  }
+  for (const k of ['col.display_id', 'col.last_call_at', 'col.wake_limit_per_day', 'col.scopes', 'kind.internal', 'pending.deny_all', 'k0.title', 'ov.internal_off']) assert.ok(k in VI && k in EN, k);
+});

@@ -66,6 +66,7 @@ function load(opts = {}) {
     lang: ['vi', 'en'].includes(get('GS_LANG')) ? get('GS_LANG') : 'vi',
     publicUrl: get('GS_PUBLIC_URL') || null,
     pairingSecret: get('GS_PAIRING_SECRET'),
+    trustProxy: truthy(get('GS_TRUST_PROXY')),   // chỉ tin header chuyển tiếp (cf-connecting-ip / X-Forwarded-For) khi đứng sau proxy/tunnel của chính chủ xưởng ("Đưa lên mạng")
     internalHost: (get('GS_INTERNAL_HOST') || 'studio:7490').toLowerCase(),   // Host mà runner dùng trong mạng Docker (kênh vào 'internal')
     version: readVersion(),
   };

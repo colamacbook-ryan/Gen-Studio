@@ -459,10 +459,10 @@ test('ghép thiết bị: runner (kênh nội bộ) → internal, duyệt thẳn
     assert.equal((await poll(e, INTERNAL)).json.error, 'expired_token');
     assert.equal((await t.call('POST', `/api/auth-requests/${byCode(t, e.user_code).display_id}/approve`, {})).status, 409);
     // runner tự báo trạng thái: chỉ nhận từ kênh nội bộ
-    await request(t.base, 'GET', '/oauth/pairing-status?runner=waiting&msg=cho%20duyet');
+    await request(t.base, 'GET', '/oauth/pairing-status?runner=requested&code=cho_duyet');
     assert.equal((await t.call('GET', '/api/runner-status')).json.runner, null, 'kênh khác không giả được trạng thái runner');
-    await request(t.base, 'GET', '/oauth/pairing-status?runner=waiting&msg=cho%20duyet', { headers: INTERNAL });
-    const rs = (await t.call('GET', '/api/runner-status')).json.runner; assert.equal(rs.state, 'waiting'); assert.equal(rs.online, true); assert.equal(JSON.parse(db.get("SELECT value FROM settings WHERE key='runner_status'").value).state, 'waiting');
+    await request(t.base, 'GET', '/oauth/pairing-status?runner=requested&code=cho_duyet', { headers: INTERNAL });
+    const rs = (await t.call('GET', '/api/runner-status')).json.runner; assert.equal(rs.state, 'requested'); assert.equal(rs.code, 'cho_duyet'); assert.equal(rs.online, true); assert.equal(JSON.parse(db.get("SELECT value FROM settings WHERE key='runner_status'").value).state, 'requested');
   } finally { await t.clean(); }
 });
 
@@ -497,10 +497,10 @@ test('trần pending: theo kênh/nguồn/client, quá trần thì TỪ CHỐI (k
   } finally { await t.clean(); }
 });
 
-test('PoC P1: hạn tần suất theo nguồn — một kẻ tấn công (IP công khai) không khoá client khác; /oauth/token chỉ đếm yêu cầu thất bại', async () => {
-  const t = await boot();
+test('PoC P1: hạn tần suất theo nguồn — một kẻ tấn công (IP công khai) không khoá client khác; /oauth/token chỉ chặn theo nguồn lỗi', async () => {
+  const t = await boot({ config: { trustProxy: true } });
   try {
-    const pubIp = ip => ({ 'X-Forwarded-For': ip + ', 10.0.0.1' });
+    const pubIp = ip => ({ 'X-Forwarded-For': 'ke-gia-mao, ' + ip });   // GS_TRUST_PROXY=1: bước nhảy PHẢI NHẤT là do proxy của mình thêm vào
     const reg = (ip) => request(t.base, 'POST', '/oauth/register', { body: { client_name: 'X', redirect_uris: ['https://claude.ai/api/mcp/auth_callback'] }, headers: pubIp(ip) });
     for (let i = 0; i < 5; i++) assert.equal((await reg('198.51.100.1')).status, 201);
     assert.equal((await reg('198.51.100.1')).status, 429, 'nguồn tấn công bị giới hạn nhỏ');
@@ -513,14 +513,17 @@ test('PoC P1: hạn tần suất theo nguồn — một kẻ tấn công (IP cô
     // thành công không tiêu hạn mức: 30 lần refresh hợp lệ liên tiếp từ một nguồn công khai đều 200
     let cur = tk.refresh_token;
     for (let i = 0; i < 30; i++) { const r = await token(t.base, { grant_type: 'refresh_token', refresh_token: cur, client_id: g.clientId }, pubIp('160.79.104.10')); assert.equal(r.status, 200, 'lần ' + i); cur = r.json.refresh_token; }
-    // theo client_id: 30 lỗi từ nhiều nguồn khác nhau vào cùng một client_id
-    for (let i = 0; i < 30; i++) await token(t.base, { grant_type: 'refresh_token', refresh_token: 'gsr_x' + i, client_id: 'cl_muc_tieu' }, pubIp('203.0.113.' + i));
-    assert.equal((await token(t.base, { grant_type: 'refresh_token', refresh_token: 'gsr_y', client_id: 'cl_muc_tieu' }, pubIp('203.0.113.200'))).status, 429);
+    // KHÔNG chặn theo client_id (do kẻ tấn công chọn): 40 lỗi từ 40 nguồn vào đúng client_id của nạn nhân, refresh hợp lệ của nạn nhân vẫn chạy
+    for (let i = 0; i < 40; i++) await token(t.base, { grant_type: 'refresh_token', refresh_token: 'gsr_x' + i, client_id: g.clientId }, pubIp('203.0.113.' + i));
+    const victim = await token(t.base, { grant_type: 'refresh_token', refresh_token: cur, client_id: g.clientId }, pubIp('160.79.104.10'));
+    assert.equal(victim.status, 200, 'nạn nhân không bị chặn bởi lỗi của người khác dùng client_id của mình');
+    // bộ đếm lỗi theo kênh chỉ để cảnh báo, không chặn: nguồn mới sạch vẫn dùng được
+    assert.equal((await token(t.base, { grant_type: 'refresh_token', refresh_token: victim.json.refresh_token, client_id: g.clientId }, pubIp('203.0.113.250'))).status, 200);
   } finally { await t.clean(); }
 });
 
 test('PoC P2: flood authorize không đẩy bỏ yêu cầu của chủ xưởng và không làm ngập Chờ duyệt', async () => {
-  const t = await boot();
+  const t = await boot({ config: { trustProxy: true } });
   try {
     const pubIp = ip => ({ 'X-Forwarded-For': ip });
     const claude = 'https://claude.ai/api/mcp/auth_callback';
@@ -616,6 +619,77 @@ test('thu hồi: hết hiệu lực yêu cầu chờ của client, đóng mọi 
   } finally { await t.clean(); }
 });
 
+test('GS_TRUST_PROXY: không tin cậy ⇒ nguồn là socket (header giả không tạo bucket mới); tin cậy ⇒ cf-connecting-ip, nếu không thì bước nhảy phải nhất của X-Forwarded-For', async () => {
+  const reg = (t, h) => request(t.base, 'POST', '/oauth/register', { body: { client_name: 'X', redirect_uris: ['https://claude.ai/api/mcp/auth_callback'] }, headers: h });
+  const t = await boot();   // mặc định: không tin cậy
+  try {
+    let last; for (let i = 0; i < 6; i++) last = await reg(t, { 'X-Forwarded-For': '198.51.100.' + i });
+    assert.equal(last.status, 429, 'đổi X-Forwarded-For mỗi lần không né được hạn theo nguồn (nguồn = socket)');
+  } finally { await t.clean(); }
+  const t2 = await boot({ config: { trustProxy: true } });
+  try {
+    for (let i = 0; i < 5; i++) assert.equal((await reg(t2, { 'X-Forwarded-For': 'gia-' + i + ', 198.51.100.1' })).status, 201, 'hop phải nhất cố định ⇒ cùng một nguồn');
+    assert.equal((await reg(t2, { 'X-Forwarded-For': 'gia-x, 198.51.100.1' })).status, 429);
+    assert.equal((await reg(t2, { 'X-Forwarded-For': 'gia-x, 198.51.100.2' })).status, 201, 'nguồn khác không bị ảnh hưởng');
+    assert.equal((await reg(t2, { 'CF-Connecting-IP': '198.51.100.77', 'X-Forwarded-For': 'a, 198.51.100.1' })).status, 201, 'cf-connecting-ip được ưu tiên');
+  } finally { await t2.clean(); }
+});
+
+test('trần pending theo (client_id, nguồn); "Từ chối tất cả yêu cầu ngoài" chỉ owner-UI, không đụng yêu cầu nội bộ', async () => {
+  const t = await boot({ config: { trustProxy: true, deviceIntervalMs: 20 } });
+  try {
+    const db = dbOf(t);
+    const pubIp = ip => ({ 'X-Forwarded-For': ip });
+    const claude = 'https://claude.ai/api/mcp/auth_callback';
+    const cid = (await request(t.base, 'POST', '/oauth/register', { body: { client_name: 'C', redirect_uris: [claude] }, headers: pubIp('160.79.104.10') })).json.client_id;
+    const go = ip => authorize(t.base, cid, claude, { challenge: pkce().challenge, headers: pubIp(ip) });
+    assert.equal((await go('1.1.1.1')).status, 302); assert.equal((await go('1.1.1.1')).status, 302);
+    assert.match((await go('1.1.1.1')).location, /error=temporarily_unavailable/, 'cùng (client, nguồn) tối đa 2');
+    assert.match((await go('2.2.2.2')).location, /^\/#\/authorize/, 'nguồn khác dùng cùng client_id không bị chặn bởi nguồn tấn công');
+    // yêu cầu nội bộ + yêu cầu ngoài
+    await openWindow(t);
+    const dv = (await startDevice(t, {}, INTERNAL)).json;
+    const before = (await t.call('GET', '/api/auth-requests')).json.requests.length; assert.ok(before >= 4);
+    // chỉ owner qua UI
+    assert.equal((await request(t.base, 'POST', '/api/auth-requests/deny-all', { token: 'gst_x', body: {}, origin: t.base })).status, 403);
+    assert.equal((await request(t.base, 'POST', '/api/auth-requests/deny-all', { body: {}, origin: t.base })).status, 401);
+    assert.throws(() => t.app.ctx.write({ type: 'cli', entry: 'cli' }, 'auth.deny_all', {}), /quyền/);
+    const r = await t.call('POST', '/api/auth-requests/deny-all', {});
+    assert.equal(r.status, 200); assert.equal(r.json.denied, 3);
+    const left = (await t.call('GET', '/api/auth-requests')).json.requests;
+    assert.equal(left.length, 1); assert.equal(left[0].channel, 'internal', 'yêu cầu nội bộ còn nguyên');
+    assert.ok(db.get("SELECT 1 AS x FROM audit_log WHERE action='auth.deny_all' AND entry='ui'"));
+    assert.equal((await token(t.base, { grant_type: DEV, device_code: dv.device_code, client_id: dv.client_id }, INTERNAL)).json.error, 'authorization_pending');
+  } finally { await t.clean(); }
+});
+
+test('duyệt ghép thiết bị đóng cửa sổ ghép của kênh đó (ghi nhật ký); Tổng quan: 24 giờ cuốn chiếu và internal_agent_off', async () => {
+  const t = await boot({ config: { deviceIntervalMs: 20 } });
+  try {
+    const db = dbOf(t);
+    await openWindow(t);
+    const d = (await startDevice(t, {}, INTERNAL)).json;
+    assert.equal((await t.call('GET', '/api/runner-status')).json.pairing.open, true);
+    const ap = await t.call('POST', `/api/auth-requests/${byCode(t, d.user_code).display_id}/approve`, {});
+    assert.equal(ap.status, 200);
+    assert.equal((await t.call('GET', '/api/runner-status')).json.pairing.open, false, 'cửa sổ đóng sau khi duyệt');
+    assert.ok(db.get("SELECT 1 AS x FROM audit_log WHERE action='auth.approve' AND after LIKE '%\"closed_window\":true%'"));
+    // cửa sổ của kênh khác không bị đóng khi duyệt yêu cầu internal
+    await openWindow(t, 'loopback'); const d2 = (await startDevice(t, {})).json;
+    await t.call('POST', `/api/auth-requests/${byCode(t, d2.user_code).display_id}/approve`, { user_code: d2.user_code });
+    assert.equal((await t.call('GET', '/api/runner-status')).json.pairing.open, false);
+    // internal_agent_off: có agent internal nhưng đã thu hồi hết
+    assert.equal((await t.call('GET', '/api/overview')).json.internal_agent_off, false);
+    await t.call('POST', `/api/agents/${ap.json.agent.display_id}/revoke`, {});
+    assert.equal((await t.call('GET', '/api/overview')).json.internal_agent_off, true);
+    // 24 giờ cuốn chiếu: WO đóng cách đây 1 giờ tính, cách đây 30 giờ không tính (bất kể "hôm qua" theo lịch)
+    const ch = (await t.call('POST', '/api/channels', { name: 'K' })).json;
+    const mk = (hoursAgo) => { const id = require('../server/ids.js').ulid(); const closed = new Date(Date.now() - hoursAgo * 3600e3).toISOString(); db.run("INSERT INTO work_orders(id,workspace_id,display_id,channel_id,kind,state,brief,attempts,opened_at,closed_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", id, db.ws, 'WO-9' + hoursAgo, db.get('SELECT id FROM channels WHERE display_id=?', ch.display_id).id, 'manual', 'fulfilled', 'x', 0, closed, closed, closed, closed); };
+    mk(1); mk(30);
+    assert.equal((await t.call('GET', '/api/overview')).json.yesterday.work_orders, 1);
+  } finally { await t.clean(); }
+});
+
 test('kênh loopback đòi cả socket loopback; Host studio:7490 từ mạng Docker không có bí mật ⇒ công khai; có bí mật ⇒ internal', async () => {
   const t = await boot();
   try {
@@ -650,7 +724,7 @@ test('oauth: thu hồi agent nội bộ đóng cửa sổ ghép (không tự xin
     const d2 = (await startDevice(t, {}, INTERNAL)).json;
     const ap2 = await t.call('POST', `/api/auth-requests/${byCode(t, d2.user_code).display_id}/approve`, {});
     assert.equal((await t.call('GET', '/api/overview')).json.pairing_lost, null);
-    assert.equal((await t.call('GET', '/api/runner-status')).json.pairing.open, true);
+    assert.equal((await t.call('GET', '/api/runner-status')).json.pairing.open, false, 'duyệt xong thì cửa sổ đã đóng');
     assert.equal((await t.call('POST', `/api/agents/${ap2.json.agent.display_id}/revoke`, {})).status, 200);
     assert.equal((await t.call('GET', '/api/runner-status')).json.pairing.open, false, 'thu hồi agent nội bộ = tắt: runner không tự xin lại');
     assert.equal((await request(t.base, 'GET', '/oauth/pairing-status')).json.window_open, false);

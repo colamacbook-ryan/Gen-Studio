@@ -35,15 +35,15 @@ test('e2e-pair: runner chờ cửa sổ ghép → owner mở + Duyệt → chạ
     runner = createRunner({ url: t.base + '/mcp', fake: true, stateDir, pollMs: 50, statusMs: 50, hostHeader: 'studio:7490', pairingSecret: t.app.ctx.config.pairingSecret, clientName: 'Runner e2e' });
     assert.ok(runner.auth, 'không có token → chế độ ghép thiết bị');
     const tick = runner.tick();
-    const rs = await waitFor(async () => (await call('GET', '/api/runner-status')).json.runner, 5000, 'runner báo trạng thái');
-    assert.equal(rs.state, 'unpaired'); assert.equal(rs.online, true);
+    const rs = await waitFor(async () => { const r = (await call('GET', '/api/runner-status')).json.runner; return r && r.state === 'waiting_window' && r; }, 5000, 'runner báo waiting_window');
+    assert.equal(rs.online, true);
     await new Promise(r => setTimeout(r, 300));
     assert.equal(db.get('SELECT COUNT(*) AS n FROM auth_requests').n, 0, 'chưa mở cửa sổ ghép thì runner không xin mã');
     // owner bấm "Bật agent nội bộ" → runner xin đúng một mã → thẻ internal hiện ra → Duyệt
     assert.equal((await call('POST', '/api/pairing/open', { channel: 'internal' })).status, 200);
     const req = await waitFor(async () => (await pendingReqs(call))[0], 5000, 'yêu cầu ghép');
     assert.equal(req.kind, 'device'); assert.equal(req.agent_kind, 'internal'); assert.equal(req.channel, 'internal'); assert.equal(req.needs_code, false);
-    await waitFor(async () => (await call('GET', '/api/runner-status')).json.runner.state === 'waiting', 5000, 'runner báo waiting');
+    await waitFor(async () => (await call('GET', '/api/runner-status')).json.runner.state === 'requested', 5000, 'runner báo requested');
     const ap = await call('POST', `/api/auth-requests/${req.id}/approve`, {});
     assert.equal(ap.status, 200, ap.text);
     assert.equal(await tick, 'done');
@@ -78,7 +78,7 @@ test('e2e-pair: runner chờ cửa sổ ghép → owner mở + Duyệt → chạ
     runner.auth.tok.expires_at = Date.now() + 1000;
     const again = runner.tick();
     await waitFor(async () => !fs.existsSync(f), 5000, 'xoá token cũ');
-    await waitFor(async () => (await call('GET', '/api/runner-status')).json.runner.state === 'unpaired', 5000, 'unpaired sau thu hồi');
+    await waitFor(async () => (await call('GET', '/api/runner-status')).json.runner.state === 'waiting_window', 5000, 'chờ cửa sổ ghép sau thu hồi');
     await new Promise(r => setTimeout(r, 400));
     assert.equal(db.get('SELECT COUNT(*) AS n FROM auth_requests').n, 1, 'không tự xin ghép lại');
     // owner mở lại ghép → runner xin mã mới

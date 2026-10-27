@@ -4,6 +4,7 @@
 // duyệt/từ chối chỉ qua phiên UI của chủ xưởng (xem api.js). issuer/resource chỉ tính từ Host nằm trong danh sách cho phép.
 'use strict';
 const apiMod = require('./api.js');
+const events = require('./events.js');
 const auth = require('./auth.js');
 const secrets = require('./secrets.js');
 const { redirectMatches, SCOPES } = require('./write.js');
@@ -15,7 +16,7 @@ const STATUS = { invalid_client: 401, too_many_pending: 429 };
 const TOKEN_FAILS = new Set(['invalid_grant', 'invalid_client', 'invalid_scope', 'invalid_target', 'invalid_request', 'unsupported_grant_type']);
 const FORWARD = ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'forwarded', 'cf-connecting-ip', 'cf-ray', 'x-real-ip'];
 const LOOP = new Set(['localhost', '127.0.0.1', '[::1]']);
-const RUNNER_STATES = new Set(['unpaired', 'waiting', 'paired', 'error']);
+const RUNNER_STATES = new Set(['unpaired', 'waiting_window', 'requested', 'paired', 'error']);   // enum; giao diện tự dịch (i18n), không nhận câu chữ tự do
 
 function create(ctx, { hosts }) {
   const { db, config, write } = ctx;
@@ -23,7 +24,7 @@ function create(ctx, { hosts }) {
   const polls = new Map();                                   // device_code (băm) → {t, ms}: chống poll dồn (slow_down), chỉ giữ trong bộ nhớ
   const baseMs = () => Number(config.deviceIntervalMs) || 5000;
   const internalHost = () => String(config.internalHost || 'studio:7490').toLowerCase();
-  // Hạn tần suất 2 tầng: trần theo KÊNH (cận trên) + hạn nhỏ hơn theo NGUỒN (kênh công khai: IP đầu của cf-connecting-ip / X-Forwarded-For vì đứng sau proxy; còn lại: địa chỉ socket).
+  // Hạn tần suất 2 tầng: trần theo KÊNH (cận trên) + hạn nhỏ hơn theo NGUỒN (xem sourceOf: socket, hoặc header proxy khi GS_TRUST_PROXY=1).
   // [tối đa, cửa sổ ms]; config.authLimits.<loại> ghi đè cho cả hai tầng (dùng trong test).
   const LIM = {
     register: { w: 3600e3, internal: [60, 30], loopback: [20, 15], public: [60, 5] },
@@ -36,9 +37,12 @@ function create(ctx, { hosts }) {
   const isLoopbackAddr = a => /^(127\.|::1$|::ffff:127\.)/.test(String(a || ''));
   const sockAddr = req => req.socket.remoteAddress || '?';
   function sourceOf(req, chan) {
-    if (chan === 'public') {
+    // Chỉ tin header chuyển tiếp khi cấu hình GS_TRUST_PROXY=1: cf-connecting-ip, nếu không thì bước nhảy PHẢI NHẤT của X-Forwarded-For (do proxy của chính mình thêm vào).
+    // Không tin cậy thì header do client đặt nên bỏ qua, nguồn là địa chỉ socket.
+    if (chan === 'public' && config.trustProxy) {
       const h = req.headers;
-      const ip = String(h['cf-connecting-ip'] || String(h['x-forwarded-for'] || '').split(',')[0] || h['x-real-ip'] || '').trim();
+      const hops = String(h['x-forwarded-for'] || '').split(',').map(x => x.trim()).filter(Boolean);
+      const ip = String(h['cf-connecting-ip'] || hops[hops.length - 1] || '').trim();
       if (ip) return ip.slice(0, 64);
     }
     return sockAddr(req);
@@ -179,22 +183,25 @@ function create(ctx, { hosts }) {
     // runner nội bộ tự báo trạng thái (chỉ nhận từ kênh nội bộ). Ghi vào settings.runner_status khi trạng thái đổi hoặc sau 5 phút; còn lại chỉ nhớ lần thấy gần nhất trong bộ nhớ
     const st = url.searchParams.get('runner');
     if (chan === 'internal' && RUNNER_STATES.has(st)) {
-      const msg = String(url.searchParams.get('msg') || '').replace(/[^\w .,:()\-/]/g, '').slice(0, 120), cur = sr('runner_status');
+      const code = /^[a-z_]{1,30}$/.test(url.searchParams.get('code') || '') ? url.searchParams.get('code') : '', cur = sr('runner_status');
       ctx.runnerSeenAt = Date.now();
-      if (!cur || cur.state !== st || cur.message !== msg || Date.now() - Date.parse(cur.at) > 300e3) write(act('runner'), 'auth.runner_status', { state: st, message: msg });
+      if (!cur || cur.state !== st || cur.code !== code || Date.now() - Date.parse(cur.at) > 300e3) write(act('runner'), 'auth.runner_status', { state: st, code });
     }
     return json(res, 200, { owner_exists: owner, window_open: !!(owner && chan !== 'public' && win && win.channel === chan && win.open_until > new Date().toISOString()) });
   }
 
   // ---- token ----
-  // Hạn mức /oauth/token chỉ đếm yêu cầu THẤT BẠI (theo kênh, nguồn và client_id): kẻ dò mã không làm client hợp lệ bị 429, thành công không tiêu hạn mức chung.
+  // /oauth/token: chỉ CHẶN theo bộ đếm lỗi của NGUỒN (kẻ dò mã không làm client hợp lệ ở nguồn khác bị 429; thành công không tiêu hạn mức).
+  // Bộ đếm lỗi theo kênh chỉ để cảnh báo (nhật ký máy chủ), không chặn; không đếm theo client_id vì client_id do kẻ tấn công chọn được.
   async function token(req, res, chan) {
     const src = sourceOf(req, chan), l = lims('tokfail', chan);
     const b = await readParams(req, { jsonOk: false });
+    if (lim.peek(`tokfail:${chan}:${src}`, l.src[0])) return json(res, 429, oerrBody('temporarily_unavailable', 'Quá nhiều yêu cầu lỗi từ nguồn này. Thử lại sau.'), { 'Retry-After': '30' });
     const cid = str(b.client_id, 100);
-    const blocked = lim.peek(`tokfail:${chan}`, l.ch[0]) || lim.peek(`tokfail:${chan}:${src}`, l.src[0]) || (cid && lim.peek(`tokfail:c:${cid}`, 30));
-    if (blocked) return json(res, 429, oerrBody('temporarily_unavailable', 'Quá nhiều yêu cầu lỗi. Thử lại sau.'), { 'Retry-After': '30' });
-    const failed = () => { lim.hit(`tokfail:${chan}`, ...l.ch); lim.hit(`tokfail:${chan}:${src}`, ...l.src); if (cid) lim.hit(`tokfail:c:${cid}`, 30, l.ch[1]); };
+    const failed = () => {
+      lim.hit(`tokfail:${chan}:${src}`, ...l.src);
+      if (lim.hit(`tokfail:${chan}`, ...l.ch) && !lim.hit('tokfail-alert', 1, l.ch[1])) events.log(`Cảnh báo: nhiều yêu cầu /oauth/token lỗi ở kênh ${chan} (có thể đang dò mã).`);
+    };
     const bad = (status, error, desc) => { if (TOKEN_FAILS.has(error)) failed(); return json(res, status, oerrBody(error, desc)); };
     let resource;
     if (b.resource) { resource = canonRes(b.resource); if (!resource) return bad(400, 'invalid_target', 'resource không phải tài nguyên /mcp của máy chủ này.'); }

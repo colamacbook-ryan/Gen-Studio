@@ -1,7 +1,7 @@
 // © 2026 Gen Labs — All rights reserved.
 // Thiết lập lần đầu (#/setup?k=…): chủ xưởng → khoá giọng + quét → agent token → kênh.
 import { h, clear, icon, copyText } from '../components/dom.js';
-import { t } from '../i18n.js';
+import { t, tOr } from '../i18n.js';
 import { post, get } from '../components/api.js';
 import { errorBanner } from '../components/states.js';
 import { field } from '../components/dialog.js';
@@ -15,7 +15,7 @@ const STEPS = ['owner', 'provider', 'agent', 'channel'];
 
 export function mount(container, ctx) {
   const key = ctx.route.query.k || new URLSearchParams(location.search).get('k') || '';
-  let step = ctx.me ? 1 : 0; // đã có phiên (vd tải lại trang) thì sang bước 2
+  let step = 0;
   const stepper = h('ol', { class: 'stepper' });
   const panel = h('div', { class: 'step-panel' });
   container.append(h('div', { class: 'theater-page setup' },
@@ -30,7 +30,21 @@ export function mount(container, ctx) {
     STEPS.forEach((s, i) => stepper.append(h('li', { class: i === step ? 'active' : i < step ? 'done' : '' },
       h('span', { class: 'mono' }, String(i + 1)), t('setup.step.' + s))));
   }
-  function next() { step += 1; if (step >= STEPS.length) { location.hash = '#/overview'; return; } draw(); }
+  // khoá thiết lập chỉ dùng một lần: bỏ ?k=… khỏi thanh địa chỉ (cả query lẫn hash) để không nằm lại trong lịch sử/ảnh chụp
+  function stripKey() { try { history.replaceState(null, '', location.pathname + '#/setup'); } catch { /* môi trường không hỗ trợ */ } }
+  function finish() { try { history.replaceState(null, '', location.pathname); } catch { /* bỏ qua */ } location.hash = '#/overview'; }
+  function next() { step += 1; if (step >= STEPS.length) { finish(); return; } draw(); }
+  // tải lại giữa chừng: tiếp tục ở bước đầu tiên CHƯA xong theo trạng thái máy chủ (chủ xưởng → giọng đọc → agent → kênh); đủ cả thì vào xưởng
+  async function firstIncomplete() {
+    if (!ctx.me) return 0;
+    try {
+      const [prov, ags, chs] = await Promise.all([get('/api/grid/providers'), get('/api/grid/agents'), get('/api/grid/channels')]);
+      if (!(prov.rows || []).length) return 1;
+      if (!(ags.rows || []).some((a) => a.status !== 'revoked')) return 2;
+      if (!(chs.rows || []).length) return 3;
+      return -1;
+    } catch { return 1; }
+  }
   const skipBtn = () => h('button', { type: 'button', class: 'btn', onclick: next }, t('setup.skip'));
 
   function formShell(title, hint, fields, onSubmit, submitLabel, extra) {
@@ -56,6 +70,7 @@ export function mount(container, ctx) {
         await post('/api/setup/owner?k=' + encodeURIComponent(key), { display_name: name.value.trim(), username: user.value.trim(), password: pw.value, lang: lang.value });
         ctx.setLang(lang.value);
         await ctx.refreshMe();
+        stripKey();
         next();
       }, t('common.next'));
   }
@@ -113,7 +128,7 @@ export function mount(container, ctx) {
       let clickedAt = null;
       const open = h('button', { type: 'button', class: 'btn primary', onclick: async (e) => {
         const b = e.currentTarget; b.disabled = true;
-        try { await post('/api/pairing/open', { channel: 'internal' }); clickedAt = new Date(Date.now() - 2000).toISOString(); b.textContent = t('setup.agent.reopen'); startWatch(); }
+        try { await post('/api/pairing/open', { channel: 'internal' }); clickedAt = new Date(Date.now() - 2000).toISOString(); b.textContent = t('setup.agent.reopen'); b.className = 'btn'; startWatch(); }   // sau cú bấm đầu, "Mở lại ghép" chỉ là nút phụ
         catch (ex) { clear(status); status.append(errorBanner(ex)); }
         b.disabled = false;
       } }, t('setup.agent.enable'));
@@ -124,12 +139,12 @@ export function mount(container, ctx) {
           const [rs, list] = await Promise.all([get('/api/runner-status'), get('/api/auth-requests')]);
           const nodes = [];
           const r = rs.runner;
-          nodes.push(h('div', { class: 'waiting' }, r && r.online ? t('runner.state.' + r.state) + (r.message ? ' · ' + toText(r.message) : '') : t('runner.offline')));
+          nodes.push(h('div', { class: 'waiting' }, r && r.online ? tOr('runner.state.' + r.state, r.state) + (r.code ? ' · ' + tOr('runner.code.' + r.code, r.code) : '') : t('runner.offline')));
           if (rs.pairing && rs.pairing.open) nodes.push(h('div', { class: 'muted small' }, t('runner.window', { at: new Date(rs.pairing.open_until).toLocaleTimeString() })));
           // chỉ thẻ internal sinh SAU cú bấm; có hơn một thì không hiện nút Duyệt
           const mine = list.requests.filter((q) => q.kind === 'device' && q.agent_kind === 'internal' && q.created_at >= clickedAt);
           let finished = false;
-          if (mine.length === 1) nodes.push(authCard(mine[0], { onDone: (res, kind) => { if (kind === 'approve') { stopAll(); clear(watchBox); watchBox.append(h('div', { class: 'consent-done' }, icon('check'), h('span', null, t('setup.agent.paired', { id: res.agent.display_id }))), next_); } } }));
+          if (mine.length === 1) nodes.push(authCard(mine[0], { onDone: (res, kind) => { if (kind === 'approve') { stopAll(); open.hidden = true; clear(watchBox); watchBox.append(h('div', { class: 'consent-done' }, icon('check'), h('span', null, t('setup.agent.paired', { id: res.agent.display_id }))), next_); } } }));
           else if (mine.length > 1) nodes.push(h('div', { class: 'banner warn', role: 'alert' }, icon('warn'), h('span', null, t('setup.agent.many'))));
           else nodes.push(h('div', { class: 'waiting' }, t('setup.agent.wait_runner')));
           return { nodes, finished };
@@ -183,6 +198,6 @@ export function mount(container, ctx) {
     drawStepper(); clear(panel);
     panel.append([ownerStep, providerStep, agentStep, channelStep][step]());
   }
-  draw();
+  firstIncomplete().then((n) => { if (n < 0) { finish(); return; } step = n; draw(); });
   return () => { if (stopWait) { stopWait(); stopWait = null; } };
 }

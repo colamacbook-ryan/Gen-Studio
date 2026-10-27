@@ -184,6 +184,6 @@ export function createDataGrid(opts) {
   load();
   return {
     el, reload: () => load(true), destroy: () => { alive = false; },
-    getRows: () => (data ? data.rows : []),
+    getRows: () => (data ? data.rows : []), getColumns: () => (data ? data.columns : []),
   };
 }

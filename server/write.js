@@ -526,7 +526,7 @@ function createWriter(db, opts = {}) {
   const checkPending = (chan, src, clientId) => {
     const now = db.now();
     const n = (sql, ...a) => db.get(`SELECT COUNT(*) AS n FROM auth_requests WHERE workspace_id=? AND status='pending' AND expires_at>=? AND ${sql}`, ws(), now, ...a).n;
-    const full = n('channel=?', chan) >= (PENDING_CHANNEL[chan] || 10) || (src && n('channel=? AND source_ip=?', chan, src) >= (PENDING_SOURCE[chan] || 3)) || (clientId && n('client_id=?', clientId) >= PENDING_CLIENT);
+    const full = n('channel=?', chan) >= (PENDING_CHANNEL[chan] || 10) || (src && n('channel=? AND source_ip=?', chan, src) >= (PENDING_SOURCE[chan] || 3)) || (clientId && n('client_id=? AND source_ip IS ?', clientId, src || null) >= PENDING_CLIENT);
     if (full) throw oerr('rate_limited', 'too_many_pending', 'Đang có quá nhiều yêu cầu chờ duyệt. Chủ xưởng cần xử lý bớt rồi hãy thử lại.');
   };
 
@@ -545,7 +545,7 @@ function createWriter(db, opts = {}) {
   });
   // runner nội bộ báo trạng thái (unpaired|waiting|paired|error) qua /oauth/pairing-status; ghi khi đổi trạng thái
   op('auth.runner_status', 'oauth', (c) => {
-    const v = { state: c.p.state, message: String(c.p.message || '').slice(0, 120), at: db.now() };
+    const v = { state: c.p.state, code: String(c.p.code || '').slice(0, 30), at: db.now() };
     putSetting('runner_status', v, 'runner');
     return { result: v, entity: ['setting', 'runner_status'], before: null, after: v };
   });
@@ -627,6 +627,10 @@ function createWriter(db, opts = {}) {
     const ag = db.insertRow('agents', { name: rq.client_name || 'Agent', kind: internal ? 'internal' : 'oauth', scopes: granted, status: 'active', created_by: c.by }, { prefix: 'AG' });
     db.run('UPDATE oauth_clients SET agent_id=?, expires_at=NULL, revoked_at=NULL WHERE client_id=?', ag.id, cl.client_id);
     db.update('auth_requests', rq.id, { status: 'approved', scopes_granted: granted, decided_by: c.a.id, decided_at: db.now(), agent_id: ag.id, replaces_agent_id: old && old.status !== 'revoked' ? old.id : null });
+    // cửa sổ ghép của kênh đó đóng ngay khi có yêu cầu ghép được duyệt (một cú bấm mở = một lần ghép)
+    const win = rq.kind === 'device' ? getSetting('pairing_window') : null;
+    const closedWindow = !!(win && win.channel === rq.channel);
+    if (closedWindow) putSetting('pairing_window', null, c.by);
     const out = { id: rq.display_id, kind: rq.kind, agent: { display_id: ag.display_id, name: ag.name, kind: ag.kind, scopes: granted } };
     if (rq.kind === 'oauth') {
       const code = rnd('gsc_', 32);
@@ -635,7 +639,7 @@ function createWriter(db, opts = {}) {
       out.redirect = redirectWith(rq.redirect_uri, { code, state: rq.state });   // code dùng 1 lần, 60 s — ngoại lệ duy nhất được nằm trong URL
     }
     return { result: out, entity: ['auth_request', rq.display_id], before: { status: 'pending', scopes_requested: asked },
-      after: { status: 'approved', scopes_granted: granted, agent: ag.display_id, replaced_agent: old && old.status !== 'revoked' ? old.display_id : null } };
+      after: { status: 'approved', scopes_granted: granted, agent: ag.display_id, replaced_agent: old && old.status !== 'revoked' ? old.display_id : null, closed_window: closedWindow } };
   });
   op('auth.deny', 'ownerUi', (c) => {
     const rq = getRequest(c.p.id);
@@ -645,6 +649,14 @@ function createWriter(db, opts = {}) {
     const out = { id: rq.display_id, kind: rq.kind };
     if (rq.kind === 'oauth') out.redirect = redirectWith(rq.redirect_uri, { error: 'access_denied', state: rq.state });
     return { result: out, entity: ['auth_request', rq.display_id], before: { status: 'pending' }, after: { status: 'denied' } };
+  });
+
+  // "Từ chối tất cả yêu cầu ngoài": chủ xưởng luôn dọn được một đợt flood (mọi yêu cầu chờ không thuộc kênh nội bộ)
+  op('auth.deny_all', 'ownerUi', (c) => {
+    const rows = db.all("SELECT id, display_id FROM auth_requests WHERE workspace_id=? AND status='pending' AND channel!='internal'", ws());
+    const t = db.now();
+    rows.forEach((r) => db.run("UPDATE auth_requests SET status='denied', decided_by=?, decided_at=? WHERE id=?", c.a.id, t, r.id));
+    return { result: { denied: rows.length }, entity: ['auth_request', 'deny_all'], before: null, after: { denied: rows.map((r) => r.display_id) } };
   });
 
   // Cấp cặp token mới: access gsa_ (1 giờ, audience = server_id, scopes đã hạ) + refresh gsr_ (xoay vòng, 30 ngày trượt).

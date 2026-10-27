@@ -218,3 +218,4 @@ textarea.input{height:auto;padding:8px;resize:vertical}
 .opt-cards{display:flex;gap:8px}.opt-card{flex:1;text-align:left;border:1px solid var(--b2);border-radius:6px;background:var(--surface);padding:12px;color:var(--tx)}
 .opt-card.active{border-color:var(--ember)}
 .waiting{display:flex;align-items:center;gap:8px;color:var(--tx2)}
+.runner-card{display:flex;flex-direction:column;gap:6px;border:1px solid var(--b1);border-radius:6px;background:var(--surface);padding:12px 16px;margin:8px 16px}.rc-head{display:flex;align-items:center;gap:8px}
