@@ -74,3 +74,25 @@ test('c-render: Cdp.send không có phản hồi → reject cdp_timeout và gỡ
   await assert.rejects(c.send('Page.enable'), e => e.code === 'cdp_timeout');
   assert.equal(c.pending.size, 0);
 });
+
+test('c-render: trang sân khấu có CSP chặn mạng nhưng vẫn nạp được script cục bộ', async () => {
+  const cdp = require('../render/cdp');
+  const { pathToFileURL } = require('node:url');
+  const ch = await chromium.launch({});
+  let client = null;
+  try {
+    client = await cdp.connect(ch.wsUrl);
+    const { targetId } = await client.send('Target.createTarget', { url: 'about:blank' });
+    const { sessionId } = await client.send('Target.attachToTarget', { targetId, flatten: true });
+    const page = client.session(sessionId);
+    await page.send('Page.enable'); await page.send('Runtime.enable');
+    const loaded = page.once('Page.loadEventFired', 30000);
+    await page.send('Page.navigate', { url: pathToFileURL(path.join(__dirname, '..', 'render', 'stage', 'stage.html')).href });
+    await loaded;
+    const ev = async expression => (await page.send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true })).result.value;
+    assert.equal(await ev("typeof window.__load"), 'function', 'script cục bộ vẫn chạy dưới CSP');
+    assert.equal(await ev("fetch('http://example.invalid/').then(() => 'ra-mang', () => 'chan')"), 'chan');
+    assert.ok(!chromium.ARGS.includes('--allow-file-access-from-files'));
+    assert.ok(chromium.ARGS.some(a => a.startsWith('--proxy-server=')));
+  } finally { if (client) client.close(); await ch.close(); }
+});

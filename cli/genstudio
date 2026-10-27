@@ -54,9 +54,10 @@ case "$cmd" in
     # DB SQLite: dừng studio ngắn để chép nhất quán
     was=0; dc ps --status running --services 2>/dev/null | grep -qx studio && was=1
     [ "$was" = 1 ] && dc stop studio >/dev/null
-    tar -czf "$f" --exclude=data/backups --exclude=data/run data
+    tar -czf "$f" --exclude=data/backups --exclude=data/run --exclude=data/.env data
     [ "$was" = 1 ] && dc up -d studio >/dev/null
-    echo "✓ $f" ;;
+    echo "✓ $f"
+    echo "! Bản sao lưu KHÔNG chứa GS_MASTER_KEY (nằm ở data/.env). Hãy cất khoá chủ riêng (trình quản lý mật khẩu); mất khoá thì các khoá nhà cung cấp đã lưu không giải mã được." ;;
   restore)
     f="${1:?Dùng: genstudio restore <file.tar.gz>}"; [ -f "$f" ] || { echo "✗ Không thấy $f" >&2; exit 1; }
     printf 'Ghi đè dữ liệu hiện tại bằng %s? Gõ "co" để tiếp tục: ' "$f"; read -r a; [ "$a" = "co" ] || { echo "Đã huỷ."; exit 1; }
@@ -72,6 +73,7 @@ case "$cmd" in
     for p in studio.db studio.db-wal studio.db-shm media exports; do [ -e "$stage/data/$p" ] && cp -a "$stage/data/$p" "data/$p"; done
     rm -rf "$stage"
     mkdir -p data/run data/backups; [ -d "$keep/run" ] && cp -a "$keep/run/." data/run/; [ -d "$keep/backups" ] && cp -a "$keep/backups/." data/backups/; rm -rf "$keep"
+    echo "! Nếu máy này dùng GS_MASTER_KEY khác lúc sao lưu, khoá nhà cung cấp sẽ báo master_key_mismatch: đặt lại đúng GS_MASTER_KEY trong data/.env hoặc nhập lại khoá."
     dc up -d studio; echo "✓ Đã khôi phục" ;;
   uninstall)
     printf 'Gỡ Gen-Studio. Giữ dữ liệu trong %s/data? [G]iữ / [X]oá: ' "$HOME_DIR"; read -r a

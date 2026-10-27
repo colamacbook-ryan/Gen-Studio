@@ -28,7 +28,13 @@ function get(db, ws, name) {
   const d = crypto.createDecipheriv('aes-256-gcm', keyOf(db), Buffer.from(r.nonce));
   d.setAAD(Buffer.from(`${ws}:${name}`));
   d.setAuthTag(buf.subarray(buf.length - 16));
-  return Buffer.concat([d.update(buf.subarray(0, buf.length - 16)), d.final()]).toString('utf8');
+  try {
+    return Buffer.concat([d.update(buf.subarray(0, buf.length - 16)), d.final()]).toString('utf8');
+  } catch (e) {
+    // sai khoá chủ (vd khôi phục bản sao lưu lên máy có GS_MASTER_KEY khác) → báo thân thiện, không để rơi thành lỗi nội bộ
+    const x = new Error('Không giải mã được khoá đã lưu "' + name + '": GS_MASTER_KEY hiện tại khác khoá lúc lưu. Đặt lại đúng GS_MASTER_KEY (khoá chủ cất riêng) hoặc nhập lại khoá nhà cung cấp.');
+    x.code = 'master_key_mismatch'; x.text_human = x.message; x.detail = { name }; throw x;
+  }
 }
 
 // Mật khẩu: scrypt$<saltHex>$<hashHex> (N=16384, r=8, p=1, 64 byte)

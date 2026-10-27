@@ -120,3 +120,10 @@ test('cli/genstudio có đủ lệnh, mcp qua docker compose exec -T', () => {
   assert.match(s, /exec -T studio node server\/mcp-stdio\.js/);
   assert.match(s, /run --rm -it agent claude login/);
 });
+
+test('backup không chứa data/.env (khoá chủ) và nhắc cất khoá riêng', () => {
+  const s = read('cli/genstudio');
+  assert.match(s, /tar -czf[^\n]*--exclude=data\/\.env/);
+  assert.match(s, /KHÔNG chứa GS_MASTER_KEY/);
+  assert.match(s, /master_key_mismatch/);
+});

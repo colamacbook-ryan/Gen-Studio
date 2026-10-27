@@ -77,7 +77,7 @@ test('secrets AES-256-GCM khứ hồi, không lưu plaintext, sai khoá thì l�
   secrets.put(t.db, t.db.ws, 'k', 'v2');
   assert.equal(secrets.get(t.db, t.db.ws, 'k'), 'v2');
   t.db.masterKey = 'ab'.repeat(32);
-  assert.throws(() => secrets.get(t.db, t.db.ws, 'k'));
+  assert.throws(() => secrets.get(t.db, t.db.ws, 'k'), e => e.code === 'master_key_mismatch' && /GS_MASTER_KEY/.test(e.text_human));
   const h = secrets.hashPassword('mk');
   assert.ok(secrets.verifyPassword('mk', h) && !secrets.verifyPassword('sai', h));
   t.clean();

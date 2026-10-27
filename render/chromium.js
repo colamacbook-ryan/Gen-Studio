@@ -29,8 +29,9 @@ function find(configured) {
 
 const ARGS = ['--headless=new', '--remote-debugging-port=0', '--no-sandbox', '--disable-gpu', '--hide-scrollbars', '--mute-audio', '--window-size=1920,1080',
   '--force-device-scale-factor=1', '--disable-dev-shm-usage', '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-background-networking',
-  '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows', '--allow-file-access-from-files',
-  '--font-render-hinting=none'];
+  '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows', '--font-render-hinting=none',
+  // sân khấu không được ra mạng (spec §8.1): mọi request đi qua proxy chết, chỉ loopback (cổng CDP) được bỏ qua
+  '--proxy-server=127.0.0.1:9', '--proxy-bypass-list=<-loopback>'];
 
 // Chạy Chromium; URL WebSocket lấy từ stderr dòng "DevTools listening on ws://…".
 function launch(opts) {

@@ -406,7 +406,7 @@ async function runOne(ctx, run) {
       queue.waitQuota(db, run.id, e.until);
       return;
     }
-    const br = e instanceof Block ? { code: e.code, text_human: e.text_human, detail: e.detail }
+    const br = e instanceof Block || (e && e.code === 'master_key_mismatch') ? { code: e.code, text_human: e.text_human, detail: e.detail }
       : { code: 'internal', text_human: 'Lỗi nội bộ khi dựng bản dựng: ' + events.mask(e && e.message), detail: events.mask(e && e.stack) };
     if (!(e instanceof Block)) events.logError('pipeline error', e);
     const cur = (db.get('SELECT state FROM renders WHERE id=?', run.render_id) || {}).state;

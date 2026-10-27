@@ -9,7 +9,7 @@ const events = require('./events.js');
 const state = require('./state.js');
 
 const J = grids.J;
-const STATUS = { invalid: 400, unauthorized: 401, forbidden: 403, not_found: 404, conflict: 409, rate_limited: 429, payload_too_large: 413, bad_gateway: 502 };
+const STATUS = { invalid: 400, unauthorized: 401, forbidden: 403, not_found: 404, conflict: 409, rate_limited: 429, master_key_mismatch: 500, payload_too_large: 413, bad_gateway: 502 };
 
 // Lỗi → {code, text_human, detail} (không stack trace cho người dùng)
 function errBody(e) {
