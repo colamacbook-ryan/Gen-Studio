@@ -179,15 +179,16 @@ function createWriter(db, opts = {}) {
     'font-weight', 'font-style', 'text-anchor', 'dominant-baseline', 'letter-spacing', 'dx', 'dy', 'preserveaspectratio', 'version',
     'aria-hidden', 'role', 'aria-label', 'vector-effect', 'paint-order', 'clippathunits', 'maskunits']);
   const svgOk = (buf) => {
+    if (buf.length > 2 * 1024 * 1024) return false;   // SVG tối đa 2 MB — chặn tốn CPU khi quét
     const t = buf.toString('utf8');
     if (/&#|<!|<\?(?!xml\s)|&(?!(amp|lt|gt|quot|apos);)/i.test(t)) return false;
-    const tagRe = /<\s*(\/?)\s*([a-zA-Z][\w:.-]*)([^>]*)>/g;
+    const tagRe = /<\s{0,8}(\/?)\s{0,8}([a-zA-Z][\w:.-]{0,63})([^<>]{0,4096})>/g;
     let m, seen = 0;
     while ((m = tagRe.exec(t))) {
       seen++;
       if (!SVG_TAGS.has(m[2].toLowerCase())) return false;
       if (m[1]) continue;
-      const attrRe = /([^\s=\/]+)\s*=\s*("([^"]*)"|'([^']*)')/g;
+      const attrRe = /([^\s=\/<>]{1,64})\s{0,8}=\s{0,8}("([^"]{0,4096})"|'([^']{0,4096})')/g;
       let a;
       const rest = m[3].replace(/\/\s*$/, '');
       const stripped = rest.replace(attrRe, '').trim();
@@ -198,7 +199,8 @@ function createWriter(db, opts = {}) {
         if (/url\(\s*['"]?(?!#)/i.test(val) || /javascript:|data:/i.test(val)) return false;
       }
     }
-    return seen > 0;
+    const lt = (t.match(/</g) || []).length;
+    return seen > 0 && seen === lt;   // mọi '<' phải thuộc một thẻ đã kiểm (thẻ quá dài/không khớp → từ chối)
   };
   op('asset.put', 'composeOrSystem', (c) => {
     const p = c.p;
