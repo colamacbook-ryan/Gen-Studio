@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# genstudio — lệnh quản lý Gen-Studio trên máy chủ. © 2026 Gen Labs — All rights reserved.
+set -euo pipefail
+
+SELF="$0"; while [ -L "$SELF" ]; do l="$(readlink "$SELF")"; case "$l" in /*) SELF="$l" ;; *) SELF="$(dirname "$SELF")/$l" ;; esac; done
+HOME_DIR="${GS_HOME:-$(cd "$(dirname "$SELF")/.." && pwd)}"
+cd "$HOME_DIR"
+[ -f docker-compose.yml ] || { echo "✗ Không thấy docker-compose.yml ở $HOME_DIR — đặt GS_HOME=<thư mục cài>" >&2; exit 1; }
+
+SUDO=""; docker info >/dev/null 2>&1 || { command -v sudo >/dev/null 2>&1 && sudo docker info >/dev/null 2>&1 && SUDO="sudo"; }
+dc() { $SUDO docker compose "$@"; }
+envget() { sed -n "s/^$1=//p" .env 2>/dev/null | head -1; }
+envset() { # envset KEY VALUE
+  touch .env
+  if grep -q "^$1=" .env; then sed -i.bak "s|^$1=.*|$1=$2|" .env && rm -f .env.bak; else echo "$1=$2" >> .env; fi
+}
+PORT="$(envget GS_PORT)"; PORT="${PORT:-7490}"
+# bí mật ghép nội bộ: bản cài cũ chưa có thì sinh một lần (studio + agent cùng nhận qua compose)
+ensure_pairing_secret() { [ -n "$(envget GS_PAIRING_SECRET)" ] || envset GS_PAIRING_SECRET "gsp_$(head -c 32 /dev/urandom | base64 | tr '+/' '-_' | tr -d '=\n')"; }
+need_up() { dc ps --status running --services 2>/dev/null | grep -qx studio || { echo "✗ studio chưa chạy — genstudio start" >&2; exit 1; }; }
+
+usage() {
+  cat <<'U'
+genstudio <lệnh>
+  start | stop | restart | status | logs [dịch vụ] | update | open
+  backup | restore <file> | uninstall
+  mcp [--token <t>]      cầu stdio cho agent ngoài (client MCP chạy lệnh này)
+  password               đặt lại mật khẩu chủ sở hữu
+  lang [vi|en]           xem / đổi ngôn ngữ
+  token create [tên] [--scopes read,compose,run]
+                         nâng cao: cấp token tay cho agent ngoài (hiện một lần); CLI không duyệt được quyền agent
+  agent-login            đăng nhập Claude Code cho agent nội bộ (chính chủ, một lần, trên máy chủ)
+U
+}
+
+cmd="${1:-help}"; [ $# -gt 0 ] && shift
+case "$cmd" in
+  start) ensure_pairing_secret; dc up -d; echo "✓ Đã chạy — http://localhost:$PORT" ;;
+  stop) dc stop; echo "✓ Đã dừng" ;;
+  restart) dc restart; echo "✓ Đã khởi động lại" ;;
+  status)
+    dc ps
+    if curl -fsS "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1; then echo "● khoẻ · v$(tr -d ' \n' < VERSION) · http://localhost:$PORT"; else echo "○ không trả lời /api/health"; fi ;;
+  logs) dc logs -f --tail=200 "$@" ;;
+  open)
+    url="http://localhost:$PORT"
+    # gọi setup/state trước: chưa có chủ xưởng mà khoá đã hết hạn thì server tự sinh khoá mới
+    st="$(curl -fsS "$url/api/setup/state" 2>/dev/null || true)"
+    if [ -s data/run/admin-key ] && ! printf '%s' "$st" | grep -q '"owner":true'; then url="$url/#/setup?k=$(cat data/run/admin-key)"; fi
+    echo "$url"; (command -v xdg-open >/dev/null && xdg-open "$url") || (command -v open >/dev/null && open "$url") || true ;;
+  update)
+    if [ -d .git ]; then git pull --ff-only; else echo "Bản cài từ Release: chạy lại install.sh (giữ nguyên data/ và .env)"; exit 0; fi
+    ensure_pairing_secret; dc build; dc up -d
+    echo "✓ Đã cập nhật" ;;
+  backup)
+    mkdir -p data/backups; f="data/backups/gen-studio-$(date +%Y%m%d-%H%M%S).tar.gz"
+    # DB SQLite: dừng studio ngắn để chép nhất quán
+    was=0; dc ps --status running --services 2>/dev/null | grep -qx studio && was=1
+    [ "$was" = 1 ] && dc stop studio >/dev/null
+    tar -czf "$f" --exclude=data/backups --exclude=data/run --exclude=data/.env data
+    [ "$was" = 1 ] && dc up -d studio >/dev/null
+    echo "✓ $f"
+    echo "! Bản sao lưu KHÔNG chứa GS_MASTER_KEY (nằm ở data/.env). Hãy cất khoá chủ riêng (trình quản lý mật khẩu); mất khoá thì các khoá nhà cung cấp đã lưu không giải mã được." ;;
+  restore)
+    f="${1:?Dùng: genstudio restore <file.tar.gz>}"; [ -f "$f" ] || { echo "✗ Không thấy $f" >&2; exit 1; }
+    printf 'Ghi đè dữ liệu hiện tại bằng %s? Gõ "co" để tiếp tục: ' "$f"; read -r a; [ "$a" = "co" ] || { echo "Đã huỷ."; exit 1; }
+    dc stop studio >/dev/null 2>&1 || true
+    keep="$(mktemp -d)"; [ -d data/run ] && cp -a data/run "$keep/" ; [ -d data/backups ] && cp -a data/backups "$keep/"
+    # Chỉ nhận thành viên thường/thư mục dưới data/, không đường dẫn tuyệt đối, không "..", không symlink/hardlink;
+    # giải nén vào thư mục tạm rồi chỉ chép đúng các phần dữ liệu cần khôi phục.
+    bad="$(tar -tzvf "$f" | awk '{t=substr($1,1,1); if (t!="-" && t!="d") print "loại " t ": " $NF}')"
+    bad="$bad$(tar -tzf "$f" | grep -Ev '^data/' || true)$(tar -tzf "$f" | grep -E '(^/|(^|/)\.\.(/|$))' || true)"
+    [ -z "$bad" ] || { echo "✗ File sao lưu có mục không hợp lệ, đã dừng: $(printf '%s' "$bad" | head -c 200)" >&2; dc up -d studio >/dev/null 2>&1 || true; exit 1; }
+    stage="$(mktemp -d)"; tar -xzf "$f" -C "$stage" --no-same-owner --no-same-permissions
+    rm -rf data/media data/exports data/studio.db*
+    for p in studio.db studio.db-wal studio.db-shm media exports; do [ -e "$stage/data/$p" ] && cp -a "$stage/data/$p" "data/$p"; done
+    rm -rf "$stage"
+    mkdir -p data/run data/backups; [ -d "$keep/run" ] && cp -a "$keep/run/." data/run/; [ -d "$keep/backups" ] && cp -a "$keep/backups/." data/backups/; rm -rf "$keep"
+    echo "! Nếu máy này dùng GS_MASTER_KEY khác lúc sao lưu, khoá nhà cung cấp sẽ báo master_key_mismatch: đặt lại đúng GS_MASTER_KEY trong data/.env hoặc nhập lại khoá."
+    dc up -d studio; echo "✓ Đã khôi phục" ;;
+  uninstall)
+    printf 'Gỡ Gen-Studio. Giữ dữ liệu trong %s/data? [G]iữ / [X]oá: ' "$HOME_DIR"; read -r a
+    dc down --remove-orphans >/dev/null 2>&1 || true
+    case "$a" in [Xx]*) printf 'Xoá VĨNH VIỄN dữ liệu và phiên agent? Gõ "xoa": '; read -r b; [ "$b" = "xoa" ] || { echo "Đã giữ dữ liệu."; exit 0; }
+      dc down -v >/dev/null 2>&1 || true; rm -rf data; echo "✓ Đã xoá dữ liệu" ;; *) echo "✓ Đã gỡ container, giữ $HOME_DIR/data" ;; esac
+    rm -f /usr/local/bin/genstudio "$HOME/.local/bin/genstudio" 2>/dev/null || true ;;
+  mcp)
+    need_up
+    exec $SUDO docker compose exec -T studio node server/mcp-stdio.js "$@" ;;
+  password) need_up; exec $SUDO docker compose exec studio node server/main.js --reset-password ;;
+  lang)
+    if [ $# -eq 0 ]; then echo "${GS_LANG:-$(envget GS_LANG)}"; exit 0; fi
+    case "$1" in vi|en) envset GS_LANG "$1"; dc up -d studio; echo "✓ Ngôn ngữ: $1" ;; *) echo "✗ Chỉ hỗ trợ vi | en" >&2; exit 2 ;; esac ;;
+  token)
+    # Nâng cao: cấp token tay (gst_…, không hết hạn) cho agent ngoài; ghi Nhật ký actor cli. Không thể duyệt quyền agent bằng CLI.
+    [ "${1:-}" = create ] || { echo "Dùng: genstudio token create [tên] [--scopes read,compose,run]" >&2; exit 2; }; shift
+    need_up
+    name="Agent token tay"; [ $# -gt 0 ] && case "$1" in --*) ;; *) name="$1"; shift ;; esac
+    exec $SUDO docker compose exec -T studio node server/main.js --create-token "$name" "$@" ;;
+  agent-login)
+    exec $SUDO docker compose run --rm -it agent claude login ;;
+  help|-h|--help) usage ;;
+  *) usage >&2; exit 2 ;;
+esac

@@ -1,0 +1,84 @@
+[
+ {
+  "id": "ab-gen",
+  "name": "Anh Gen",
+  "role": "Thầy giáo trẻ giảng AI",
+  "persona": "Ấm áp, chậm rãi, giải thích bằng ẩn dụ đời thường.",
+  "project": "lop-ai-binh-dan",
+  "look": {
+   "eyes": "calm",
+   "brows": "normal",
+   "parts": {
+    "outfit": "gen.khung/khoi-ao",
+    "shoes": "gen.khung/khoi-giay",
+    "mask": "local.my/ab-kinh",
+    "hair": "local.my/ab-toc-gon"
+   },
+   "params": {},
+   "palette": {
+    "robe": "#2B3A8C",
+    "trim": "#1D2A6E",
+    "accent": "#1D2A6E",
+    "boots": "#3a3330",
+    "skin": "#F2C9A0",
+    "skinShade": "#DDB088",
+    "hair": "#24211F"
+   }
+  },
+  "identity": {
+   "p1": "Áo tím than, kính đen",
+   "must": [
+    "mask:ab-kinh"
+   ],
+   "source": "Lớp AI Bình Dân bài 01"
+  },
+  "status": "draft",
+  "voice": {
+   "role": "nam-tre",
+   "ai": "Charon"
+  }
+ },
+ {
+  "id": "ab-be-hoi",
+  "name": "Bé Hỏi",
+  "role": "Cô bé hay hỏi",
+  "persona": "Tò mò, hồn nhiên, hỏi đúng câu người xem đang nghĩ.",
+  "project": "lop-ai-binh-dan",
+  "look": {
+   "eyes": "round",
+   "brows": "thin",
+   "parts": {
+    "outfit": "gen.khung/khoi-ao",
+    "shoes": "gen.khung/khoi-giay",
+    "hair": "local.my/ab-buoi-toc"
+   },
+   "params": {
+    "eyes": {
+     "size": 1.35
+    }
+   },
+   "palette": {
+    "hat": "#FFD84A",
+    "accent": "#FF6F59",
+    "robe": "#FF6F59",
+    "trim": "#D9503C",
+    "boots": "#1D2A6E",
+    "skin": "#F6D9C4",
+    "skinShade": "#E6BFA6",
+    "hair": "#3B2A24"
+   }
+  },
+  "identity": {
+   "p1": "Mũ vàng, áo san hô, mắt to",
+   "must": [
+    "hair:ab-buoi-toc"
+   ],
+   "source": "Lớp AI Bình Dân bài 01"
+  },
+  "status": "draft",
+  "voice": {
+   "role": "be-gai",
+   "ai": "Leda"
+  }
+ }
+]

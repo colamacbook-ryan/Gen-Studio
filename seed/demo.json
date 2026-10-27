@@ -1,0 +1,129 @@
+{
+  "workspace": { "name": "Gen Studio", "locale": "vi", "timezone": "Asia/Ho_Chi_Minh" },
+  "user": { "username": "ryan", "display_name": "Ryan" },
+  "channel": {
+    "id": "CH-0001", "name": "Lớp AI Bình Dân", "lang_primary": "vi", "lang_terms": "en",
+    "data": {
+      "schedule": { "cron": "0 6 * * *", "per_run": 1, "text": "mỗi ngày 06:00 · 1 bài" },
+      "loudness": { "lufs": -16, "tolerance": 2, "true_peak": -1 },
+      "subtitle_langs": ["vi", "en"],
+      "terms": ["A.I.", "Large Language Model", "next token prediction", "hallucination", "token", "context"],
+      "style": { "tone": "thân thiện, dễ hiểu", "palette": "paper" },
+      "end_card": { "text": "Hẹn gặp lại ở bài sau!" }
+    }
+  },
+  "cast": [
+    { "id": "CM-0001", "name": "Anh Gen", "role_label": "Người giảng", "voice": "Charon", "look": { "archetype": "mentor" } },
+    { "id": "CM-0002", "name": "Bé Hỏi", "role_label": "Người hỏi", "voice": "Leda", "look": { "archetype": "curious-kid" } }
+  ],
+  "agents": [
+    { "id": "AG-0001", "name": "Claude Code (nội bộ)", "kind": "internal", "scopes": ["read", "compose", "run"], "cli": "claude-code", "wake_limit_per_day": 24 },
+    { "id": "AG-0002", "name": "claude.ai", "kind": "oauth", "scopes": ["read", "compose"], "cli": null, "wake_limit_per_day": null }
+  ],
+  "providers": [
+    { "id": "PV-0001", "kind": "tts", "vendor": "gemini", "model": "gemini-3.1-flash-tts-preview", "scan": { "available": true, "quota": { "value": 4, "of": 10, "source": "local_counter", "confidence": "medium" } }, "usage": { "calls": 6, "errors_429": 0 } },
+    { "id": "PV-0002", "kind": "tts", "vendor": "gemini", "model": "gemini-3.8-flash-tts", "scan": { "available": true, "quota": { "value": 0, "source": "api", "confidence": "high" } }, "usage": { "calls": 10, "errors_429": 2 } },
+    { "id": "PV-0003", "kind": "judge", "vendor": "gemini", "model": "gemini-3.5-flash", "scan": { "available": true, "quota": { "value": null, "source": "unknown", "confidence": "low" } }, "usage": { "calls": 9, "errors_429": 0 } }
+  ],
+  "curriculum": [
+    { "id": "CU-0001", "ord": 1, "title": "AI đoán chữ tiếp theo", "status": "done" },
+    { "id": "CU-0002", "ord": 2, "title": "Ngữ cảnh (context) là gì", "status": "in_progress" },
+    { "id": "CU-0003", "ord": 3, "title": "Vì sao AI \"quên\"", "status": "todo" },
+    { "id": "CU-0004", "ord": 4, "title": "Hỏi sao để AI trả lời đúng", "status": "todo" }
+  ],
+  "lessons": [
+    {
+      "id": "LS-0001", "node": "CU-0001", "title": "Vì sao A.I. sai mà vẫn tự tin?",
+      "lines": [
+        { "id": "LN-0001", "who": "CM-0002", "say": "Anh Gen ơi, sao A.I. nói sai mà vẫn tự tin thế ạ?", "terms": ["A.I."], "mood": "unsure", "a": 1100, "b": 5200 },
+        { "id": "LN-0002", "who": "CM-0001", "say": "Vì A.I., cụ thể là Large Language Model, không tra cứu. Nó đoán từ tiếp theo. Người ta gọi là next token prediction.", "terms": ["A.I.", "Large Language Model", "next token prediction"], "mood": "calm", "a": 6300, "b": 15500 },
+        { "id": "LN-0003", "who": "CM-0001", "say": "Câu quen, như thủ đô Việt Nam là gì, thì Hà Nội chiếm tới chín mươi hai phần trăm.", "terms": [], "mood": "calm", "a": 16100, "b": 22500 },
+        { "id": "LN-0004", "who": "CM-0001", "say": "Còn câu lạ, chữ nào cũng chỉ mười mấy phần trăm. Nhưng nó vẫn phải chọn một, và nói rất chắc. Đó là hallucination.", "terms": ["hallucination"], "mood": "serious", "a": 23300, "b": 31600 },
+        { "id": "LN-0005", "who": "CM-0002", "say": "À! Vậy là đoán, chứ không phải biết!", "terms": [], "mood": "excited", "a": 32200, "b": 35300 },
+        { "id": "LN-0006", "who": "CM-0001", "say": "Đúng rồi. Nên câu nào quan trọng, mình luôn kiểm chứng lại.", "terms": [], "mood": "warm", "a": 35700, "b": 40000 }
+      ],
+      "beats": [
+        { "id": "BT-0001", "block": "title", "line": "LN-0001", "word": "A.I.", "params": { "text": "Vì sao A.I. sai mà vẫn tự tin?" } },
+        { "id": "BT-0002", "block": "concept-chip", "line": "LN-0002", "word": "Large Language Model", "params": { "text": "Large Language Model" } },
+        { "id": "BT-0003", "block": "token-row", "line": "LN-0002", "word": "đoán", "params": { "tokens": ["Nó", "đoán", "từ", "tiếp", "theo"], "highlight": 1 } },
+        { "id": "BT-0004", "block": "prob-card", "line": "LN-0003", "word": "Hà Nội", "params": { "prompt": "Thủ đô của Việt Nam là", "options": [["Hà Nội", 92], ["Huế", 4], ["TP.HCM", 3], ["Hải Phòng", 1]], "pick": 0, "chip": "✓ chắc chắn" } },
+        { "id": "BT-0005", "block": "prob-card", "line": "LN-0004", "word": "câu lạ", "params": { "prompt": "Câu lạ thì…", "options": [["chữ A", 14], ["chữ B", 12], ["chữ C", 11], ["chữ D", 10]], "pick": 0, "chip": "? đoán bừa" } },
+        { "id": "BT-0006", "block": "stamp", "line": "LN-0004", "word": "hallucination", "params": { "text": "HALLUCINATION" } },
+        { "id": "BT-0007", "block": "takeaway", "line": "LN-0005", "word": "đoán", "params": { "text": "Đoán ≠ Biết" } },
+        { "id": "BT-0008", "block": "lesson-map", "line": "LN-0006", "word": "kiểm chứng", "params": { "current": "CU-0001" } }
+      ],
+      "versions": [
+        { "version": 1, "wo": "WO-0001", "lineOverrides": { "LN-0004": { "say": "Còn câu lạ, chữ nào cũng chỉ mười mấy phần trăm. Nó vẫn phải chọn một, và nói rất chắc. Đó là hallucination." } } },
+        { "version": 2, "wo": "WO-0003" }
+      ]
+    },
+    {
+      "id": "LS-0002", "node": "CU-0002", "title": "Ngữ cảnh (context) là gì?",
+      "lines": [
+        { "id": "LN-0007", "who": "CM-0002", "say": "Anh Gen ơi, context là gì vậy ạ?", "terms": ["context"], "mood": "curious", "a": 800, "b": 3200 },
+        { "id": "LN-0008", "who": "CM-0001", "say": "Context là toàn bộ chữ mà A.I. đang nhìn thấy khi trả lời em.", "terms": ["context", "A.I."], "mood": "calm", "a": 3800, "b": 9000 },
+        { "id": "LN-0009", "who": "CM-0002", "say": "Vậy nhiều chữ hơn thì hiểu rõ hơn ạ?", "terms": [], "mood": "curious", "a": 9600, "b": 12000 }
+      ],
+      "beats": [
+        { "id": "BT-0009", "block": "concept-chip", "line": "LN-0008", "word": "Context", "params": { "text": "context" } },
+        { "id": "BT-0010", "block": "takeaway", "line": "LN-0009", "word": "nhiều chữ", "params": { "text": "Nhiều ngữ cảnh ≠ luôn tốt hơn" } }
+      ],
+      "versions": [{ "version": 1, "wo": null }]
+    },
+    {
+      "id": "LS-0003", "node": "CU-0003", "title": "Vì sao AI \"quên\"?",
+      "lines": [
+        { "id": "LN-0010", "who": "CM-0002", "say": "Sao đang nói chuyện mà A.I. lại quên mất ạ?", "terms": ["A.I."], "mood": "unsure", "a": 800, "b": 3600 },
+        { "id": "LN-0011", "who": "CM-0001", "say": "Vì context có giới hạn. Chữ cũ bị đẩy ra ngoài.", "terms": ["context"], "mood": "calm", "a": 4200, "b": 8800 },
+        { "id": "LN-0012", "who": "CM-0002", "say": "À, cửa sổ nhỏ quá nên chữ đầu rơi mất!", "terms": [], "mood": "excited", "a": 9400, "b": 12600 }
+      ],
+      "beats": [
+        { "id": "BT-0011", "block": "concept-chip", "line": "LN-0011", "word": "giới hạn", "params": { "text": "giới hạn context" } },
+        { "id": "BT-0012", "block": "takeaway", "line": "LN-0012", "word": "rơi mất", "params": { "text": "Chữ cũ rơi khỏi cửa sổ" } }
+      ],
+      "versions": [{ "version": 1, "wo": null }]
+    }
+  ],
+  "work_orders": [
+    { "id": "WO-0001", "kind": "new_lesson", "node": "CU-0001", "lesson": "LS-0001", "agent": "AG-0001", "state": "fulfilled", "minutes_ago": 3000, "took_min": 6, "summary": "Đã nộp LS-0001 v1" },
+    { "id": "WO-0002", "kind": "unblock", "lesson": "LS-0001", "render": "RD-0001", "agent": "AG-0001", "state": "fulfilled", "minutes_ago": 2900, "took_min": 5, "brief": "Bản dựng RD-0001 bị chặn ở G-PRON. Hãy sửa bài LS-0001.", "summary": "Đã nộp lại LS-0001" },
+    { "id": "WO-0003", "kind": "revise", "lesson": "LS-0001", "render": "RD-0003", "review": "RV-0001", "agent": "AG-0001", "state": "fulfilled", "minutes_ago": 1500, "took_min": 4, "brief": "Sửa LS-0001 theo RV-0001: LN-0004 đọc chậm lại, ngắt trước chữ hallucination.", "summary": "Đã nộp LS-0001 v2" },
+    { "id": "WO-0004", "kind": "new_lesson", "node": "CU-0003", "agent": "AG-0001", "state": "assigned", "minutes_ago": 40, "brief": "Soạn bài mới cho mục CU-0003." },
+    { "id": "WO-0005", "kind": "new_lesson", "node": "CU-0002", "agent": "AG-0001", "state": "stalled", "minutes_ago": 300, "brief": "Soạn bài mới cho mục CU-0002.", "summary": "Đăng nhập Claude Code có thể đã hết hạn" }
+  ],
+  "renders": [
+    { "id": "RD-0001", "lesson": "LS-0001", "version": 1, "state": "superseded", "minutes_ago": 2950 },
+    { "id": "RD-0002", "lesson": "LS-0001", "version": 1, "state": "superseded", "minutes_ago": 2850 },
+    { "id": "RD-0003", "lesson": "LS-0001", "version": 1, "state": "changes_requested", "minutes_ago": 1600 },
+    { "id": "RD-0004", "lesson": "LS-0001", "version": 2, "state": "awaiting_review", "minutes_ago": 90, "duration_ms": 43533, "frames": 1306, "gates": "rd4" },
+    { "id": "RD-0005", "lesson": "LS-0002", "version": 1, "state": "awaiting_review", "minutes_ago": 60, "duration_ms": 12000, "frames": 360, "gates": "rd5" },
+    { "id": "RD-0006", "lesson": "LS-0003", "version": 1, "state": "rendering", "minutes_ago": 8, "progress": 0.37, "duration_ms": 43533, "frames": 1306 }
+  ],
+  "review": { "id": "RV-0001", "render": "RD-0003", "decision": "changes_requested", "review_seconds": 95,
+    "notes": [{ "pin_kind": "line", "pin_ref": "LN-0004", "at_ms": 31200, "text": "đọc chậm lại, ngắt trước chữ hallucination" }] },
+  "gates": {
+    "rd4": [
+      ["G-WAV", { "edge_peak_db": -42 }], ["G-SCRIPT", { "matched": 6, "total": 6 }],
+      ["G-PRON", { "ok": 4, "total": 4, "terms": ["A.I.", "Large Language Model", "next token prediction", "hallucination"] }],
+      ["G-LOUD", { "lufs": -16.2, "tp": -1.5 }], ["G-SYNC", { "ok": 8, "total": 8 }],
+      ["G-MOTION", { "longest_still_s": 1.1 }], ["G-FRAMES", { "got": 1306, "expected": 1306 }], ["G-MUX", { "av_offset_frames": 0 }]
+    ],
+    "rd5": [
+      ["G-WAV", { "edge_peak_db": -44 }], ["G-SCRIPT", { "matched": 3, "total": 3 }],
+      ["G-PRON", { "ok": 2, "total": 2, "terms": ["context", "A.I."] }],
+      ["G-LOUD", { "lufs": -15.8, "tp": -1.6 }], ["G-SYNC", { "ok": 2, "total": 2 }],
+      ["G-MOTION", { "longest_still_s": 0.9 }], ["G-FRAMES", { "got": 360, "expected": 360 }], ["G-MUX", { "av_offset_frames": 0 }]
+    ]
+  },
+  "runs": [
+    { "id": "RN-0036", "kind": "agent_wake", "state": "done", "wo": "WO-0004", "minutes_ago": 45 },
+    { "id": "RN-0037", "kind": "tts", "state": "done", "render": "RD-0005", "minutes_ago": 80 },
+    { "id": "RN-0038", "kind": "judge", "state": "done", "render": "RD-0005", "minutes_ago": 75 },
+    { "id": "RN-0039", "kind": "tts", "state": "waiting_quota", "render": "RD-0005", "minutes_ago": 30, "waiting_minutes": 90 },
+    { "id": "RN-0040", "kind": "gate", "state": "done", "render": "RD-0004", "minutes_ago": 95 },
+    { "id": "RN-0041", "kind": "tts", "state": "done", "render": "RD-0006", "minutes_ago": 14 },
+    { "id": "RN-0042", "kind": "judge", "state": "done", "render": "RD-0006", "minutes_ago": 12 },
+    { "id": "RN-0043", "kind": "align", "state": "done", "render": "RD-0006", "minutes_ago": 10 },
+    { "id": "RN-0044", "kind": "render", "state": "running", "render": "RD-0006", "minutes_ago": 8, "progress": 0.37, "cost": { "frames": 488, "of": 1306, "fps": 16.4, "eta_s": 51 } }
+  ]
+}

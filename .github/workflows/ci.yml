@@ -1,0 +1,23 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Cài ffmpeg + Chromium (apt; runner có sẵn google-chrome làm dự phòng)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg fonts-noto-core
+          sudo apt-get install -y --no-install-recommends chromium || sudo apt-get install -y --no-install-recommends chromium-browser || true
+          CH="$(command -v chromium || command -v chromium-browser || command -v google-chrome || true)"
+          echo "GS_CHROMIUM_PATH=$CH" >> "$GITHUB_ENV"
+          echo "GS_FFMPEG_PATH=$(command -v ffmpeg)" >> "$GITHUB_ENV"
+          echo "Chromium: ${CH:-không có}"; ffmpeg -version | head -1
+      - run: bash tools/test.sh
