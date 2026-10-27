@@ -12,7 +12,7 @@ export function mount(container, ctx) {
   const submit = h('button', { type: 'submit', class: 'btn primary' }, t('auth.login'));
   const form = h('form', { class: 'auth-form', onsubmit: async (e) => {
     e.preventDefault(); submit.disabled = true; clear(msg);
-    try { await post('/api/login', { username: user.value.trim(), password: pass.value }); await ctx.refreshMe(); location.hash = '#/overview'; }
+    try { await post('/api/login', { username: user.value.trim(), password: pass.value }); await ctx.refreshMe(); const next = sessionStorage.getItem('gs_next'); sessionStorage.removeItem('gs_next'); location.hash = next || '#/overview'; }
     catch (ex) { msg.append(errorBanner(ex)); submit.disabled = false; }
   } },
   h('h1', { class: 'display' }, t('auth.login_title')),

@@ -202,3 +202,19 @@ textarea.input{height:auto;padding:8px;resize:vertical}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:1439px){.cmdk{width:200px}.inspector{flex-basis:320px;width:320px}}
+
+/* Cấp phép / Ghép thiết bị / ConnectCard */
+.consent{border:1px solid var(--b2);border-radius:6px;background:var(--surface);padding:16px;display:flex;flex-direction:column;gap:8px;margin:8px 0}
+.consent.match{border-color:var(--ember)}
+.consent-head{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.consent-row{display:flex;gap:12px}.consent-row .micro{flex:0 0 96px}
+.consent-scopes{display:flex;flex-direction:column;gap:4px}
+.consent .row{display:flex;gap:8px;margin-top:8px}
+.consent-done{display:flex;align-items:center;gap:8px;color:var(--ok)}
+.consent-list{display:flex;flex-direction:column;gap:8px}
+.connect-card{display:flex;gap:8px;align-items:center;border:1px solid var(--b1);border-radius:6px;background:var(--sunken);padding:8px 12px}
+.connect-card code{flex:1;word-break:break-all}
+.connect-sec{margin:12px 0}.connect-sec h3{margin:0 0 4px;font-size:14px}
+.opt-cards{display:flex;gap:8px}.opt-card{flex:1;text-align:left;border:1px solid var(--b2);border-radius:6px;background:var(--surface);padding:12px;color:var(--tx)}
+.opt-card.active{border-color:var(--ember)}
+.waiting{display:flex;align-items:center;gap:8px;color:var(--tx2)}

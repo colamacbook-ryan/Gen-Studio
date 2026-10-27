@@ -20,18 +20,26 @@ DATA_DIR=./data GS_SEED_DEMO=1 GS_DEMO_PASSWORD='mat-khau-cua-ban' GS_FAKE_PROVI
 ```
 - `GS_SEED_DEMO=1` nạp kênh mẫu "Lớp AI Bình Dân", 2 nhân vật, giáo trình, vài bài và bản dựng mẫu.
 - `GS_FAKE_PROVIDERS=1` dùng giọng/giám khảo giả (không gọi mạng). Bỏ biến này và dán khoá Gemini ở **Kết nối › Nhà cung cấp** để dùng giọng thật.
-- Agent giả để thử trọn vòng: tạo token ở **Kết nối › Agent & MCP**, rồi
-  `GS_MCP_URL=http://127.0.0.1:7490/mcp GS_AGENT_TOKEN=<token> GS_FAKE_AGENT=1 node agent/runner.js`.
+- Agent giả để thử trọn vòng (không Docker): ở **Kết nối › Agent & MCP › Nâng cao** bấm **Ghép CLI**, rồi chạy
+  `GS_MCP_URL=http://127.0.0.1:7490/mcp GS_AGENT_STATE=./data/agent-state GS_FAKE_AGENT=1 node agent/runner.js`;
+  runner in một mã ghép, bạn gõ mã đó ở trang **Ghép thiết bị** (`#/pair`) và bấm Duyệt. Runner lưu token ở `GS_AGENT_STATE/token.json` và tự refresh.
 
 ## Cài đặt (self-host, Docker)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/colamacbook-ryan/Gen-Studio/main/install.sh | bash
 ```
-Installer không hỏi gì, in ra link thiết lập lần đầu (dùng trong 30 phút). Lệnh nhanh: `genstudio start|stop|status|logs|update|backup|restore|uninstall|mcp|password|lang|open|agent-token|agent-login`.
+Installer không hỏi gì, in ra link thiết lập lần đầu (dùng trong 30 phút). Lệnh nhanh: `genstudio start|stop|status|logs|update|backup|restore|uninstall|mcp|password|lang|open|token|agent-login`.
 
-- **Agent nội bộ** chạy trong container `agent` riêng: **không** mount dữ liệu, **không** có secret, chỉ nói chuyện với `/mcp`. Đăng nhập Claude Code chính chủ một lần: `genstudio agent-login`; bật bằng token: `genstudio agent-token <token>`.
-- **Agent ngoài** trên cùng máy: `claude mcp add gen-studio -- genstudio mcp --token <token>`.
+## Kết nối agent
+Mọi agent **xin quyền và chờ bạn bấm Duyệt** trên giao diện trước khi gọi được MCP; agent không bao giờ tự cấp quyền cho mình (chỉ phiên đăng nhập của chủ xưởng duyệt được; chỉ được **hạ** phạm vi `read|compose|run`, không nâng).
+
+- **Claude Code trên máy** (đường chính): `claude mcp add --transport http gen-studio http://localhost:7490/mcp`. Claude Code tự mở trình duyệt vào trang **Cấp phép** (OAuth 2.1 + PKCE); bạn Duyệt là xong. Token truy cập sống 1 giờ và tự làm mới.
+- **claude.ai Connectors / Claude Code cloud**: cần địa chỉ **HTTPS** (tunnel hoặc tên miền riêng; đặt `GS_PUBLIC_URL`), rồi thêm `https://…/mcp` vào Connectors. Cùng trang Cấp phép; vì yêu cầu đến từ ngoài máy, trang luôn hỏi "bạn vừa tự bấm kết nối?". Ghép bằng mã **không** phục vụ qua địa chỉ công khai.
+- **Agent nội bộ** chạy trong container `agent` riêng (luôn chạy): **không** mount dữ liệu, **không** có secret của studio, chỉ nói chuyện với `/mcp` và `/oauth/*`. Đăng nhập Claude Code chính chủ một lần trên máy chủ: `genstudio agent-login`. Rồi ở bước **Agent** của thiết lập (hoặc **Agent & MCP › Chờ duyệt**) bấm **Bật agent nội bộ**: runner xin quyền (ghép thiết bị), bạn Duyệt, token nằm trong volume riêng của agent (`/agent-state`, không ghi vào `.env`). Thu hồi agent nội bộ = **tắt** nó: runner không tự xin lại cho tới khi bạn bấm **Mở lại ghép**.
+- **Nâng cao**: token tay không hết hạn — **Agent & MCP › Nâng cao** hoặc `genstudio token create "Tên" --scopes read,compose`; cầu stdio `claude mcp add gen-studio -- genstudio mcp --token <token>`; ghép CLI bằng mã thiết bị (bạn **tự gõ** mã CLI in ra ở `#/pair`).
+
+> **Thay đổi phá vỡ so với bản nháp trước:** lệnh `genstudio agent-token <token>` (ghi token vào `.env`) đã bị bỏ; runner không đọc `GS_AGENT_TOKEN`. Cấp token tay dùng `genstudio token create`.
 
 > Repo đang private: installer cần `GS_GITHUB_TOKEN` để tải bản phát hành. Image Docker và installer **chưa được chạy thử trên máy sạch** — xem mục Giới hạn.
 
@@ -41,7 +49,8 @@ bash tools/test.sh          # kiểm repo + node --test test/*.test.js (gồm e2
 ```
 
 ## Giới hạn đã biết của MVP
-- Chưa chạy thử `install.sh` / image Docker trên máy sạch; chưa có OAuth 2.1 cho agent trên cloud ("Đưa lên mạng").
+- Chưa chạy thử `install.sh` / image Docker trên máy sạch; chưa thử `claude mcp add --transport http` bằng Claude Code thật và claude.ai Connectors qua tunnel (giao thức đã có test cấp HTTP).
+- Đăng nhập Claude Code của agent nội bộ vẫn làm trên máy chủ (`genstudio agent-login`); giao diện chưa chuyển tiếp được bước này.
 - Gemini TTS gói miễn phí ~10 lượt/ngày/model; ra clip hằng ngày cần gói trả phí.
 - Render ~11 khung/giây ở 1080p30 (clip 45 s ≈ 2 phút).
 - Chưa có màn tạo nhân vật trên giao diện: agent tạo nhân vật qua MCP (`save_cast_member`); agent giả tự tạo 2 nhân vật mẫu khi kênh chưa có.

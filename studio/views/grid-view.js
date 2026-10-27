@@ -20,7 +20,7 @@ export function fieldList(row) {
 
 // cfg: {grid, title, desc, empty, actions(ctx, grid)→nodes, inspector(row, ctx, reload)→node, onOpen(row, ctx), q}
 export function gridView(cfg) {
-  return function mount(container, ctx) {
+  return function mount(container, ctx, tabsEl) {
     let selected = null;
     const inspector = h('aside', { class: 'inspector', 'aria-label': t('insp.title') });
     const placeholder = () => { clear(inspector); inspector.append(h('div', { class: 'insp-empty muted' }, t('insp.pick'))); };
@@ -37,7 +37,7 @@ export function gridView(cfg) {
       extra: cfg.actions ? cfg.actions(ctx, () => grid.reload()) : [],
     });
     container.append(...[pageHeader(t(cfg.title), cfg.desc ? t(cfg.desc) : '', cfg.headerActions ? cfg.headerActions(ctx, () => grid.reload()) : []),
-      cfg.tabs ? cfg.tabs(ctx) : null,
+      cfg.tabs ? cfg.tabs(ctx) : tabsEl || null,
       h('div', { class: 'work' }, grid.el, inspector)].filter(Boolean));
     const off = onDebounced('change', () => grid.reload());
     return () => { off(); grid.destroy(); };

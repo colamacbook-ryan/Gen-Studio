@@ -5,7 +5,9 @@ import { t } from '../i18n.js';
 import { post, get } from '../components/api.js';
 import { errorBanner } from '../components/states.js';
 import { field } from '../components/dialog.js';
-import { tokenResult } from './lists.js';
+import { tokenResult, connectCard, claudeCmd } from './lists.js';
+import { authCard } from './authorize.js';
+import { onDebounced } from '../components/bus.js';
 import { toText, statusTone } from '../components/util.js';
 import { badge } from '../components/states.js';
 
@@ -82,15 +84,89 @@ export function mount(container, ctx) {
       }, t('prov.save_scan'), skipBtn());
   }
 
+  // Bước Agent: (a) agent nội bộ — bấm "Bật agent nội bộ" mở cửa sổ ghép, runner xin quyền, Duyệt ngay tại đây; (b) agent ngoài — lệnh claude mcp add + chờ gọi lần đầu;
+  // (c) token tay ở "Nâng cao". Mỗi trạng thái đúng một nút chính (L-… "mỗi bước một nút chính").
+  let stopWait = null;
   function agentStep() {
-    const name = input('text', 'su-agent'); name.value = 'Claude Code';
+    const mode = { v: 'internal' };
+    const body = h('div', { class: 'agent-body' });
     const out = h('div');
-    return formShell(t('setup.agent.title'), t('setup.agent.hint'), [inField(t('agent.name'), name), out],
-      async (msg, row) => {
-        const res = await post('/api/agents', { name: name.value.trim(), scopes: ['read', 'compose', 'run'] });
-        clear(out); out.append(tokenResult(res), h('button', { type: 'button', class: 'btn primary', onclick: next }, t('common.next')));
-        row.hidden = true; name.disabled = true;
-      }, t('agent.issue'), skipBtn());
+    const optBtn = (id, title, hint) => h('button', { type: 'button', class: 'opt-card' + (mode.v === id ? ' active' : ''), onclick: () => { mode.v = id; drawBody(); } }, h('strong', null, title), h('div', { class: 'muted small' }, hint));
+    const cards = h('div', { class: 'opt-cards' });
+    const next_ = h('button', { type: 'button', class: 'btn primary', onclick: next }, t('common.next'));
+
+    function drawCards() { clear(cards); cards.append(optBtn('internal', t('setup.agent.internal'), t('setup.agent.internal_hint')), optBtn('external', t('setup.agent.external'), t('setup.agent.external_hint'))); }
+    function stopAll() { if (stopWait) { stopWait(); stopWait = null; } }
+
+    // chờ + hiện thẻ: poll 2 s + SSE; fetchView() → {nodes, finished}
+    function watch(host, render) {
+      let alive = true, timer = null;
+      const tickFn = async () => { try { const r = await render(); if (!alive) return; clear(host); host.append(...r.nodes); if (r.finished) { host.append(next_); return; } } catch (e) { if (alive) { clear(host); host.append(errorBanner(e)); } } if (alive) timer = setTimeout(tickFn, 2000); };
+      tickFn();
+      const off = onDebounced('change', () => { clearTimeout(timer); tickFn(); }, 300);
+      stopWait = () => { alive = false; clearTimeout(timer); off(); };
+    }
+
+    function internalBody() {
+      const status = h('div', { class: 'waiting' });
+      const watchBox = h('div');
+      let clickedAt = null;
+      const open = h('button', { type: 'button', class: 'btn primary', onclick: async (e) => {
+        const b = e.currentTarget; b.disabled = true;
+        try { await post('/api/pairing/open', { channel: 'internal' }); clickedAt = new Date(Date.now() - 2000).toISOString(); b.textContent = t('setup.agent.reopen'); startWatch(); }
+        catch (ex) { clear(status); status.append(errorBanner(ex)); }
+        b.disabled = false;
+      } }, t('setup.agent.enable'));
+      body.append(h('p', { class: 'muted' }, t('connect.internal_hint')), h('p', { class: 'muted small' }, t('setup.agent.login_note')), connectCard('genstudio agent-login'), open, status, watchBox);
+      function startWatch() {
+        stopAll();
+        watch(watchBox, async () => {
+          const [rs, list] = await Promise.all([get('/api/runner-status'), get('/api/auth-requests')]);
+          const nodes = [];
+          const r = rs.runner;
+          nodes.push(h('div', { class: 'waiting' }, r && r.online ? t('runner.state.' + r.state) + (r.message ? ' · ' + toText(r.message) : '') : t('runner.offline')));
+          if (rs.pairing && rs.pairing.open) nodes.push(h('div', { class: 'muted small' }, t('runner.window', { at: new Date(rs.pairing.open_until).toLocaleTimeString() })));
+          // chỉ thẻ internal sinh SAU cú bấm; có hơn một thì không hiện nút Duyệt
+          const mine = list.requests.filter((q) => q.kind === 'device' && q.agent_kind === 'internal' && q.created_at >= clickedAt);
+          let finished = false;
+          if (mine.length === 1) nodes.push(authCard(mine[0], { onDone: (res, kind) => { if (kind === 'approve') { stopAll(); clear(watchBox); watchBox.append(h('div', { class: 'consent-done' }, icon('check'), h('span', null, t('setup.agent.paired', { id: res.agent.display_id }))), next_); } } }));
+          else if (mine.length > 1) nodes.push(h('div', { class: 'banner warn', role: 'alert' }, icon('warn'), h('span', null, t('setup.agent.many'))));
+          else nodes.push(h('div', { class: 'waiting' }, t('setup.agent.wait_runner')));
+          return { nodes, finished };
+        });
+      }
+    }
+
+    function externalBody() {
+      const box = h('div');
+      body.append(h('p', { class: 'muted' }, t('connect.claude_code_hint')), connectCard(claudeCmd()), h('p', { class: 'muted small' }, t('connect.cloud_hint', { url: location.origin + '/mcp' })), box);
+      watch(box, async () => {
+        const [list, agents] = await Promise.all([get('/api/auth-requests'), get('/api/grid/agents')]);
+        const hit = (agents.rows || []).find((a) => a.kind === 'oauth' && a.last_call_at && a.status !== 'revoked');
+        if (hit) return { nodes: [h('div', { class: 'consent-done' }, icon('check'), h('span', null, t('connect.connected', { name: toText(hit.name), id: toText(hit.display_id) })))], finished: true };
+        const nodes = list.requests.filter((q) => q.kind === 'oauth').map((q) => authCard(q, { onDone: () => {} }));
+        nodes.push(h('div', { class: 'waiting' }, t('connect.waiting')));
+        return { nodes, finished: false };
+      });
+    }
+
+    function drawBody() {
+      stopAll(); drawCards(); clear(body);
+      if (mode.v === 'internal') internalBody(); else externalBody();
+    }
+
+    // (c) token tay — thu gọn, không phải đường chính
+    const name = input('text', 'su-agent'); name.value = 'Claude Code';
+    const adv = h('details', { class: 'detail' }, h('summary', null, t('setup.agent.advanced')),
+      h('p', { class: 'muted small' }, t('adv.manual_hint')), inField(t('agent.name'), name), out,
+      h('button', { type: 'button', class: 'btn', onclick: async (e) => {
+        const b = e.currentTarget; b.disabled = true; clear(out);
+        try { const res = await post('/api/agents', { name: name.value.trim(), scopes: ['read', 'compose', 'run'] }); out.append(tokenResult(res)); }
+        catch (ex) { out.append(errorBanner(ex)); b.disabled = false; }
+      } }, t('agent.issue')));
+    const wrap = h('div', { class: 'step-form' }, h('h2', null, t('setup.agent.title')), h('p', { class: 'muted' }, t('setup.agent.hint')), cards, body, adv, h('div', { class: 'row' }, skipBtn()));
+    drawBody();
+    return wrap;
   }
 
   function channelStep() {
@@ -103,9 +179,10 @@ export function mount(container, ctx) {
   }
 
   function draw() {
+    if (stopWait) { stopWait(); stopWait = null; }
     drawStepper(); clear(panel);
     panel.append([ownerStep, providerStep, agentStep, channelStep][step]());
   }
   draw();
-  return () => {};
+  return () => { if (stopWait) { stopWait(); stopWait = null; } };
 }

@@ -2,11 +2,14 @@
 // Các màn lưới: Hàng chờ/Đã quyết, Lệnh sản xuất, Giáo trình, Asset, Nhật ký, Kênh, Agent & MCP, Nhà cung cấp, Pipeline.
 import { h, icon, toast, confirmButton, copyText, clear } from '../components/dom.js';
 import { t } from '../i18n.js';
-import { post } from '../components/api.js';
+import { post, get } from '../components/api.js';
 import { openDialog, field } from '../components/dialog.js';
 import { errorBanner } from '../components/states.js';
 import { gridView, fieldList } from './grid-view.js';
 import { buildHash, toText } from '../components/util.js';
+import { authCard, typeCodeNotice } from './authorize.js';
+import { pageHeader } from '../components/shell.js';
+import { onDebounced } from '../components/bus.js';
 
 const idOf = (row) => toText(row.display_id || row.id || Object.values(row)[0]);
 const btn = (label, onclick, cls = 'btn', ic) => h('button', { type: 'button', class: cls, onclick }, ic ? icon(ic) : null, label);
@@ -127,14 +130,67 @@ export function agentForm(onDone) {
     resultView: tokenResult, onDone,
   });
 }
-export const agents = gridView({
+// Thẻ kết nối: lệnh/URL + Sao chép (ConnectCard)
+export function connectCard(cmd) {
+  const b = btn(t('common.copy'), async (e) => { e.currentTarget.textContent = (await copyText(cmd)) ? t('common.copied') : t('common.copy_failed'); });
+  return h('div', { class: 'connect-card' }, h('code', { class: 'mono token' }, cmd), b);
+}
+export const mcpUrl = () => location.origin + '/mcp';
+export const claudeCmd = () => 'claude mcp add --transport http gen-studio ' + mcpUrl();
+
+function connectDialog() {
+  const sec = (title, hint, cmd) => h('section', { class: 'connect-sec' }, h('h3', null, title), h('p', { class: 'muted' }, hint), cmd ? connectCard(cmd) : null);
+  openDialog(t('connect.title'), h('div', { class: 'form' },
+    sec(t('connect.claude_code'), t('connect.claude_code_hint'), claudeCmd()),
+    sec(t('connect.cloud'), t('connect.cloud_hint', { url: 'https://…/mcp' })),
+    sec(t('connect.internal'), t('connect.internal_hint'))));
+}
+
+// 3 tab: Agent · Chờ duyệt (badge số lượng) · Nâng cao
+function agentTabs(active) {
+  const n = h('span', { class: 'nav-badge', hidden: true });
+  const refresh = async () => { try { const r = await get('/api/auth-requests'); const c = (r.requests || []).length; n.textContent = String(c); n.hidden = c === 0; } catch { n.hidden = true; } };
+  refresh();
+  const off = onDebounced('change', refresh, 300);
+  const tab = (id, href, label, extra) => h('a', { class: 'tab' + (active === id ? ' active' : ''), href, role: 'tab' }, label, extra || null);
+  const el = h('div', { class: 'tabs', role: 'tablist' }, tab('agents', buildHash('agents'), t('agent.tab.agents')),
+    tab('pending', '#/agents?view=pending', t('agent.tab.pending'), n), tab('advanced', '#/agents?view=advanced', t('agent.tab.advanced')));
+  return { el, off };
+}
+const agentGrid = gridView({
   grid: 'agents', title: 'nav.agents', desc: 'agent.desc', empty: 'agent.empty',
-  headerActions: (ctx, reload) => [btn(t('agent.new'), () => agentForm(reload), 'btn primary', 'plus')],
+  headerActions: () => [btn(t('agent.connect'), connectDialog, 'btn primary', 'plug')],
   inspector: (row, ctx, reload) => h('div', null, fieldList(row),
-    confirmButton(t('agent.revoke'), t('common.confirm_again'), async () => {
+    confirmButton(row.kind === 'internal' ? t('agent.disable_internal') : t('agent.revoke'), t('common.confirm_again'), async () => {
       try { await post('/api/agents/' + encodeURIComponent(idOf(row)) + '/revoke', {}); toast(t('agent.revoked'), 'ok'); reload(); } catch (e) { toast(e.text_human || e.detail, 'danger'); }
     })),
 });
+const pendingGrid = gridView({
+  grid: 'auth_requests', title: 'nav.agents', desc: 'pending.desc', empty: 'pending.empty',
+  inspector: (row, ctx, reload) => {
+    const box = h('div');
+    get('/api/auth-requests/' + encodeURIComponent(idOf(row))).then(({ request }) => { box.append(request.needs_code ? typeCodeNotice() : authCard(request, { onDone: () => setTimeout(reload, 300) })); }, (e) => box.append(errorBanner(e)));
+    return box;
+  },
+});
+function advancedView(container, ctx, tabs) {
+  container.append(pageHeader(t('nav.agents'), t('adv.desc')), tabs,
+    h('div', { class: 'pad adv' },
+      h('section', { class: 'connect-sec' }, h('h3', null, t('adv.manual_title')), h('p', { class: 'muted' }, t('adv.manual_hint')), btn(t('agent.new'), () => agentForm(() => {}), 'btn', 'plus')),
+      h('section', { class: 'connect-sec' }, h('h3', null, t('adv.pair_title')), h('p', { class: 'muted' }, t('adv.pair_hint')),
+        btn(t('adv.pair_btn'), async () => { try { await post('/api/pairing/open', { channel: 'loopback' }); toast(t('adv.pair_opened'), 'ok'); location.hash = '#/pair'; } catch (e) { toast(e.text_human || e.detail, 'danger'); } }, 'btn')),
+      h('section', { class: 'connect-sec' }, h('h3', null, t('adv.token_cli')), connectCard('genstudio token create "Tên agent" --scopes read,compose')),
+      h('section', { class: 'connect-sec' }, h('h3', null, t('adv.stdio_title')), h('p', { class: 'muted' }, t('adv.stdio_hint')), connectCard('claude mcp add gen-studio -- genstudio mcp --token <token>'))));
+}
+// tab Agent / Chờ duyệt dùng lưới chung: chèn dải tab qua cfg.tabs của gridView (gridView tự gọi cfg.tabs(ctx))
+export const agents = (container, ctx) => {
+  const view = ctx.route.query.view;
+  const tabs = agentTabs(view === 'pending' ? 'pending' : view === 'advanced' ? 'advanced' : 'agents');
+  let off;
+  if (view === 'advanced') { advancedView(container, ctx, tabs.el); off = null; }
+  else off = (view === 'pending' ? pendingGrid : agentGrid)(container, ctx, tabs.el);
+  return () => { tabs.off(); if (off) off(); };
+};
 
 // ---------- Nhà cung cấp ----------
 export function providerForm(onDone, resultView) {

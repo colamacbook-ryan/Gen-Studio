@@ -2,7 +2,7 @@
 // Hàm thuần (không DOM) dùng chung: route, timecode, escape, tách thuật ngữ, chuẩn hoá lỗi.
 
 export const ROUTES = ['overview', 'review', 'lessons', 'pipeline', 'work-orders', 'agents', 'providers',
-  'channels', 'curriculum', 'assets', 'audit', 'setup', 'login'];
+  'channels', 'curriculum', 'assets', 'audit', 'setup', 'login', 'authorize', 'pair'];
 
 // '#/review/RD-0004?x=1' -> {path:'review', id:'RD-0004', query:{x:'1'}}
 export function parseRoute(hash) {

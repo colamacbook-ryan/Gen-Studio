@@ -55,6 +55,8 @@ async function loadView(route) {
     case 'audit': return lists.audit;
     case 'setup': return (await import('./views/setup.js')).mount;
     case 'login': return (await import('./views/login.js')).mount;
+    case 'authorize': return (await import('./views/authorize.js')).mount;
+    case 'pair': return (await import('./views/authorize.js')).pairMount;
     default: return (await import('./views/overview.js')).mount;
   }
 }
@@ -70,12 +72,14 @@ async function render() {
     let needsOwner = false;
     try { const st = await get('/api/setup/state'); needsOwner = !!(st && (st.needs_owner ?? (st.has_owner === false) ?? (st.owner_exists === false))); } catch { needsOwner = false; }
     if (mySeq !== seq) return;
+    // trang Cấp phép/Ghép thiết bị: đăng nhập xong quay lại đúng trang
+    if (route.path === 'authorize' || route.path === 'pair') sessionStorage.setItem('gs_next', location.hash);
     // link của installer/server có dạng /?k=<khoá>: mang khoá sang #/setup?k=… (trước đây bị rơi → bước tạo chủ xưởng luôn 403)
     const k = new URLSearchParams(location.search).get('k');
     location.hash = needsOwner ? '#/setup' + (k ? '?k=' + encodeURIComponent(k) : '') : '#/login';
     return;
   }
-  const theater = (route.path === 'review' && route.id) || PUBLIC.has(route.path);
+  const theater = (route.path === 'review' && route.id) || PUBLIC.has(route.path) || route.path === 'authorize' || route.path === 'pair';
   let host;
   if (theater) { resetShell(); host = appEl; }
   else {

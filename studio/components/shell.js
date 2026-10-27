@@ -17,7 +17,7 @@ const NAV = [
     { path: 'pipeline', icon: 'flow', label: 'nav.pipeline' }] },
   { group: 'nav.g.library', items: [{ path: 'assets', icon: 'image', label: 'nav.assets' }] },
   { group: 'nav.g.connect', items: [
-    { path: 'agents', icon: 'plug', label: 'nav.agents' },
+    { path: 'agents', icon: 'plug', label: 'nav.agents', badge: 'auth' },
     { path: 'providers', icon: 'key', label: 'nav.providers' }] },
   { group: 'nav.g.system', items: [
     { path: 'channels', icon: 'cog', label: 'nav.channels' },
@@ -79,11 +79,9 @@ export function buildShell(ctx) {
   const root = h('div', { class: 'app' }, nav, h('div', { class: 'main-col' }, header, content), dock);
 
   async function refreshBadges() {
-    try {
-      const res = await get('/api/grid/review_queue');
-      const n = res && Array.isArray(res.rows) ? res.rows.length : 0;
-      badges.review.textContent = String(n); badges.review.hidden = n === 0;
-    } catch { badges.review.hidden = true; }
+    const set = (b, n) => { b.textContent = String(n); b.hidden = n === 0; };
+    try { const res = await get('/api/grid/review_queue'); set(badges.review, res && Array.isArray(res.rows) ? res.rows.length : 0); } catch { badges.review.hidden = true; }
+    try { const res = await get('/api/auth-requests'); set(badges.auth, res && Array.isArray(res.requests) ? res.requests.length : 0); } catch { badges.auth.hidden = true; }   // agent chờ duyệt
   }
   refreshBadges();
   const offs = [
