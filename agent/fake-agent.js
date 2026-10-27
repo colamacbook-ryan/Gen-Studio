@@ -8,6 +8,12 @@ const LINES = [
   { name: 'Bé Hỏi', say: 'À! Vậy là đoán, chứ không phải biết!', terms: [], mood: 'happy', subtitle: { en: 'Ah! So it guesses, it does not know!' } },
 ];
 
+// kênh mới (thiết lập lần đầu) chưa có nhân vật: agent giả tự tạo 2 nhân vật mẫu qua MCP, như agent thật phải làm
+const SAMPLE_CAST = [
+  { name: 'Anh Gen', role_label: 'Người giảng', voice: 'Charon', archetype: 'mentor' },
+  { name: 'Bé Hỏi', role_label: 'Người hỏi', voice: 'Leda', archetype: 'curious-kid' },
+];
+
 function sample(cast, task) {
   const find = (name, i) => (cast.find(m => m.name === name) || cast[i] || cast[0]).display_id;
   return {
@@ -31,7 +37,14 @@ async function handleTask(client, task) {
     return 'unsupported';
   }
   const must = async (name, args) => { const r = await client.call(name, args); if (r.isError) throw new Error(name + ' lỗi: ' + r.text); return r; };
-  const cast = (await must('list_cast', { channel: task.channel.display_id })).data.cast;
+  let cast = (await must('list_cast', { channel: task.channel.display_id })).data.cast;
+  if (!cast.length) {
+    for (const m of SAMPLE_CAST) {
+      await must('save_cast_member', { channel: task.channel.display_id, name: m.name, role_label: m.role_label, note: 'agent giả tạo nhân vật mẫu',
+        data: { look: { archetype: m.archetype }, voice: { provider: 'gemini', model: 'gemini-3.1-flash-tts-preview', voice: m.voice } } });
+    }
+    cast = (await must('list_cast', { channel: task.channel.display_id })).data.cast;
+  }
   const lesson = sample(cast, task);
   const v = await must('validate_lesson', lesson);
   if (!v.data.ok) throw new Error('validate_lesson báo lỗi: ' + v.text);

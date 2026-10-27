@@ -211,3 +211,20 @@ test('d-mcp: lesson.submit chặn quá lines_max/beats_max (cùng hằng với g
     assert.ok(g.isError && /forbidden/.test(g.content[0].text));
   } finally { t.clean(); }
 });
+
+test('d-mcp: agent giả trên kênh chưa có nhân vật tự tạo cast mẫu rồi nộp bài (L-102)', async () => {
+  const { t, b, mk, call } = setup();
+  try {
+    const { handleTask } = require('../agent/fake-agent.js');
+    const { c } = mk(['read', 'compose', 'run']);
+    const ch = t.write(b.o, 'channel.create', { name: 'Kênh mới', lang: 'vi', term_lang: 'en', schedule: { time: '06:00', per_run: 1 } });
+    t.write(b.o, 'work_order.create', { channel: ch.display_id, kind: 'manual', brief: 'x' });
+    const task = (await call(c, 'get_next_task')).structuredContent.task;
+    assert.equal(task.channel.display_id, ch.display_id);
+    const client = { call: async (name, args) => { const r = await call(c, name, args); return { isError: !!r.isError, text: r.content[0].text, data: r.structuredContent }; } };
+    assert.equal(await handleTask(client, task), 'done');
+    const cast = t.db.all('SELECT cm.name FROM cast_members cm JOIN channels ch ON ch.id=cm.channel_id WHERE ch.display_id=?', ch.display_id);
+    assert.equal(cast.length, 2);
+    assert.equal(t.db.get('SELECT state FROM work_orders WHERE display_id=?', task.work_order).state, 'fulfilled');
+  } finally { t.clean(); }
+});

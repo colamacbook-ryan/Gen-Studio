@@ -155,7 +155,10 @@ test('fmtVal: định dạng số đo theo khoá, không ra JSON thô', async ()
 
 test('datagrid.cellText: định dạng ô', async () => {
   const { cellText } = await load('components/datagrid.js');
-  assert.equal(cellText({ key: 'x' }, { a: 1 }), '{"a":1}');
+  // không bao giờ in object/JSON thô vào ô (L-102): object → nhãn đọc được, mảng giá trị → danh sách
+  assert.equal(cellText({ key: 'x' }, { a: 1 }), 'a 1');
+  assert.equal(cellText({ key: 'scopes' }, ['read', 'run']), 'read, run');
+  assert.ok(!/[{}"]/.test(cellText({ key: 'x' }, { m: [{ a: 1 }], q: { v: null } }))); 
   assert.equal(cellText({ key: 'n' }, null), '');
   assert.equal(cellText({ key: 'd', type: 'duration' }, 43000), '0:43');
 });

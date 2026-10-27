@@ -55,6 +55,7 @@ function build(root, id, data, ctx) {
   const media = data.media || r.media || {};
   const videoUrl = media.video || media.mp4 || media.url || (media.asset_id ? '/media/' + media.asset_id : null);
   const lines = Array.isArray(plan.lines) ? plan.lines : [];
+  const castName = (who) => toText((data.cast && data.cast[who]) || who);
   const beats = Array.isArray(plan.beats) ? plan.beats : [];
   const cues = Array.isArray(plan.cues) ? plan.cues : [];
   const fps = Number(plan.fps) || 30;
@@ -108,7 +109,7 @@ function build(root, id, data, ctx) {
     blocks.clear();
     const step = total() > 120000 ? 10000 : total() > 40000 ? 5000 : 2000;
     for (let ms = 0; ms <= total(); ms += step) ruler.append(h('span', { class: 'tick mono', style: { left: pct(ms) } }, fmtTc(ms).slice(0, 5)));
-    lines.forEach((l) => addBlock(laneVoice, 'L:' + l.id, l.a_ms, l.b_ms, toText(l.id) + ' ' + toText(l.say), toText(l.who) + ' · ' + toText(l.say), 'voice', 0));
+    lines.forEach((l) => addBlock(laneVoice, 'L:' + l.id, l.a_ms, l.b_ms, toText(l.id) + ' ' + toText(l.say), castName(l.who) + ' · ' + toText(l.say), 'voice', 0));
     const rowEnds = [];
     beats.forEach((b) => {
       let row = rowEnds.findIndex((e) => e <= b.t_in); if (row < 0) row = rowEnds.length < 2 ? rowEnds.length : 1;
@@ -138,7 +139,7 @@ function build(root, id, data, ctx) {
     tcLabel.textContent = fmtTc(ms) + ' / ' + fmtTc(total());
     const ln = lineAt(lines, ms);
     clear(subtitle);
-    if (ln) subtitle.append(h('span', { class: 'who' }, toText(ln.who) + ': '), termSpans(ln.say, ln.terms));
+    if (ln) subtitle.append(h('span', { class: 'who' }, castName(ln.who) + ': '), ...termSpans(ln.say, ln.terms));
     for (const l of lines) { const b = blocks.get('L:' + l.id); if (b) b.classList.toggle('active', ln && ln.id === l.id && ms <= l.b_ms); }
   }
   function seekMs(ms) {

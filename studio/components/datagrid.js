@@ -30,6 +30,8 @@ export function cellText(col, v) {
   if ((col.type === 'time' || col.type === 'datetime' || /_at$/.test(col.key)) && (typeof v === 'string' || typeof v === 'number')) return fmtDateTime(v);
   if (col.type === 'duration' && typeof v === 'number') return fmtDur(v);
   if (typeof v === 'number') return v.toLocaleString();
+  if (Array.isArray(v) && v.every(x => x == null || typeof x !== 'object')) return v.join(', ');
+  if (typeof v === 'object') return fmtVal(col.key, v);
   return toText(v);
 }
 

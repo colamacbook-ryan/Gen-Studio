@@ -165,7 +165,7 @@ const GRIDS = {
       vendor: { label: 'Nhà cung cấp', type: 'text', expr: 'pv.vendor', search: true },
       model: { label: 'Model', type: 'text', expr: 'pv.model', search: true },
       enabled: { label: 'Bật', type: 'bool', expr: 'pv.enabled' },
-      scan: { label: 'Quét', type: 'json', expr: 'pv.scan' },
+      models_ready: { label: 'Model sẵn sàng', type: 'num', expr: "(SELECT COUNT(*) FROM json_each(COALESCE(pv.scan,'{}'),'$.models') m WHERE json_extract(m.value,'$.available'))" },
       calls_today: { label: 'Lượt hôm nay', type: 'num', expr: "COALESCE((SELECT u.calls FROM provider_usage u WHERE u.provider_id=pv.id AND u.day=strftime('%Y-%m-%d','now')),0)" },
     },
     sort: 'display_id',

@@ -65,6 +65,13 @@ function assetUrl(db, ref) {
 function reviewNotes(db, render) {
   return db.all('SELECT rv.display_id AS review, rv.decision, n.pin_kind, n.pin_ref, n.at_ms, n.text FROM review_notes n JOIN reviews rv ON rv.id=n.review_id WHERE rv.render_id=? ORDER BY rv.created_at, n.rowid', render.id);
 }
+// mã nhân vật trong plan → tên hiển thị (UI không hiện mã thô CM-…)
+function castNames(db, plan) {
+  const ids = [...new Set(((plan && plan.lines) || []).map(l => l.who).filter(Boolean))];
+  const out = {};
+  for (const id of ids) { const m = db.get('SELECT name FROM cast_members WHERE display_id=? OR id=?', id, id); if (m) out[id] = m.name; }
+  return out;
+}
 function renderView(db, r) {
   const lv = db.get('SELECT lv.version, lv.work_order_id, l.display_id AS lesson, l.title FROM lesson_versions lv JOIN lessons l ON l.id=lv.lesson_id WHERE lv.id=?', r.lesson_version_id) || {};
   const outputs = r.outputs || {};
@@ -77,7 +84,7 @@ function renderView(db, r) {
       state_changed_at: r.state_changed_at, waiting_until: r.waiting_until, blocked_reason: r.blocked_reason || null,
       progress: r.progress, duration_ms: r.duration_ms, frames: r.frames,
     },
-    manifest, plan: manifest && manifest.plan ? manifest.plan : null,
+    manifest, plan: manifest && manifest.plan ? manifest.plan : null, cast: castNames(db, manifest && manifest.plan),
     gates: latestGates(db, r), notes: reviewNotes(db, r), outputs, media,
   };
 }

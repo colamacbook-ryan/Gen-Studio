@@ -59,3 +59,18 @@ test('d-grids: khoá prototype (constructor, __proto__) → 400/404, không 500'
     assert.throws(() => grids.parseQuery(grids.GRIDS.work_orders, 'constructor:1'), e => e.code === 'invalid');
   } finally { t.clean(); }
 });
+
+test('d-grids: lưới Nhà cung cấp trả số model sẵn sàng, không trả JSON quét thô (L-102)', () => {
+  const t = tmpDb();
+  try {
+    seedDemo(t.db);
+    const pv = t.db.get('SELECT id FROM providers LIMIT 1');
+    if (!pv) return;
+    t.db.run('UPDATE providers SET scan=? WHERE id=?', JSON.stringify({ available: true, models: [{ model: 'a', available: true }, { model: 'b', available: false }] }), pv.id);
+    const r = grids.runGrid(t.db, 'providers', {});
+    assert.ok(!r.columns.some(c => (c.key || c) === 'scan'), 'không còn cột JSON scan');
+    const row = r.rows.find(x => x.models_ready === 1);
+    assert.ok(row, 'đếm đúng 1 model sẵn sàng');
+    for (const x of r.rows) for (const v of Object.values(x)) assert.ok(v == null || typeof v !== 'object', 'ô lưới không chứa object');
+  } finally { t.clean(); }
+});
