@@ -11,6 +11,7 @@ import { onDebounced } from '../components/bus.js';
 import { toText, statusTone } from '../components/util.js';
 import { badge } from '../components/states.js';
 
+const PAIR_WINDOW_MS = 10 * 60 * 1000; // cửa sổ ghép 10 phút (PRODUCT-SPEC A3)
 const STEPS = ['owner', 'provider', 'agent', 'channel'];
 
 export function mount(container, ctx) {
@@ -133,6 +134,12 @@ export function mount(container, ctx) {
         b.disabled = false;
       } }, t('setup.agent.enable'));
       body.append(h('p', { class: 'muted' }, t('connect.internal_hint')), h('p', { class: 'muted small' }, t('setup.agent.login_note')), connectCard('genstudio agent-login'), open, status, watchBox);
+      // tải lại trang khi cửa sổ ghép còn mở: coi như đã bấm (từ lúc mở cửa sổ) để thẻ yêu cầu hiện lại
+      get('/api/runner-status').then((rs) => {
+        if (clickedAt || !rs.pairing || !rs.pairing.open || !rs.pairing.open_until) return;
+        clickedAt = new Date(Date.parse(rs.pairing.open_until) - PAIR_WINDOW_MS - 2000).toISOString();
+        open.textContent = t('setup.agent.reopen'); open.className = 'btn'; startWatch();
+      }).catch(() => {});
       function startWatch() {
         stopAll();
         watch(watchBox, async () => {

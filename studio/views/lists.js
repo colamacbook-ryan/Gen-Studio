@@ -1,6 +1,6 @@
 // © 2026 Gen Labs — All rights reserved.
 // Các màn lưới: Hàng chờ/Đã quyết, Lệnh sản xuất, Giáo trình, Asset, Nhật ký, Kênh, Agent & MCP, Nhà cung cấp, Pipeline.
-import { h, icon, toast, confirmButton, copyText, clear } from '../components/dom.js';
+import { h, icon, toast, confirmButton, copyText, clear, append } from '../components/dom.js';
 import { t, tOr } from '../i18n.js';
 import { post, get } from '../components/api.js';
 import { openDialog, field } from '../components/dialog.js';
@@ -158,12 +158,12 @@ function runnerCard() {
       const r = rs.runner;
       const state = r && r.online ? tOr('runner.state.' + r.state, r.state) + (r.code ? ' · ' + tOr('runner.code.' + r.code, r.code) : '') : t('runner.offline');
       clear(box);
-      box.append(h('div', { class: 'rc-head' }, h('strong', null, t('k0.title')), badge(internal ? t('k0.on', { id: toText(internal.display_id) }) : t('k0.off'), internal ? 'ok' : 'idle')),
+      append(box, [h('div', { class: 'rc-head' }, h('strong', null, t('k0.title')), badge(internal ? t('k0.on', { id: toText(internal.display_id) }) : t('k0.off'), internal ? 'ok' : 'idle')),
         h('div', { class: 'muted small' }, state),
         rs.pairing && rs.pairing.open && !internal ? h('div', { class: 'muted small' }, t('runner.window', { at: new Date(rs.pairing.open_until).toLocaleTimeString() }), ' ', h('a', { href: '#/agents?view=pending' }, t('k0.pending_link'))) : null,
         internal
-          ? confirmButton(t('agent.disable_internal'), t('common.confirm_again'), async () => { try { await post('/api/agents/' + encodeURIComponent(internal.display_id) + '/revoke', {}); toast(t('agent.revoked'), 'ok'); load(); } catch (e) { toast(e.text_human || e.detail, 'danger'); } })
-          : btn(t('setup.agent.enable'), async () => { try { await post('/api/pairing/open', { channel: 'internal' }); load(); } catch (e) { toast(e.text_human || e.detail, 'danger'); } }, 'btn primary'));
+          ? h('div', { class: 'row' }, confirmButton(t('agent.disable_internal'), t('common.confirm_again'), async () => { try { await post('/api/agents/' + encodeURIComponent(internal.display_id) + '/revoke', {}); toast(t('agent.revoked'), 'ok'); load(); } catch (e) { toast(e.text_human || e.detail, 'danger'); } }))
+          : btn(t('setup.agent.enable'), async () => { try { await post('/api/pairing/open', { channel: 'internal' }); load(); } catch (e) { toast(e.text_human || e.detail, 'danger'); } }, 'btn primary')]);
     } catch (e) { if (alive) { clear(box); box.append(errorBanner(e, load)); } }
     if (alive) timer = setTimeout(load, 5000);
   }

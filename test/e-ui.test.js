@@ -188,3 +188,26 @@ test('runner: mọi trạng thái (enum của máy chủ) và mã code runner c�
   }
   for (const k of ['col.display_id', 'col.last_call_at', 'col.wake_limit_per_day', 'col.scopes', 'kind.internal', 'pending.deny_all', 'k0.title', 'ov.internal_off']) assert.ok(k in VI && k in EN, k);
 });
+
+// Rào L-102 (tái phạm lần 3: "[object HTMLSpanElement]", "null" trên màn): Element.append gốc in null/mảng thành chữ.
+// Câu lệnh có nhánh rỗng (": null" / "|| null") hoặc trải mảng phải đi qua append() của dom.js, không qua el.append(...).
+test('UI: không truyền null có điều kiện vào Element.append gốc', () => {
+  const bad = [];
+  for (const f of sourceFiles(STUDIO)) {
+    if (f.endsWith('dom.js')) continue;
+    const src = fs.readFileSync(f, 'utf8');
+    const re = /(?<![\w.])(?!append\()[\w$]+\.append\(/g;
+    let m;
+    while ((m = re.exec(src))) {
+      // lấy hết đối số của lời gọi (đếm ngoặc)
+      let i = m.index + m[0].length, depth = 1;
+      while (i < src.length && depth) { const ch = src[i++]; if (ch === '(') depth++; else if (ch === ')') depth--; }
+      const args = src.slice(m.index + m[0].length, i - 1);
+      // chỉ xét nhánh rỗng ở cấp đối số trực tiếp (null trong props của h() được h() bỏ qua — an toàn)
+      let top = '', d = 0;
+      for (const ch of args) { if ('([{'.includes(ch)) d++; else if (')]}'.includes(ch)) d--; else if (d === 0) top += ch; }
+      if (/:\s*null\b|\|\|\s*null\b/.test(top)) bad.push(path.relative(STUDIO, f) + ':' + src.slice(0, m.index).split('\n').length);
+    }
+  }
+  assert.deepEqual(bad, [], 'dùng append(el, [...]) của dom.js cho các lời gọi này');
+});

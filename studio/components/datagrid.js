@@ -40,6 +40,7 @@ function cellNode(col, v, idx) {
   const text = cellText(col, v);
   if (idx === 0) return h('span', { class: 'mono id' }, text);
   if (col.type === 'badge' || col.type === 'state' || STATE_KEYS.test(col.key)) return text ? badge(tOr('st.' + text, text), statusTone(text)) : '';
+  if (col.key === 'kind' && text) return tOr('kind.' + text, text); // loại agent/nguồn: nhãn vi/en thay khoá thô
   if (col.type === 'bool') return badge(v ? t('common.on') : t('common.off'), v ? 'ok' : 'idle');
   if (col.type === 'num' || col.type === 'number' || col.type === 'int' || col.type === 'duration') return h('span', { class: 'mono num' }, text);
   if (col.type === 'id' || /(^|_)id$/.test(col.key)) return h('span', { class: 'mono' }, text);

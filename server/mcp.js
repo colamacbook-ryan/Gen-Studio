@@ -120,7 +120,7 @@ function createMcp(ctx) {
     const d = chanData(ch);
     const data = { app_version: config.version, blocks, providers, channel: { display_id: ch.display_id, name: ch.name }, cast: castOf(ch).map(m => ({ display_id: m.display_id, name: m.name, role_label: m.role_label })),
       glossary: d.glossary || d.terms || [], limits: LIMITS, policy_fields_owner_only: POLICY_FIELDS };
-    return { text: `Khối: ${blocks.map(b => b.name + '@' + b.version).join(', ')}\nNhà cung cấp: ${providers.map(p => p.display_id + ' ' + p.kind + ' ' + p.model).join('; ') || '(chưa có)'}\nNhân vật: ${data.cast.map(m => m.display_id + ' ' + m.name).join(', ')}\nThuật ngữ: ${JSON.stringify(data.glossary)}`, data };
+    return { text: `Khối: ${blocks.map(b => b.name + '@' + b.version).join(', ')}\nNhà cung cấp: ${providers.map(p => p.display_id + ' ' + p.kind + ' ' + (p.model || '(chưa quét model)')).join('; ') || '(chưa có)'}\nNhân vật: ${data.cast.map(m => m.display_id + ' ' + m.name).join(', ')}\nThuật ngữ: ${JSON.stringify(data.glossary)}`, data };
   });
 
   // ---------- Kênh & nhân vật ----------
