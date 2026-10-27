@@ -131,6 +131,9 @@ test('normalizeError / statusTone / csvEscape', async () => {
   assert.equal(statusTone('waiting_quota'), 'warn');
   assert.equal(statusTone('awaiting_review'), 'info');
   assert.equal(csvEscape('a,"b"'), '"a,""b"""');
+  assert.equal(csvEscape('=HYPERLINK("x")'), '"\'=HYPERLINK(""x"")"');
+  assert.equal(csvEscape('-1+2'), "'-1+2");
+  assert.equal(csvEscape('a\rb'), '"a\rb"');
 });
 
 test('overview.flatten: làm phẳng, không ra [object Object]', async () => {

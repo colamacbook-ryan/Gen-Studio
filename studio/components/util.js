@@ -126,6 +126,8 @@ export function statusTone(s) {
 }
 
 export function csvEscape(v) {
-  const s = toText(v);
-  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  let s = toText(v);
+  // Chống chèn công thức khi mở CSV bằng Excel/Sheets: nội dung do agent viết có thể bắt đầu bằng = + - @ tab CR.
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
