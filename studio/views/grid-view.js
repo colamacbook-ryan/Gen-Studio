@@ -36,9 +36,9 @@ export function gridView(cfg) {
       onSelect: showRow, onOpen: cfg.onOpen ? (row) => cfg.onOpen(row, ctx) : undefined,
       extra: cfg.actions ? cfg.actions(ctx, () => grid.reload()) : [],
     });
-    container.append(pageHeader(t(cfg.title), cfg.desc ? t(cfg.desc) : '', cfg.headerActions ? cfg.headerActions(ctx, () => grid.reload()) : []),
+    container.append(...[pageHeader(t(cfg.title), cfg.desc ? t(cfg.desc) : '', cfg.headerActions ? cfg.headerActions(ctx, () => grid.reload()) : []),
       cfg.tabs ? cfg.tabs(ctx) : null,
-      h('div', { class: 'work' }, grid.el, inspector));
+      h('div', { class: 'work' }, grid.el, inspector)].filter(Boolean));
     const off = onDebounced('change', () => grid.reload());
     return () => { off(); grid.destroy(); };
   };

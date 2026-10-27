@@ -97,7 +97,7 @@ export function buildShell(ctx) {
       for (const a of nav.querySelectorAll('.nav-item')) a.classList.toggle('active', a.dataset.path === path);
       clear(crumb);
       const item = NAV.flatMap((g) => g.items).find((i) => i.path === path);
-      crumb.append(h('span', null, item ? t(item.label) : ''), id ? h('span', { class: 'muted' }, ' › ') : null, id ? h('span', { class: 'mono' }, id) : null);
+      crumb.append(...[h('span', null, item ? t(item.label) : ''), id ? h('span', { class: 'muted' }, ' › ') : null, id ? h('span', { class: 'mono' }, id) : null].filter(Boolean));
     },
     destroy() { offs.forEach((f) => f()); },
   };

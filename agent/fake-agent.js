@@ -26,8 +26,8 @@ function sample(cast, task) {
 
 // client: {call(tool, args) → {isError, text, data}}
 async function handleTask(client, task) {
-  if (task.kind !== 'new_lesson') {
-    await client.call('report_problem', { work_order: task.work_order, code: 'fake_unsupported', text: 'Agent giả chỉ làm việc new_lesson.' });
+  if (!['new_lesson', 'manual'].includes(task.kind)) {
+    await client.call('report_problem', { work_order: task.work_order, code: 'fake_unsupported', text: 'Agent giả chỉ làm việc new_lesson hoặc manual.' });
     return 'unsupported';
   }
   const must = async (name, args) => { const r = await client.call(name, args); if (r.isError) throw new Error(name + ' lỗi: ' + r.text); return r; };

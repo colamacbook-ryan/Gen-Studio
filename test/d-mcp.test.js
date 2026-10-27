@@ -128,3 +128,27 @@ test('d-mcp: illustration.params.asset chỉ nhận mã AS-… có thật (khôn
     assert.equal(t.db.get('SELECT COUNT(*) AS n FROM lessons').n, 0);
   } finally { t.clean(); }
 });
+
+test('d-mcp: agent báo lỗi → lệnh không bị trả lại mãi; tối đa 3 lần rồi stalled; lỗi cứng stalled ngay', async () => {
+  const { t, b, mk, call } = setup();
+  try {
+    const { c } = mk(['read', 'compose', 'run']);
+    t.write(b.o, 'work_order.create', { channel: b.ch.display_id, kind: 'manual', brief: 'x' });
+    const seen = [];
+    for (let i = 0; i < 6; i++) {
+      const task = (await call(c, 'get_next_task')).structuredContent.task;
+      if (!task) break;
+      seen.push(task.work_order);
+      const r = await call(c, 'report_problem', { work_order: task.work_order, code: 'cli_failed', text: 'thử' });
+      assert.ok(['open', 'stalled'].includes(r.structuredContent.work_order_state));
+    }
+    assert.equal(seen.length, 3, 'chỉ đánh thức tối đa 3 lần cho một lệnh lỗi');
+    assert.equal(t.db.get("SELECT state FROM work_orders WHERE display_id=?", seen[0]).state, 'stalled');
+    // lỗi cứng: stalled ngay lần đầu
+    t.write(b.o, 'work_order.create', { channel: b.ch.display_id, kind: 'manual', brief: 'y' });
+    const t2 = (await call(c, 'get_next_task')).structuredContent.task;
+    const r2 = await call(c, 'report_problem', { work_order: t2.work_order, code: 'cli_missing', text: 'không có claude' });
+    assert.equal(r2.structuredContent.work_order_state, 'stalled');
+    assert.equal((await call(c, 'get_next_task')).structuredContent.task, null);
+  } finally { t.clean(); }
+});

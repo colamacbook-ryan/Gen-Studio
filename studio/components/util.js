@@ -42,6 +42,31 @@ export function fmtTc(ms) {
 }
 
 // giây -> 'M:SS' (thời lượng clip)
+// byte → "17,2 MB" / "1,4 GB"
+export function fmtBytes(b) {
+  const n = Number(b); if (!isFinite(n)) return '—';
+  const u = ['B', 'KB', 'MB', 'GB', 'TB']; let i = 0, v = n;
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return (i === 0 ? String(v) : v.toFixed(v >= 100 ? 0 : 1).replace('.', ',')) + ' ' + u[i];
+}
+const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+// Định dạng một giá trị số đo theo TÊN khoá (không đổ JSON thô ra giao diện)
+export function fmtVal(key, v) {
+  if (v == null || v === '') return '—';
+  const k = String(key);
+  if (Array.isArray(v)) return String(v.length);
+  if (typeof v === 'object') return Object.entries(v).map(([a, b]) => a + ' ' + fmtVal(a, b)).join(' · ') || '0';
+  if (typeof v === 'number') {
+    if (/_ms$/.test(k)) return fmtDur(v);
+    if (/_seconds$|_sec$/.test(k)) return fmtDur(v * 1000);
+    if (/bytes|^disk\.|\.(used|total|reclaimable)$/.test(k)) return fmtBytes(v);
+    if (/minutes$/.test(k)) return v + "'";
+    return v.toLocaleString('vi-VN');
+  }
+  if (typeof v === 'string' && ISO_RE.test(v)) { const d = new Date(v); if (!isNaN(d)) return d.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }); }
+  return toText(v);
+}
+
 export function fmtDur(ms) {
   const sec = Math.round((Number(ms) || 0) / 1000);
   return Math.floor(sec / 60) + ':' + p2(sec % 60);

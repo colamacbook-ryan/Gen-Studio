@@ -63,6 +63,7 @@ function createMcp(ctx) {
   }
   const taskText = t => `Việc ${t.work_order} (${t.kind}, ${t.state}) — kênh ${t.channel && t.channel.display_id}${t.curriculum_node ? ', mục ' + t.curriculum_node.display_id + ' "' + t.curriculum_node.title + '"' : ''}${t.lesson ? ', bài ' + t.lesson.display_id : ''}.\n${t.brief || ''}\n${t.review_notes.map(n => `- ghi chú ${n.pin_ref}: ${n.text}`).join('\n')}${t.blocked ? '\nLý do chặn: ' + (t.blocked.reason.text_human || t.blocked.reason.code) : ''}\n${t.how_to}`;
 
+  const MAX_PROBLEM_ATTEMPTS = 3;   // agent báo lỗi quá 3 lần → stalled, chủ xưởng xử lý
   tool('get_next_task', 'run', 'Lấy việc kế tiếp (Work order) được giao cho bạn; trả task=null nếu chưa có việc.', {}, [], (a, c) => {
     const ag = c.agent;
     let wo = assigned(c);
@@ -96,7 +97,16 @@ function createMcp(ctx) {
     const wo = a.work_order ? need('work_orders', a.work_order, 'lệnh sản xuất') : assigned(c);
     const run = queue.enqueue(db, { kind: 'agent_wake', work_order_id: wo ? wo.id : null, payload: { agent: c.agent.display_id, problem: a.code }, created_by: 'agent:' + c.agent.id });
     queue.fail(db, run.id, { code: String(a.code).slice(0, 60), text_human: String(a.text || a.code).slice(0, 500), detail: a.detail || null });
-    return { text: `Đã ghi vấn đề ${a.code}${wo ? ' cho ' + wo.display_id : ''}; chủ xưởng sẽ thấy ở màn Pipeline.`, data: { ok: true, run: run.display_id } };
+    // Lệnh đang giao cho chính agent này: trả về hàng chờ (đếm lần thử) hoặc stalled — KHÔNG để get_next_task trả lại
+    // đúng lệnh đó mãi (mỗi lần là một lần đánh thức CLI, đốt lượt vô hạn).
+    let woState = wo ? wo.state : null;
+    if (wo && wo.state === 'assigned' && wo.agent_id === c.agent.id) {
+      const hard = ['cli_missing', 'fake_unsupported', 'unsupported', 'auth_expired'].includes(String(a.code));
+      const to = hard || wo.attempts + 1 >= MAX_PROBLEM_ATTEMPTS ? 'stalled' : 'open';
+      const summary = to === 'stalled' ? `Agent báo lỗi ${String(a.code).slice(0, 60)}: ${String(a.text || '').slice(0, 300)}` : undefined;
+      woState = state.transitionWorkOrder(db, wo.id, to, { summary, actor: { type: 'agent', id: c.agent.id }, entry: 'mcp' }).state;
+    }
+    return { text: `Đã ghi vấn đề ${a.code}${wo ? ' cho ' + wo.display_id + ' (lệnh: ' + woState + ')' : ''}; chủ xưởng sẽ thấy ở màn Pipeline.`, data: { ok: true, run: run.display_id, work_order_state: woState } };
   });
 
   // ---------- Khám phá ----------

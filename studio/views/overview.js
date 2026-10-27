@@ -6,7 +6,7 @@ import { get } from '../components/api.js';
 import { pageHeader } from '../components/shell.js';
 import { skeleton, errorBanner, emptyState } from '../components/states.js';
 import { onDebounced } from '../components/bus.js';
-import { buildHash, toText } from '../components/util.js';
+import { buildHash, toText, fmtVal } from '../components/util.js';
 
 // Làm phẳng object lồng nhau thành [[khoá, giá trị chuỗi]] (mảng -> số phần tử hoặc danh sách ngắn).
 export function flatten(obj, prefix = '', out = [], depth = 0) {
@@ -14,7 +14,7 @@ export function flatten(obj, prefix = '', out = [], depth = 0) {
     const key = prefix ? prefix + '.' + k : k;
     if (Array.isArray(v)) out.push([key, v.every((x) => x == null || typeof x !== 'object') ? v.map(toText).join(', ') || '0' : String(v.length)]);
     else if (v && typeof v === 'object' && depth < 2) flatten(v, key, out, depth + 1);
-    else out.push([key, toText(v)]);
+    else out.push([key, fmtVal(key, v)]);
   }
   return out;
 }

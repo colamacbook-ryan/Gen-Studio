@@ -139,7 +139,18 @@ test('normalizeError / statusTone / csvEscape', async () => {
 test('overview.flatten: làm phẳng, không ra [object Object]', async () => {
   const { flatten } = await load('views/overview.js');
   const rows = flatten({ a: 1, b: { c: 2, d: { e: 3 } }, f: [1, 2], g: [{ x: 1 }], h: null });
-  assert.deepEqual(rows, [['a', '1'], ['b.c', '2'], ['b.d.e', '3'], ['f', '1, 2'], ['g', '1'], ['h', '']]);
+  assert.deepEqual(rows, [['a', '1'], ['b.c', '2'], ['b.d.e', '3'], ['f', '1, 2'], ['g', '1'], ['h', '—']]);
+});
+
+test('fmtVal: định dạng số đo theo khoá, không ra JSON thô', async () => {
+  const { fmtVal, fmtBytes } = await load('components/util.js');
+  assert.equal(fmtVal('total_duration_ms', 117306), '1:57');
+  assert.equal(fmtVal('median_review_seconds', 250), '4:10');
+  assert.equal(fmtVal('disk.used', 17166488), '16,4 MB');
+  assert.equal(fmtBytes(270553174016), '252 GB');
+  assert.equal(fmtVal('by_state', { open: 1, stalled: 2 }), 'open 1 · stalled 2');
+  assert.equal(fmtVal('x', null), '—');
+  assert.ok(!/T\d\d:/.test(fmtVal('next_schedule', '2026-10-27T23:00:00.000Z')));
 });
 
 test('datagrid.cellText: định dạng ô', async () => {

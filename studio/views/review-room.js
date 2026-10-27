@@ -10,10 +10,28 @@ import { termSpans } from './lessons.js';
 
 const GATE_ORDER = ['G-WAV', 'G-SCRIPT', 'G-PRON', 'G-LOUD', 'G-SYNC', 'G-MOTION', 'G-FRAMES', 'G-MUX'];
 
-function measureText(m) {
+// Số đo cổng → một dòng người đọc được (không bao giờ đổ JSON thô ra giao diện)
+const num = (x, d = 1) => (typeof x === 'number' && isFinite(x) ? x.toFixed(d).replace(/\.0+$/, '') : '—');
+const okCount = (arr) => (Array.isArray(arr) ? arr.filter(x => x && x.result === 'pass').length : 0);
+function measureText(m, gate) {
   if (m == null) return '';
   if (typeof m === 'string' || typeof m === 'number') return String(m);
-  return toText(m.text_human || m.text || m);
+  if (m.text_human) return toText(m.text_human);
+  try {
+    switch (gate) {
+      case 'G-WAV': {
+        const a = m.tier_a || [], b = m.tier_b || {};
+        return t('gm.lines', { ok: okCount(a), n: a.length }) + ' · ' + t('gm.wavb', { marks: b.marks != null ? b.marks : '—', ratio: num(b.worst_ratio) });
+      }
+      case 'G-SCRIPT': case 'G-PRON': return t('gm.lines', { ok: okCount(m.lines), n: (m.lines || []).length });
+      case 'G-LOUD': return t('gm.loud', { lufs: num(m.lufs), tp: num(m.tp) });
+      case 'G-SYNC': return t('gm.sync', { beats: m.beats != null ? m.beats : '—', bad: (m.bad_index || []).length ? t('gm.sync.bad', { list: m.bad_index.join(', ') }) : '' });
+      case 'G-MOTION': return t('gm.motion', { fz: (m.bad_freezes || []).length, cuts: (m.bad_cuts || []).length });
+      case 'G-FRAMES': return t('gm.frames', { got: m.got, expected: m.expected, err: m.error_count || 0 });
+      case 'G-MUX': return t('gm.mux', { v: num(m.video_s, 2), a: num(m.audio_s, 2), srt: m.srt ? Object.keys(m.srt).filter(k => m.srt[k] === 'ok').join('+') || '—' : '—' });
+    }
+  } catch (e) { /* rơi xuống dòng chung */ }
+  return '';
 }
 
 export function mount(container, ctx) {
@@ -147,7 +165,7 @@ function build(root, id, data, ctx) {
       const g = gateByName.get(n);
       return h('div', { class: 'gate-row', role: 'row' }, h('span', { class: 'mono' }, n),
         badge(t('gate.' + toText(g.result)), g.result === 'pass' ? 'ok' : g.result === 'fail' ? 'danger' : 'warn'),
-        h('span', { class: 'muted mono small' }, measureText(g.measure)));
+        h('span', { class: 'muted mono small' }, measureText(g.measure, g.gate)));
     })) : h('p', { class: 'muted' }, t('room.no_gates')));
 
   // ---- ghi chú ----

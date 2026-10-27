@@ -4,7 +4,7 @@ import { h, icon, clear } from './dom.js';
 import { t, tOr } from '../i18n.js';
 import { get } from './api.js';
 import { skeleton, emptyState, errorBanner, badge } from './states.js';
-import { toText, statusTone, csvEscape, fmtDur } from './util.js';
+import { toText, statusTone, csvEscape, fmtDur, fmtVal } from './util.js';
 
 const STATE_KEYS = /^(state|status|decision|result|role)$/;
 
@@ -96,7 +96,7 @@ export function createDataGrid(opts) {
     footer.appendChild(h('span', null, t('grid.rows', { n: count }) + (selRow >= 0 ? ' · ' + t('grid.selected', { n: 1 }) : '')));
     for (const [k, v] of Object.entries(f)) {
       if (k === 'count' || k === 'total') continue;
-      footer.appendChild(h('span', { class: 'mono sigma' }, tOr('foot.' + k, k) + ': ' + toText(v)));
+      footer.appendChild(h('span', { class: 'mono sigma' }, tOr('foot.' + k, k) + ': ' + fmtVal(k, v)));
     }
     footer.appendChild(h('span', { class: 'spacer' }));
     if (updatedAt) footer.appendChild(h('span', null, t('grid.updated', { time: fmtDateTime(updatedAt).slice(11) })));
