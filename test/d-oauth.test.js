@@ -571,7 +571,7 @@ test('config: GS_PAIRING_SECRET tự sinh như GS_MASTER_KEY; compose chỉ truy
   assert.match(cfg.pairingSecret, /^gsp_[A-Za-z0-9_-]{43}$/);
   const m = events.mask('header ' + cfg.pairingSecret + ' xong'); assert.ok(!m.includes(cfg.pairingSecret.slice(6)));
   const compose = fs.readFileSync(path.join(__dirname, '..', 'docker-compose.yml'), 'utf8');
-  assert.equal((compose.replace(/^\s*#.*$/gm, '').match(/GS_PAIRING_SECRET/g) || []).length, 2, 'đúng hai service (studio, agent) nhận bí mật');
+  assert.equal((compose.replace(/^\s*#.*$/gm, '').match(/^\s*GS_PAIRING_SECRET:/gm) || []).length, 2, 'đúng hai service (studio, agent) nhận bí mật');
 });
 
 test('oauth: events.mask che gsa_/gsr_/gsd_/gsc_/gst_', () => {
