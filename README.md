@@ -44,6 +44,7 @@ bash tools/test.sh          # kiểm repo + node --test test/*.test.js (gồm e2
 - Chưa chạy thử `install.sh` / image Docker trên máy sạch; chưa có OAuth 2.1 cho agent trên cloud ("Đưa lên mạng").
 - Gemini TTS gói miễn phí ~10 lượt/ngày/model; ra clip hằng ngày cần gói trả phí.
 - Render ~11 khung/giây ở 1080p30 (clip 45 s ≈ 2 phút).
+- Chưa có màn tạo nhân vật trên giao diện: agent tạo nhân vật qua MCP (`save_cast_member`); agent giả tự tạo 2 nhân vật mẫu khi kênh chưa có.
 - Mốc từng từ lấy từ giám khảo Gemini; khi không có thì ước theo ký tự (lệch ~±0,3 s).
 
 ## Tài liệu
