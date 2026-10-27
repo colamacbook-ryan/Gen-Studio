@@ -12,8 +12,9 @@ function widthFor(col, i) {
   if (i === 0) return '104px';
   switch (col.type) {
     case 'num': case 'number': case 'int': return '88px';
-    case 'time': case 'datetime': return '150px';
+    case 'time': case 'datetime': case 'date': return '150px';
     case 'badge': case 'state': return '140px';
+    case 'bool': return '96px';
     default: return STATE_KEYS.test(col.key) ? '140px' : 'minmax(160px,1fr)';
   }
 }
@@ -27,7 +28,7 @@ export function fmtDateTime(v) {
 
 export function cellText(col, v) {
   if (v == null) return '';
-  if ((col.type === 'time' || col.type === 'datetime' || /_at$/.test(col.key)) && (typeof v === 'string' || typeof v === 'number')) return fmtDateTime(v);
+  if ((col.type === 'time' || col.type === 'datetime' || col.type === 'date' || /_at$/.test(col.key)) && (typeof v === 'string' || typeof v === 'number')) return fmtDateTime(v);
   if (col.type === 'duration' && typeof v === 'number') return fmtDur(v);
   if (typeof v === 'number') return v.toLocaleString();
   if (Array.isArray(v) && v.every(x => x == null || typeof x !== 'object')) return v.join(', ');
@@ -39,6 +40,7 @@ function cellNode(col, v, idx) {
   const text = cellText(col, v);
   if (idx === 0) return h('span', { class: 'mono id' }, text);
   if (col.type === 'badge' || col.type === 'state' || STATE_KEYS.test(col.key)) return text ? badge(tOr('st.' + text, text), statusTone(text)) : '';
+  if (col.type === 'bool') return badge(v ? t('common.on') : t('common.off'), v ? 'ok' : 'idle');
   if (col.type === 'num' || col.type === 'number' || col.type === 'int' || col.type === 'duration') return h('span', { class: 'mono num' }, text);
   if (col.type === 'id' || /(^|_)id$/.test(col.key)) return h('span', { class: 'mono' }, text);
   return text;
@@ -108,7 +110,8 @@ export function createDataGrid(opts) {
     clear(scroller);
     const cols = data.columns;
     const tpl = cols.map(widthFor).join(' ');
-    const minW = 'max-content';
+    // mọi hàng cùng một bề rộng tối thiểu (tính từ khai báo cột) — 'max-content' làm hàng có ô dài tự nở cột, lệch hàng khác
+    const minW = cols.reduce((n, c, i) => n + (parseInt(widthFor(c, i).replace('minmax(', ''), 10) || 160), 0) + 'px';
     const letters = h('div', { class: 'grow letters', role: 'row', style: { gridTemplateColumns: tpl, minWidth: minW } },
       cols.map((c, i) => h('div', { class: 'gcell mono' + (i === 0 ? ' frozen' : ''), role: 'presentation' }, String.fromCharCode(65 + i))));
     const head = h('div', { class: 'grow ghead', role: 'row', style: { gridTemplateColumns: tpl, minWidth: minW } },

@@ -161,6 +161,8 @@ test('datagrid.cellText: định dạng ô', async () => {
   assert.ok(!/[{}"]/.test(cellText({ key: 'x' }, { m: [{ a: 1 }], q: { v: null } }))); 
   assert.equal(cellText({ key: 'n' }, null), '');
   assert.equal(cellText({ key: 'd', type: 'duration' }, 43000), '0:43');
+  // cột thời gian server khai type 'date' (grids.js) → không in ISO thô
+  assert.ok(!/T\d\d:/.test(cellText({ key: 'ts', type: 'date' }, '2026-10-27T10:07:11.375Z')));
 });
 
 test('mọi module giao diện nạp được trong Node (cú pháp ESM hợp lệ)', async () => {
