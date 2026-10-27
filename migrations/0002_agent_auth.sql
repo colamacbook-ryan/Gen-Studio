@@ -49,7 +49,7 @@ CREATE TABLE oauth_grants (
   token_hash TEXT NOT NULL UNIQUE,
   client_id TEXT NOT NULL REFERENCES oauth_clients(client_id), agent_id TEXT NOT NULL REFERENCES agents(id), auth_request_id TEXT REFERENCES auth_requests(id),
   scopes TEXT, pkce_challenge TEXT, redirect_uri TEXT, resource TEXT,
-  expires_at TEXT NOT NULL, used_at TEXT, parent_id TEXT REFERENCES oauth_grants(id), child_id TEXT, revoked_at TEXT, created_at TEXT NOT NULL
+  expires_at TEXT NOT NULL, used_at TEXT, parent_id TEXT REFERENCES oauth_grants(id), child_id TEXT, revoked_at TEXT, revoke_reason TEXT, created_at TEXT NOT NULL   -- revoke_reason='grace': cặp con bị thay trong ân hạn 30 s
 );
 CREATE INDEX idx_oauth_grants_agent ON oauth_grants(agent_id);
 CREATE INDEX idx_oauth_grants_parent ON oauth_grants(parent_id);

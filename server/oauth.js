@@ -33,12 +33,18 @@ function create(ctx, { hosts }) {
   let sid = null;
   const serverId = () => sid || (sid = write(sysAct, 'auth.init', {}).server_id);
 
-  // Kênh vào (CNS-060/066): internal = Host nội bộ của mạng Docker (studio:7490); loopback = máy chủ; public = mọi thứ còn lại, gồm cả yêu cầu có dấu vết proxy/tunnel
+  // Kênh vào (CNS-060/066): internal = Host nội bộ của mạng Docker (studio:7490) VÀ header X-GS-Pairing khớp bí mật ghép của bản cài (Host một mình có thể bị giả);
+  // loopback = máy chủ (kể cả Host studio:7490 không có bí mật: chủ xưởng phải tự gõ mã); public = mọi thứ còn lại, gồm cả yêu cầu có dấu vết proxy/tunnel.
+  // Có header X-GS-Pairing nhưng sai (hoặc studio chưa có bí mật) → 'forbidden'. Trả {chan, forbidden}.
   function ingress(req) {
+    const hdr = req.headers['x-gs-pairing'];
+    const secret = config.pairingSecret;
+    const valid = hdr !== undefined && !!secret && auth.eq(String(hdr), secret);
+    if (hdr !== undefined && !valid) return { chan: 'public', forbidden: true };
     if (FORWARD.some(h => req.headers[h])) return 'public';
     const host = String(req.headers.host || '').toLowerCase();
-    if (host === internalHost()) return 'internal';
-    if (LOOP.has(host.replace(/:\d+$/, ''))) return 'loopback';
+    if (host === internalHost() && valid) return 'internal';
+    if (host === internalHost() || LOOP.has(host.replace(/:\d+$/, ''))) return 'loopback';
     return 'public';
   }
   const proto = req => (req.socket.encrypted || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http');
@@ -183,7 +189,13 @@ function create(ctx, { hosts }) {
 
   const owns = p => PATHS.has(p);
   async function handle(req, res, url) {
-    const p = url.pathname, chan = ingress(req);
+    const p = url.pathname, ing = ingress(req);
+    if (typeof ing === 'object') {
+      // bí mật ghép sai: từ chối và ghi nhật ký (có giới hạn để không bị spam nhật ký); không bao giờ ghi giá trị header
+      if (!lim.hit('badsec', 20, 3600e3)) write(act(), 'auth.bad_secret', { path: p, ip: ipOf(req) });
+      return json(res, 403, oerrBody('access_denied', 'Bí mật ghép không đúng.'));
+    }
+    const chan = ing;
     // Host phải nằm trong danh sách cho phép (gồm studio:7490): issuer/URL chỉ tính từ Host hợp lệ
     const base = baseUrl(req);
     if (!base) { if (req.method === 'GET') return plain(res, 403, 'Host không được phép. Thêm vào GS_ALLOWED_HOSTS nếu truy cập qua địa chỉ khác.'); return json(res, 403, oerrBody('invalid_request', 'Host không được phép.')); }

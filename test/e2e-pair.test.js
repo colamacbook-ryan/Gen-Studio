@@ -32,7 +32,7 @@ test('e2e-pair: runner chờ cửa sổ ghép → owner mở + Duyệt → chạ
     assert.equal(opened.length, 1);
 
     // runner đi vào bằng Host nội bộ (kênh internal) như trong mạng Docker; không có token → unpaired, KHÔNG xin mã khi cửa sổ đóng
-    runner = createRunner({ url: t.base + '/mcp', fake: true, stateDir, pollMs: 50, statusMs: 50, hostHeader: 'studio:7490', clientName: 'Runner e2e' });
+    runner = createRunner({ url: t.base + '/mcp', fake: true, stateDir, pollMs: 50, statusMs: 50, hostHeader: 'studio:7490', pairingSecret: t.app.ctx.config.pairingSecret, clientName: 'Runner e2e' });
     assert.ok(runner.auth, 'không có token → chế độ ghép thiết bị');
     const tick = runner.tick();
     const rs = await waitFor(async () => (await call('GET', '/api/runner-status')).json.runner, 5000, 'runner báo trạng thái');

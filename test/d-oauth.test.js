@@ -14,7 +14,9 @@ const events = require('../server/events.js');
 const dbm = require('../server/db.js');
 
 const FORM = { 'Content-Type': 'application/x-www-form-urlencoded' };
-const INTERNAL = { Host: 'studio:7490' };            // kênh nội bộ: Host của runner trong mạng Docker
+const SECRET = 'gsp_' + crypto.randomBytes(32).toString('base64url');   // bí mật ghép của bản cài (chỉ studio + runner biết)
+const SPOOF = { Host: 'studio:7490' };                                     // chỉ giả Host: KHÔNG phải kênh nội bộ
+const INTERNAL = { Host: 'studio:7490', 'X-GS-Pairing': SECRET };          // kênh nội bộ: Host của runner trong mạng Docker + bí mật ghép
 const PUBLIC = { 'X-Forwarded-For': '203.0.113.9' };  // dấu vết tunnel/proxy → kênh công khai
 const DEV = 'urn:ietf:params:oauth:grant-type:device_code';
 const form = o => new URLSearchParams(o).toString();
@@ -55,7 +57,7 @@ async function getCode(t, call, { redirect = 'http://127.0.0.1:53682/callback', 
 }
 const exchange = (base, g, over = {}) => token(base, Object.assign({ grant_type: 'authorization_code', code: g.code, client_id: g.clientId, redirect_uri: g.redirect, code_verifier: g.verifier }, over));
 async function boot(extra) {
-  const t = await bootTmp(extra);
+  const t = await bootTmp(Object.assign({}, extra, { config: Object.assign({ pairingSecret: SECRET }, extra && extra.config) }));
   const s = await setupOwner(t.app, t.base);
   return Object.assign(t, { s, call: ui(t.base, s) });
 }
@@ -88,7 +90,7 @@ test('oauth: metadata (PRM cả hai đường, AS đủ trường) + /mcp 401 tr
     }
     assert.ok(!/evil/.test((await request(t.base, 'POST', '/mcp', { headers: { Host: 'evil.example.com' }, body: {} })).headers['www-authenticate'] || ''), '/mcp không dựng metadata từ Host lạ');
     // studio:7490 (runner) nằm trong danh sách; publicUrl khớp Host thì dùng đúng origin của nó
-    assert.equal((await request(t.base, 'GET', '/.well-known/oauth-protected-resource', { headers: INTERNAL })).json.resource, 'http://studio:7490/mcp');
+    assert.equal((await request(t.base, 'GET', '/.well-known/oauth-protected-resource', { headers: SPOOF })).json.resource, 'http://studio:7490/mcp');
     const cfg = await bootTmp({ config: { publicUrl: 'https://studio.example.com' } });
     try { assert.equal((await request(cfg.base, 'GET', '/.well-known/oauth-protected-resource', { headers: { Host: 'studio.example.com' } })).json.resource, 'https://studio.example.com/mcp'); } finally { await cfg.clean(); }
   } finally { await t.clean(); }
@@ -200,8 +202,8 @@ test('oauth: refresh — ân hạn 30 s (cặp con chưa dùng được thay), d
     // thử lại ngay (mất phản hồi): trong 30 s và con chưa dùng → nhận cặp mới, agent còn sống; cặp con trước bị thay
     const r1b = await rf({ refresh_token: tk.refresh_token }); assert.equal(r1b.status, 200, r1b.text);
     assert.notEqual(r1b.json.refresh_token, r1.json.refresh_token);
-    assert.equal((await rf({ refresh_token: r1.json.refresh_token })).status, 400, 'cặp con bị thay không dùng được nữa');
     assert.equal(db.get("SELECT status FROM agents WHERE kind='oauth'").status, 'active');
+    assert.equal(db.get("SELECT COUNT(*) AS n FROM oauth_grants WHERE revoke_reason='grace'").n, 1, 'cặp con bị ân hạn thay được đánh dấu riêng');
     // con thật sự được dùng → dùng lại refresh gốc là đánh cắp
     const r2 = await rf({ refresh_token: r1b.json.refresh_token }); assert.equal(r2.status, 200);
     const re = await rf({ refresh_token: tk.refresh_token });
@@ -212,6 +214,25 @@ test('oauth: refresh — ân hạn 30 s (cặp con chưa dùng được thay), d
     assert.equal(db.get("SELECT COUNT(*) AS n FROM agent_tokens WHERE revoked_at IS NULL").n, 0);
     assert.ok(db.get("SELECT 1 AS x FROM audit_log WHERE action='auth.refresh' AND after LIKE '%refresh_reuse%'"));
     assert.deepEqual((await t.call('GET', '/api/overview')).json.pairing_lost, null, 'agent oauth bị thu hồi không phải "ghép lại" của runner');
+    // (a) ân hạn tối đa MỘT lần cho mỗi cha: lần dùng lại thứ hai của cùng refresh cha ⇒ thu hồi agent
+    const ga = await getCode(t, t.call); const tka = (await exchange(t.base, ga)).json;
+    const rfa = o => token(t.base, Object.assign({ grant_type: 'refresh_token', client_id: ga.clientId }, o));
+    assert.equal((await rfa({ refresh_token: tka.refresh_token })).status, 200);
+    const graceA = await rfa({ refresh_token: tka.refresh_token }); assert.equal(graceA.status, 200, 'lần đầu dùng lại trong ân hạn được thay');
+    const secondA = await rfa({ refresh_token: tka.refresh_token });
+    assert.equal(secondA.status, 400); assert.equal(secondA.json.error, 'invalid_grant');
+    assert.equal(db.get("SELECT status FROM agents WHERE id=(SELECT agent_id FROM oauth_clients WHERE client_id=?)", ga.clientId).status, 'revoked', 'ân hạn lần hai ⇒ thu hồi');
+    assert.equal((await mcp(t.base, graceA.json.access_token)).status, 401);
+    assert.ok(db.get("SELECT 1 AS x FROM audit_log WHERE action='auth.refresh' AND after LIKE '%refresh_reuse%' ORDER BY rowid DESC"));
+    // (b) trình ra cặp con đã bị ân hạn thay (revoke_reason=grace) ⇒ có bản sao thứ hai của token ⇒ thu hồi agent
+    const gb = await getCode(t, t.call); const tkb = (await exchange(t.base, gb)).json;
+    const rfb = o => token(t.base, Object.assign({ grant_type: 'refresh_token', client_id: gb.clientId }, o));
+    const childB = (await rfb({ refresh_token: tkb.refresh_token })).json;           // con ban đầu (bị coi là "mất phản hồi")
+    assert.equal((await rfb({ refresh_token: tkb.refresh_token })).status, 200);     // ân hạn: con ban đầu bị thay
+    const replay = await rfb({ refresh_token: childB.refresh_token });
+    assert.equal(replay.status, 400); assert.equal(replay.json.error, 'invalid_grant');
+    assert.equal(db.get("SELECT status FROM agents WHERE id=(SELECT agent_id FROM oauth_clients WHERE client_id=?)", gb.clientId).status, 'revoked');
+    assert.ok(db.get("SELECT 1 AS x FROM audit_log WHERE action='auth.refresh' AND after LIKE '%refresh_reuse%' ORDER BY rowid DESC"));
     // quá ân hạn 30 s dù con chưa dùng → thu hồi
     const g2 = await getCode(t, t.call); const tk2 = (await exchange(t.base, g2)).json;
     const c2 = (await token(t.base, { grant_type: 'refresh_token', refresh_token: tk2.refresh_token, client_id: g2.clientId })).json;
@@ -501,6 +522,56 @@ test('oauth: thu hồi agent nội bộ đóng cửa sổ ghép (không tự xin
     assert.equal(db.get("SELECT COUNT(*) AS n FROM agent_tokens WHERE kind='access'").n, 0);
     assert.ok(db.get('SELECT COUNT(*) AS n FROM oauth_grants').n < 4, 'grant hết hạn quá 7 ngày bị dọn (lá chuỗi xoay vòng)');
   } finally { await t.clean(); }
+});
+
+test('ghép nội bộ cần bí mật ghép: chỉ giả Host ⇒ không phải internal (phải gõ mã); bí mật sai ⇒ 403 + nhật ký; đúng ⇒ internal', async () => {
+  const t = await boot({ config: { deviceIntervalMs: 20 } });
+  try {
+    const db = dbOf(t);
+    // cửa sổ nội bộ mở: kẻ chỉ giả Host studio:7490 (không có bí mật) không xin được mã
+    await openWindow(t);
+    const spoofed = await startDevice(t, {}, SPOOF);
+    assert.equal(spoofed.json.error, 'pairing_closed', 'Host giả không có bí mật rơi vào luật loopback, cửa sổ nội bộ không áp dụng');
+    assert.equal(db.get('SELECT COUNT(*) AS n FROM auth_requests').n, 0);
+    assert.equal((await request(t.base, 'GET', '/oauth/pairing-status', { headers: SPOOF })).json.window_open, false);
+    await request(t.base, 'GET', '/oauth/pairing-status?runner=paired', { headers: SPOOF });
+    assert.equal((await t.call('GET', '/api/runner-status')).json.runner, null, 'Host giả không giả được trạng thái runner');
+    // cửa sổ CLI (loopback) mở: Host giả vẫn chỉ là loopback → kind oauth, tên tự khai, phải tự gõ mã
+    await openWindow(t, 'loopback');
+    const d = (await startDevice(t, { client_name: 'Agent nội bộ' }, SPOOF)).json;
+    const r = byCode(t, d.user_code);
+    assert.equal(r.channel, 'loopback'); assert.equal(r.client_name, 'Agent nội bộ (tự khai)');
+    const v = (await t.call('GET', `/api/auth-requests/${r.display_id}`)).json.request; assert.equal(v.needs_code, true); assert.equal(v.agent_kind, 'oauth');
+    assert.equal((await t.call('POST', `/api/auth-requests/${r.display_id}/approve`, {})).status, 400, 'không có mã gõ tay thì không duyệt');
+    // bí mật sai (hoặc rỗng) ⇒ 403 + nhật ký (không ghi giá trị header)
+    for (const bad of ['gsp_sai-bi-mat', '', SECRET + 'x']) {
+      for (const [m, p] of [['POST', '/oauth/device'], ['GET', '/oauth/pairing-status']]) {
+        const x = await request(t.base, m, p, { headers: { Host: 'studio:7490', 'X-GS-Pairing': bad }, body: m === 'POST' ? { client_name: 'x' } : undefined });
+        assert.equal(x.status, 403, p + ' / ' + bad); assert.equal(x.json.error, 'access_denied');
+      }
+    }
+    assert.equal((await request(t.base, 'POST', '/oauth/device', { headers: { 'X-GS-Pairing': 'sai' }, body: {} })).status, 403, 'sai bí mật bị từ chối kể cả khi Host là loopback');
+    assert.ok(db.get("SELECT 1 AS x FROM audit_log WHERE action='auth.bad_secret' AND entry='oauth'"));
+    assert.ok(!JSON.stringify(db.all('SELECT before, after FROM audit_log')).includes('gsp_'), 'nhật ký không chứa bí mật');
+    // đúng bí mật + Host nội bộ ⇒ internal (cần cửa sổ internal)
+    await openWindow(t);
+    const ok = (await startDevice(t, { client_name: 'Tên tuỳ ý' }, INTERNAL)).json;
+    const ri = byCode(t, ok.user_code); assert.equal(ri.channel, 'internal'); assert.equal(ri.client_name, 'Agent nội bộ');
+    assert.equal((await t.call('GET', `/api/auth-requests/${ri.display_id}`)).json.request.needs_code, false);
+    // bí mật đúng nhưng đi kèm dấu vết tunnel ⇒ vẫn là công khai (403 ở /oauth/device)
+    assert.equal((await startDevice(t, {}, Object.assign({}, INTERNAL, PUBLIC))).status, 403);
+    // studio chưa có bí mật ⇒ không có kênh internal nào (header gửi lên bị coi là sai)
+    t.app.ctx.config.pairingSecret = null;
+    assert.equal((await startDevice(t, {}, INTERNAL)).status, 403);
+  } finally { await t.clean(); }
+});
+
+test('config: GS_PAIRING_SECRET tự sinh như GS_MASTER_KEY; compose chỉ truyền cho studio + agent; mask che gsp_', () => {
+  const cfg = require('../server/config.js').load({ env: { DATA_DIR: fs.mkdtempSync(path.join(os.tmpdir(), 'gs-cfg-')), GS_MASTER_KEY: crypto.randomBytes(32).toString('hex') }, dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'gs-cfg-')) });
+  assert.match(cfg.pairingSecret, /^gsp_[A-Za-z0-9_-]{43}$/);
+  const m = events.mask('header ' + cfg.pairingSecret + ' xong'); assert.ok(!m.includes(cfg.pairingSecret.slice(6)));
+  const compose = fs.readFileSync(path.join(__dirname, '..', 'docker-compose.yml'), 'utf8');
+  assert.equal((compose.replace(/^\s*#.*$/gm, '').match(/GS_PAIRING_SECRET/g) || []).length, 2, 'đúng hai service (studio, agent) nhận bí mật');
 });
 
 test('oauth: events.mask che gsa_/gsr_/gsd_/gsc_/gst_', () => {

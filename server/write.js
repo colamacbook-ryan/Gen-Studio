@@ -547,6 +547,9 @@ function createWriter(db, opts = {}) {
     return { result: v, entity: ['setting', 'runner_status'], before: null, after: v };
   });
 
+  // chỉ để ghi nhật ký: có người gửi X-GS-Pairing sai tới /oauth/*
+  op('auth.bad_secret', 'oauth', (c) => ({ result: { ok: false }, entity: ['oauth_endpoint', String(c.p.path || '').slice(0, 40)], before: null, after: { path: String(c.p.path || '').slice(0, 40), ip: c.p.ip || null } }));
+
   op('auth.register', 'oauth', (c) => {
     const p = c.p;
     sweepAuth();
@@ -712,16 +715,23 @@ function createWriter(db, opts = {}) {
     if (!g) throw oerr('invalid', 'invalid_grant', 'refresh_token không hợp lệ.');
     const ag = byRef('agents', g.agent_id);
     if (g.client_id !== p.client_id) throw oerr('invalid', 'invalid_grant', 'client_id không khớp.');
-    if (g.revoked_at || !ag || ag.status === 'revoked') throw oerr('invalid', 'invalid_grant', 'refresh_token đã bị thu hồi.');
+    if (!ag || ag.status === 'revoked') throw oerr('invalid', 'invalid_grant', 'refresh_token đã bị thu hồi.');
+    const reuse = () => {
+      revokeAgentRows(ag.id);
+      return { result: { error: 'invalid_grant', error_description: 'refresh_token đã được dùng; agent bị thu hồi vì nghi bị đánh cắp.' },
+        entity: ['agent', ag.display_id], before: { status: ag.status }, after: { status: 'revoked', reason: 'refresh_reuse' } };
+    };
+    if (g.revoked_at) {
+      if (g.revoke_reason === 'grace') return reuse();   // cặp con đã bị ân hạn thay mà vẫn có người trình ra ⇒ có bản sao thứ hai của token
+      throw oerr('invalid', 'invalid_grant', 'refresh_token đã bị thu hồi.');
+    }
     let grace = false;
     if (g.used_at) {
+      // ân hạn tối đa MỘT lần cho mỗi refresh cha, trong 30 s, và cặp con hiện tại chưa được dùng; ngoài ra là đánh cắp
       const child = db.get("SELECT id FROM oauth_grants WHERE parent_id=? AND kind='refresh' AND used_at IS NULL AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 1", g.id);
-      if (!child || Date.now() - Date.parse(g.used_at) > REFRESH_GRACE_MS) {
-        revokeAgentRows(ag.id);
-        return { result: { error: 'invalid_grant', error_description: 'refresh_token đã được dùng; agent bị thu hồi vì nghi bị đánh cắp.' },
-          entity: ['agent', ag.display_id], before: { status: ag.status }, after: { status: 'revoked', reason: 'refresh_reuse' } };
-      }
-      db.run('UPDATE oauth_grants SET revoked_at=? WHERE id=?', db.now(), child.id);   // cặp con chưa dùng bị thay (không lưu được token thô để trả lại đúng cặp cũ)
+      const graced = db.get("SELECT 1 AS x FROM oauth_grants WHERE parent_id=? AND revoke_reason='grace'", g.id);
+      if (!child || graced || Date.now() - Date.parse(g.used_at) > REFRESH_GRACE_MS) return reuse();
+      db.run("UPDATE oauth_grants SET revoked_at=?, revoke_reason='grace' WHERE id=?", db.now(), child.id);   // cặp con chưa dùng bị thay (không lưu được token thô để trả lại đúng cặp cũ)
       grace = true;
     }
     if (g.expires_at < db.now()) throw oerr('invalid', 'invalid_grant', 'refresh_token đã hết hạn.');

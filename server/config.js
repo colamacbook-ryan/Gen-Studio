@@ -38,6 +38,8 @@ function load(opts = {}) {
 
   const add = [];
   if (!get('GS_MASTER_KEY')) { const k = crypto.randomBytes(32).toString('hex'); file.GS_MASTER_KEY = k; add.push(`GS_MASTER_KEY=${k}`); }
+  // bí mật ghép nội bộ: chỉ runner (container agent) biết; chỉ có tác dụng trong cửa sổ ghép do chủ xưởng mở (xem server/oauth.js)
+  if (!get('GS_PAIRING_SECRET')) { const k = 'gsp_' + crypto.randomBytes(32).toString('base64url'); file.GS_PAIRING_SECRET = k; add.push(`GS_PAIRING_SECRET=${k}`); }
   if (!get('GS_PORT')) { file.GS_PORT = '7490'; add.push('GS_PORT=7490'); }
   if (add.length) {
     const head = fs.existsSync(envFile) ? '' : '# Gen-Studio — tự sinh lần đầu. KHÔNG commit file này.\n';
@@ -63,6 +65,7 @@ function load(opts = {}) {
     ffmpegPath: get('GS_FFMPEG_PATH') || get('FFMPEG_PATH') || 'ffmpeg',
     lang: ['vi', 'en'].includes(get('GS_LANG')) ? get('GS_LANG') : 'vi',
     publicUrl: get('GS_PUBLIC_URL') || null,
+    pairingSecret: get('GS_PAIRING_SECRET'),
     internalHost: (get('GS_INTERNAL_HOST') || 'studio:7490').toLowerCase(),   // Host mà runner dùng trong mạng Docker (kênh vào 'internal')
     version: readVersion(),
   };

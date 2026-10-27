@@ -11,7 +11,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 
-const mask = s => String(s == null ? '' : s).replace(/gs[tardc]?_[A-Za-z0-9_-]{8,}/g, 'gs_***').replace(/Bearer\s+\S+/g, 'Bearer ***');
+const mask = s => String(s == null ? '' : s).replace(/gs[tardcp]?_[A-Za-z0-9_-]{8,}/g, 'gs_***').replace(/Bearer\s+\S+/g, 'Bearer ***');
 const log = (...a) => console.log('[runner]', mask(a.join(' ')));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -52,10 +52,13 @@ function getJson(urlStr, headers) {
 // Quyền MCP của runner: ghép thiết bị (RFC 8628) CHỈ khi chủ xưởng mở cửa sổ ghép → token lưu trong volume riêng của runner → tự refresh (một lần tại một thời điểm).
 // Trạng thái: unpaired (chưa có quyền / chờ chủ xưởng) · waiting (đã xin mã, chờ Duyệt) · paired · error. Runner báo trạng thái qua /oauth/pairing-status.
 class TokenAuth {
-  constructor({ base, stateDir, clientName, scope, pollMs, statusMs, hostHeader, isStopped }) {
+  constructor({ base, stateDir, clientName, scope, pollMs, statusMs, hostHeader, pairingSecret, isStopped }) {
     this.base = base; this.file = stateDir ? path.join(stateDir, 'token.json') : null; this.clientName = clientName || 'Agent nội bộ';
     this.scope = scope || 'read compose run'; this.pollMs = pollMs || 0; this.statusMs = statusMs || pollMs || 10000;
-    this.headers = hostHeader ? { Host: hostHeader } : {}; this.isStopped = isStopped || (() => false);
+    this.headers = hostHeader ? { Host: hostHeader } : {};
+    // bí mật ghép: gửi CHỈ tới /oauth/device và /oauth/pairing-status (chứng minh runner thật khi chủ xưởng mở cửa sổ ghép); không bao giờ log, không gửi tới /mcp hay token
+    this.pairHeaders = Object.assign({}, this.headers, pairingSecret ? { 'X-GS-Pairing': pairingSecret } : {});
+    this.isStopped = isStopped || (() => false);
     this.tok = null; this.loaded = false; this.pending = null; this.state = 'unpaired'; this.message = ''; this.lastBeat = 0;
     if (!this.file) log('GS_AGENT_STATE chưa đặt: token chỉ giữ trong bộ nhớ, khởi động lại sẽ phải ghép lại.');
   }
@@ -78,7 +81,7 @@ class TokenAuth {
   // báo trạng thái cho studio (kênh nội bộ) và nhận {owner_exists, window_open}
   status() {
     const q = '?runner=' + encodeURIComponent(this.state) + '&msg=' + encodeURIComponent(this.message.slice(0, 120));
-    return getJson(this.base + '/oauth/pairing-status' + q, this.headers);
+    return getJson(this.base + '/oauth/pairing-status' + q, this.pairHeaders);
   }
   // nhịp sống khi đã ghép (tối đa mỗi 60 s), không để lỗi mạng làm hỏng việc chính
   beat() { if (Date.now() - this.lastBeat < 60000) return; this.lastBeat = Date.now(); this.status().catch(() => {}); }
@@ -111,8 +114,8 @@ class TokenAuth {
       if (!st.owner_exists) { this.setState('unpaired', 'chờ chủ xưởng thiết lập'); note('chờ chủ xưởng thiết lập xưởng.'); await sleep(every); continue; }
       if (!st.window_open) { denied = false; if (this.state !== 'error' || this.message) this.setState('unpaired', 'chờ chủ xưởng bật ghép'); note('chờ chủ xưởng bấm "Bật agent nội bộ" / "Mở lại ghép" trên giao diện.'); await sleep(every); continue; }
       if (denied) { await sleep(every); continue; }   // đã bị từ chối trong cửa sổ này: đợi cửa sổ đóng rồi mở lại mới xin tiếp
-      const d = await postForm(this.base + '/oauth/device', { client_name: this.clientName, scope: this.scope }, this.headers);
-      if (d.status !== 200) { if (d.json.error === 'pairing_closed') continue; this.setState('error', 'xin mã ghép lỗi'); await sleep(every); continue; }
+      const d = await postForm(this.base + '/oauth/device', { client_name: this.clientName, scope: this.scope }, this.pairHeaders);
+      if (d.status !== 200) { if (d.json.error === 'pairing_closed') { await sleep(every); continue; } this.setState('error', 'xin mã ghép lỗi'); await sleep(every); continue; }
       this.setState('waiting', 'đã xin mã, chờ Duyệt'); noted = ''; this.status().catch(() => {});   // báo ngay để giao diện thấy 'waiting'
       log(`Mã ghép: ${d.json.user_code} — chờ chủ xưởng Duyệt trên giao diện (Agent & MCP › Chờ duyệt).`);
       let wait = this.pollMs || Math.max(1, Number(d.json.interval) || 5) * 1000;
@@ -216,7 +219,7 @@ function createRunner(opts = {}) {
   if (!url) throw new Error('Thiếu GS_MCP_URL.');
   let stopped = false;
   // không có token tay → tự ghép thiết bị
-  const tokenAuth = token ? null : (opts.tokenAuth || new TokenAuth({ base: new URL(url).origin, stateDir: opts.stateDir || process.env.GS_AGENT_STATE, clientName: opts.clientName || process.env.GS_AGENT_NAME, pollMs: opts.pollMs, statusMs: opts.statusMs || Number(process.env.GS_RUNNER_STATUS_MS) || 0, hostHeader: opts.hostHeader, isStopped: () => stopped }));
+  const tokenAuth = token ? null : (opts.tokenAuth || new TokenAuth({ base: new URL(url).origin, stateDir: opts.stateDir || process.env.GS_AGENT_STATE, clientName: opts.clientName || process.env.GS_AGENT_NAME, pollMs: opts.pollMs, statusMs: opts.statusMs || Number(process.env.GS_RUNNER_STATUS_MS) || 0, hostHeader: opts.hostHeader, pairingSecret: opts.pairingSecret || process.env.GS_PAIRING_SECRET, isStopped: () => stopped }));
   const client = opts.client || new McpClient(url, token || tokenAuth, opts.hostHeader ? { Host: opts.hostHeader } : {});
   const fake = opts.fake !== undefined ? opts.fake : process.env.GS_FAKE_AGENT === '1';
   const intervalMs = opts.intervalMs || Number(process.env.GS_RUNNER_INTERVAL_MS) || 60000;

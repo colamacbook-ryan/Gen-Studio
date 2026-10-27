@@ -17,6 +17,8 @@ services:
       GS_PORT: "7490"
       GS_PUBLIC_URL: "${GS_PUBLIC_URL:-}"
       GS_LANG: "${GS_LANG:-vi}"
+      # bí mật ghép nội bộ: chỉ studio + agent nhận (biến môi trường, không phải mount dữ liệu); chỉ dùng được trong cửa sổ ghép do chủ xưởng mở
+      GS_PAIRING_SECRET: "${GS_PAIRING_SECRET:-}"
     volumes:
       - ./data:/data
     networks: [gs]
@@ -32,6 +34,7 @@ services:
         condition: service_healthy
     environment:
       GS_MCP_URL: http://studio:7490/mcp
+      GS_PAIRING_SECRET: "${GS_PAIRING_SECRET:-}"
     # runner chạy root trong container nhưng chỉ giữ 3 capability để hạ quyền cho Claude CLI con (uid 1000): CLI con không đọc được token.json của runner
     cap_drop: [ALL]
     cap_add: [SETUID, SETGID, CHOWN]

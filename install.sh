@@ -77,11 +77,14 @@ VER="$(tr -d ' \n' < VERSION 2>/dev/null || echo local)"
 step "Ghi cấu hình"
 if [ ! -f .env ]; then
   { echo "GS_PORT=$PORT"; echo "GS_VERSION=$VER"; echo "GS_UID=$(id -u)"; echo "GS_GID=$(id -g)"; } > .env
+  chmod 600 .env
 else
   grep -q '^GS_PORT=' .env || echo "GS_PORT=$PORT" >> .env
   [ "$PORT" = 7490 ] || sed -i.bak "s/^GS_PORT=.*/GS_PORT=$PORT/" .env && rm -f .env.bak
   grep -q '^GS_VERSION=' .env && sed -i.bak "s/^GS_VERSION=.*/GS_VERSION=$VER/" .env && rm -f .env.bak || echo "GS_VERSION=$VER" >> .env
 fi
+# bí mật ghép nội bộ (studio + agent): sinh một lần, giữ nguyên khi cập nhật
+grep -q '^GS_PAIRING_SECRET=.' .env || echo "GS_PAIRING_SECRET=gsp_$(head -c 32 /dev/urandom | base64 | tr '+/' '-_' | tr -d '=\n')" >> .env
 PORT="$(sed -n 's/^GS_PORT=//p' .env | head -1)"
 done_ "Cổng $PORT"
 

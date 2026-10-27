@@ -15,6 +15,8 @@ envset() { # envset KEY VALUE
   if grep -q "^$1=" .env; then sed -i.bak "s|^$1=.*|$1=$2|" .env && rm -f .env.bak; else echo "$1=$2" >> .env; fi
 }
 PORT="$(envget GS_PORT)"; PORT="${PORT:-7490}"
+# bí mật ghép nội bộ: bản cài cũ chưa có thì sinh một lần (studio + agent cùng nhận qua compose)
+ensure_pairing_secret() { [ -n "$(envget GS_PAIRING_SECRET)" ] || envset GS_PAIRING_SECRET "gsp_$(head -c 32 /dev/urandom | base64 | tr '+/' '-_' | tr -d '=\n')"; }
 need_up() { dc ps --status running --services 2>/dev/null | grep -qx studio || { echo "✗ studio chưa chạy — genstudio start" >&2; exit 1; }; }
 
 usage() {
@@ -33,7 +35,7 @@ U
 
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
 case "$cmd" in
-  start) dc up -d; echo "✓ Đã chạy — http://localhost:$PORT" ;;
+  start) ensure_pairing_secret; dc up -d; echo "✓ Đã chạy — http://localhost:$PORT" ;;
   stop) dc stop; echo "✓ Đã dừng" ;;
   restart) dc restart; echo "✓ Đã khởi động lại" ;;
   status)
@@ -48,7 +50,7 @@ case "$cmd" in
     echo "$url"; (command -v xdg-open >/dev/null && xdg-open "$url") || (command -v open >/dev/null && open "$url") || true ;;
   update)
     if [ -d .git ]; then git pull --ff-only; else echo "Bản cài từ Release: chạy lại install.sh (giữ nguyên data/ và .env)"; exit 0; fi
-    dc build; dc up -d
+    ensure_pairing_secret; dc build; dc up -d
     echo "✓ Đã cập nhật" ;;
   backup)
     mkdir -p data/backups; f="data/backups/gen-studio-$(date +%Y%m%d-%H%M%S).tar.gz"
