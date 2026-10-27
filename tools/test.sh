@@ -22,4 +22,15 @@ while IFS= read -r f; do
   done < <(grep -oE '\]\([^)]+\)' "$f" | sed -E 's/^\]\(([^)]+)\)$/\1/')
 done < <(git ls-files '*.md')
 ok "đã kiểm link tài liệu"
+# cú pháp mọi script bash
+for f in install.sh cli/genstudio tools/*.sh; do
+  [[ -f "$f" ]] || continue
+  bash -n "$f" 2>/dev/null && ok "bash -n $f" || bad "lỗi cú pháp bash: $f"
+done
+# test Node (bỏ qua êm nếu chưa có thư mục test)
+if [[ -d test ]] && ls test/*.test.js >/dev/null 2>&1; then
+  node --test test/*.test.js >/dev/null && ok "node --test test/*.test.js" || { node --test test/*.test.js 2>&1 | tail -30; bad "node --test đỏ"; }
+else
+  ok "chưa có test/ — bỏ qua node --test"
+fi
 exit $fail

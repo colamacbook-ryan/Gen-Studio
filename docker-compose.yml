@@ -1,0 +1,44 @@
+# © 2026 Gen Labs — All rights reserved.
+# studio: dữ liệu + dựng hình. agent: container riêng, KHÔNG thấy dữ liệu (chỉ nói chuyện với studio qua MCP).
+# Bật agent: đặt GS_AGENT_TOKEN trong .env rồi `genstudio agent-token <token>` (hoặc COMPOSE_PROFILES=agent).
+services:
+  studio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gen-studio/studio:${GS_VERSION:-local}
+    restart: unless-stopped
+    user: "${GS_UID:-1000}:${GS_GID:-1000}"
+    ports:
+      - "127.0.0.1:${GS_PORT:-7490}:7490"
+    environment:
+      DATA_DIR: /data
+      GS_PORT: "7490"
+      GS_PUBLIC_URL: "${GS_PUBLIC_URL:-}"
+      GS_LANG: "${GS_LANG:-vi}"
+    volumes:
+      - ./data:/data
+    networks: [gs]
+
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    image: gen-studio/agent:${GS_VERSION:-local}
+    profiles: ["agent"]
+    restart: unless-stopped
+    depends_on:
+      studio:
+        condition: service_healthy
+    environment:
+      GS_MCP_URL: http://studio:7490/mcp
+      GS_AGENT_TOKEN: "${GS_AGENT_TOKEN:-}"
+    volumes:
+      - agent-home:/home/node/.claude
+    networks: [gs]
+
+networks:
+  gs: {}
+
+volumes:
+  agent-home: {}

@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# genstudio — lệnh quản lý Gen-Studio trên máy chủ. © 2026 Gen Labs — All rights reserved.
+set -euo pipefail
+
+SELF="$0"; while [ -L "$SELF" ]; do l="$(readlink "$SELF")"; case "$l" in /*) SELF="$l" ;; *) SELF="$(dirname "$SELF")/$l" ;; esac; done
+HOME_DIR="${GS_HOME:-$(cd "$(dirname "$SELF")/.." && pwd)}"
+cd "$HOME_DIR"
+[ -f docker-compose.yml ] || { echo "✗ Không thấy docker-compose.yml ở $HOME_DIR — đặt GS_HOME=<thư mục cài>" >&2; exit 1; }
+
+SUDO=""; docker info >/dev/null 2>&1 || { command -v sudo >/dev/null 2>&1 && sudo docker info >/dev/null 2>&1 && SUDO="sudo"; }
+dc() { $SUDO docker compose "$@"; }
+envget() { sed -n "s/^$1=//p" .env 2>/dev/null | head -1; }
+envset() { # envset KEY VALUE
+  touch .env
+  if grep -q "^$1=" .env; then sed -i.bak "s|^$1=.*|$1=$2|" .env && rm -f .env.bak; else echo "$1=$2" >> .env; fi
+}
+PORT="$(envget GS_PORT)"; PORT="${PORT:-7490}"
+need_up() { dc ps --status running --services 2>/dev/null | grep -qx studio || { echo "✗ studio chưa chạy — genstudio start" >&2; exit 1; }; }
+
+usage() {
+  cat <<'U'
+genstudio <lệnh>
+  start | stop | restart | status | logs [dịch vụ] | update | open
+  backup | restore <file> | uninstall
+  mcp [--token <t>]      cầu stdio cho agent ngoài (client MCP chạy lệnh này)
+  password               đặt lại mật khẩu chủ sở hữu
+  lang [vi|en]           xem / đổi ngôn ngữ
+  agent-token <token>    bật container agent với token đã tạo trong giao diện
+  agent-login            đăng nhập Claude Code cho agent (chính chủ, một lần)
+U
+}
+
+cmd="${1:-help}"; [ $# -gt 0 ] && shift
+case "$cmd" in
+  start) dc up -d studio; [ -n "$(envget GS_AGENT_TOKEN)" ] && dc --profile agent up -d agent; echo "✓ Đã chạy — http://localhost:$PORT" ;;
+  stop) dc --profile agent stop; echo "✓ Đã dừng" ;;
+  restart) dc --profile agent restart; echo "✓ Đã khởi động lại" ;;
+  status)
+    dc --profile agent ps
+    if curl -fsS "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1; then echo "● khoẻ · v$(tr -d ' \n' < VERSION) · http://localhost:$PORT"; else echo "○ không trả lời /api/health"; fi ;;
+  logs) dc --profile agent logs -f --tail=200 "$@" ;;
+  open)
+    url="http://localhost:$PORT"
+    if [ -s data/run/admin-key ] && ! curl -fsS "$url/api/setup/state" 2>/dev/null | grep -q '"owner":true'; then url="$url/#/setup?k=$(cat data/run/admin-key)"; fi
+    echo "$url"; (command -v xdg-open >/dev/null && xdg-open "$url") || (command -v open >/dev/null && open "$url") || true ;;
+  update)
+    if [ -d .git ]; then git pull --ff-only; else echo "Bản cài từ Release: chạy lại install.sh (giữ nguyên data/ và .env)"; exit 0; fi
+    dc build; dc up -d studio; [ -n "$(envget GS_AGENT_TOKEN)" ] && dc --profile agent up -d agent
+    echo "✓ Đã cập nhật" ;;
+  backup)
+    mkdir -p data/backups; f="data/backups/gen-studio-$(date +%Y%m%d-%H%M%S).tar.gz"
+    # DB SQLite: dừng studio ngắn để chép nhất quán
+    was=0; dc ps --status running --services 2>/dev/null | grep -qx studio && was=1
+    [ "$was" = 1 ] && dc stop studio >/dev/null
+    tar -czf "$f" --exclude=data/backups --exclude=data/run data
+    [ "$was" = 1 ] && dc up -d studio >/dev/null
+    echo "✓ $f" ;;
+  restore)
+    f="${1:?Dùng: genstudio restore <file.tar.gz>}"; [ -f "$f" ] || { echo "✗ Không thấy $f" >&2; exit 1; }
+    printf 'Ghi đè dữ liệu hiện tại bằng %s? Gõ "co" để tiếp tục: ' "$f"; read -r a; [ "$a" = "co" ] || { echo "Đã huỷ."; exit 1; }
+    dc stop studio >/dev/null 2>&1 || true
+    keep="$(mktemp -d)"; [ -d data/run ] && cp -a data/run "$keep/" ; [ -d data/backups ] && cp -a data/backups "$keep/"
+    rm -rf data/media data/exports data/studio.db*
+    tar -xzf "$f"
+    mkdir -p data/run data/backups; [ -d "$keep/run" ] && cp -a "$keep/run/." data/run/; [ -d "$keep/backups" ] && cp -a "$keep/backups/." data/backups/; rm -rf "$keep"
+    dc up -d studio; echo "✓ Đã khôi phục" ;;
+  uninstall)
+    printf 'Gỡ Gen-Studio. Giữ dữ liệu trong %s/data? [G]iữ / [X]oá: ' "$HOME_DIR"; read -r a
+    dc --profile agent down --remove-orphans >/dev/null 2>&1 || true
+    case "$a" in [Xx]*) printf 'Xoá VĨNH VIỄN dữ liệu và phiên agent? Gõ "xoa": '; read -r b; [ "$b" = "xoa" ] || { echo "Đã giữ dữ liệu."; exit 0; }
+      dc --profile agent down -v >/dev/null 2>&1 || true; rm -rf data; echo "✓ Đã xoá dữ liệu" ;; *) echo "✓ Đã gỡ container, giữ $HOME_DIR/data" ;; esac
+    rm -f /usr/local/bin/genstudio "$HOME/.local/bin/genstudio" 2>/dev/null || true ;;
+  mcp)
+    need_up
+    exec $SUDO docker compose exec -T studio node server/mcp-stdio.js "$@" ;;
+  password) need_up; exec $SUDO docker compose exec studio node server/main.js --reset-password ;;
+  lang)
+    if [ $# -eq 0 ]; then echo "${GS_LANG:-$(envget GS_LANG)}"; exit 0; fi
+    case "$1" in vi|en) envset GS_LANG "$1"; dc up -d studio; echo "✓ Ngôn ngữ: $1" ;; *) echo "✗ Chỉ hỗ trợ vi | en" >&2; exit 2 ;; esac ;;
+  agent-token)
+    t="${1:?Dùng: genstudio agent-token <token>}"; envset GS_AGENT_TOKEN "$t"; dc --profile agent up -d agent; echo "✓ Agent đã bật" ;;
+  agent-login)
+    exec $SUDO docker compose --profile agent run --rm -it agent claude login ;;
+  help|-h|--help) usage ;;
+  *) usage >&2; exit 2 ;;
+esac

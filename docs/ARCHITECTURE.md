@@ -8,7 +8,7 @@
 - CommonJS (`require`). Mỗi file mở đầu bằng `// © 2026 Gen Labs — All rights reserved.` + 1 dòng mục đích.
 - Chuỗi người đọc tiếng Việt có dấu; lỗi trả về dạng `{code, text_human, detail}` (không stack trace cho người dùng).
 - Không ghi secret ra log; log mask chuỗi giống key.
-- Test: `node --test test/` — mỗi gói có file `test/<gói>-*.test.js`, chạy được không cần mạng (provider giả `GS_FAKE_PROVIDERS=1`).
+- Test: `node --test test/*.test.js` (glob; `node --test test/` lỗi trên Node 22.22) — mỗi gói có file `test/<gói>-*.test.js`, chạy được không cần mạng (provider giả `GS_FAKE_PROVIDERS=1`).
 - Media từ API: kiểm magic bytes, giải bằng parser định dạng, không tự bọc (L-101).
 - Đường dẫn dữ liệu: `DATA_DIR` (mặc định `./data`) → `studio.db`, `media/`, `exports/`, `backups/`, `run/`.
 
@@ -173,7 +173,7 @@ renderPlan({plan, outDir, chromiumPath, onProgress(p)}) → {framesPattern, fram
 SPA vanilla (`studio/index.html`, `studio/app.js`, `studio/styles.css`, `studio/views/*.js`), không build, không thư viện ngoài, font IBM Plex qua Google Fonts có fallback. Tokens và khung theo BUILD-BRIEF §2–§4 (Data Console). Màn MVP: Thiết lập lần đầu, Đăng nhập, Tổng quan, Hàng chờ, **Phòng chiếu** (video + bàn dựng 4 làn + bảng cổng + ghi chú + quyết định), Bài học (lưới + inspector Kịch bản/Nhịp hình/Phiên bản/Nguồn gốc), Pipeline (runs + lệnh sản xuất), Agent & MCP, Nhà cung cấp, Kênh/Giáo trình (lưới cơ bản), Nhật ký. Chỉ dùng REST §5; cập nhật trực tiếp qua SSE.
 
 ## 8. Gói F — Đóng gói
-`cli/genstudio` (bash): `start|stop|restart|status|logs|update|backup|restore|uninstall|mcp|password|lang|open`. `Dockerfile` (node:22-bookworm-slim + chromium + ffmpeg + fonts-noto + font IBM Plex/Be Vietnam Pro/Patrick Hand tải lúc build, ghi ASSET_MANIFEST), `docker-compose.yml` (service `studio` có volume `data`; service `agent` chạy `agent/runner.js` + Claude Code CLI, **không** volume `data`, chỉ thấy `studio:7490`), `install.sh` (STD-06: kiểm OS/arch, Docker, tiến trình, in link đăng nhập một lần). `tools/test.sh` chạy kiểm repo + `node --test test/`.
+`cli/genstudio` (bash): `start|stop|restart|status|logs|update|backup|restore|uninstall|mcp|password|lang|open`. `Dockerfile` (node:22-bookworm-slim + chromium + ffmpeg + fonts-noto + font IBM Plex/Be Vietnam Pro/Patrick Hand tải lúc build, ghi ASSET_MANIFEST), `docker-compose.yml` (service `studio` có volume `data`; service `agent` chạy `agent/runner.js` + Claude Code CLI, **không** volume `data`, chỉ thấy `studio:7490`), `install.sh` (STD-06: kiểm OS/arch, Docker, tiến trình, in link đăng nhập một lần). `tools/test.sh` chạy kiểm repo + `node --test test/*.test.js`.
 
 ## 9. Kiểm chứng MVP (định nghĩa xong)
 `test/e2e-mvp.test.js` (gói D sở hữu): DB tạm + seed tối thiểu + `GS_FAKE_PROVIDERS=1` + `GS_FAKE_AGENT=1` → lịch mở WO → runner + agent giả lấy việc qua `get_next_task` và nộp bài 3 câu qua MCP → pipeline chạy thật (Chromium + ffmpeg) → Render `awaiting_review` với 8 cổng `pass` → gọi review qua token agent bị từ chối → review qua phiên UI → `approved` → export có MP4 + SRT. Chạy được trong CI và trong container.
