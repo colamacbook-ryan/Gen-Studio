@@ -56,7 +56,7 @@ test('CNS-034: service agent KHÔNG có volume dữ liệu và không có docker
     assert.ok(!/docker\.sock/.test(v));
     assert.ok(!/^[./~]/.test(src), `agent không được bind-mount đường dẫn host: ${v}`);
   }
-  assert.deepStrictEqual(vols.map((v) => String(v).split(':')[0]), ['agent-home']);
+  assert.deepStrictEqual(vols.map((v) => String(v).split(':')[0]), ['agent-home', 'agent-state']);   // agent-state: token ghép thiết bị, chỉ container agent thấy
   assert.ok(!agent.env_file, 'agent không dùng env_file (không rò secret của studio)');
   assert.ok(!/docker\.sock/.test(read('docker-compose.yml')), 'không mount docker.sock ở bất kỳ đâu');
   assert.ok(!('privileged' in agent) && !('network_mode' in agent));
@@ -84,14 +84,25 @@ test('Dockerfile studio không chạy root, có HEALTHCHECK /api/health, CMD ser
   assert.ok(!/claude-code/.test(d), 'Claude Code CLI chỉ ở image agent');
 });
 
-test('Dockerfile.agent: không root, không volume /data, có Claude Code CLI + runner', () => {
+test('Dockerfile.agent: runner root (hạ quyền CLI con), không volume /data, có Claude Code CLI + runner, không token trong môi trường', () => {
   const d = read('Dockerfile.agent');
-  const users = [...d.matchAll(/^USER\s+(\S+)/gm)].map((m) => m[1]);
-  assert.ok(users.length > 0 && users[users.length - 1] !== 'root');
+  assert.ok(!/^USER\s+/m.test(d), 'runner chạy root để hạ quyền CLI con; rào nằm ở cap_drop trong compose');
+  assert.match(d, /GS_CLI_UID=1000/);
   assert.ok(!/VOLUME\s+\/data/.test(d));
   assert.match(d, /npm install -g "@anthropic-ai\/claude-code/);
   assert.match(d, /agent\/runner\.js/);
   assert.match(d, /GS_MCP_URL=http:\/\/studio:7490\/mcp/);
+  assert.ok(!/GS_AGENT_TOKEN/.test(d));
+  assert.match(d, /chmod 700 \/agent-state/);
+});
+
+test('CNS-061/068: agent luôn chạy (không profile), cap_drop ALL + SETUID/SETGID/CHOWN, không GS_AGENT_TOKEN', () => {
+  const agent = compose.services.agent;
+  assert.ok(!agent.profiles, 'bỏ profile: runner luôn chạy ở trạng thái unpaired');
+  assert.deepStrictEqual(agent.cap_drop, ['ALL']);
+  assert.deepStrictEqual([...agent.cap_add].sort(), ['CHOWN', 'SETGID', 'SETUID']);
+  assert.ok(!/GS_AGENT_TOKEN/.test(read('docker-compose.yml').replace(/^\s*#.*$/gm, '')));
+  assert.ok(!/GS_AGENT_TOKEN|agent-token/.test(read('cli/genstudio')), 'lệnh agent-token (ghi token vào .env) đã bị bỏ');
 });
 
 test('install.sh: set -euo pipefail, không hỏi tương tác', () => {
@@ -114,7 +125,7 @@ test('bash -n cho mọi script', () => {
 
 test('cli/genstudio có đủ lệnh, mcp qua docker compose exec -T', () => {
   const s = read('cli/genstudio');
-  for (const c of ['start)', 'stop)', 'restart)', 'status)', 'logs)', 'update)', 'backup)', 'restore)', 'uninstall)', 'mcp)', 'password)', 'lang)', 'open)', 'agent-login)']) {
+  for (const c of ['start)', 'stop)', 'restart)', 'status)', 'logs)', 'update)', 'backup)', 'restore)', 'uninstall)', 'mcp)', 'password)', 'lang)', 'open)', 'token)', 'agent-login)']) {
     assert.ok(s.includes(c), `thiếu lệnh ${c}`);
   }
   assert.match(s, /exec -T studio node server\/mcp-stdio\.js/);

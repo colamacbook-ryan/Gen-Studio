@@ -25,20 +25,21 @@ genstudio <lệnh>
   mcp [--token <t>]      cầu stdio cho agent ngoài (client MCP chạy lệnh này)
   password               đặt lại mật khẩu chủ sở hữu
   lang [vi|en]           xem / đổi ngôn ngữ
-  agent-token <token>    bật container agent với token đã tạo trong giao diện
-  agent-login            đăng nhập Claude Code cho agent (chính chủ, một lần)
+  token create [tên] [--scopes read,compose,run]
+                         nâng cao: cấp token tay cho agent ngoài (hiện một lần); CLI không duyệt được quyền agent
+  agent-login            đăng nhập Claude Code cho agent nội bộ (chính chủ, một lần, trên máy chủ)
 U
 }
 
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
 case "$cmd" in
-  start) dc up -d studio; [ -n "$(envget GS_AGENT_TOKEN)" ] && dc --profile agent up -d agent; echo "✓ Đã chạy — http://localhost:$PORT" ;;
-  stop) dc --profile agent stop; echo "✓ Đã dừng" ;;
-  restart) dc --profile agent restart; echo "✓ Đã khởi động lại" ;;
+  start) dc up -d; echo "✓ Đã chạy — http://localhost:$PORT" ;;
+  stop) dc stop; echo "✓ Đã dừng" ;;
+  restart) dc restart; echo "✓ Đã khởi động lại" ;;
   status)
-    dc --profile agent ps
+    dc ps
     if curl -fsS "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1; then echo "● khoẻ · v$(tr -d ' \n' < VERSION) · http://localhost:$PORT"; else echo "○ không trả lời /api/health"; fi ;;
-  logs) dc --profile agent logs -f --tail=200 "$@" ;;
+  logs) dc logs -f --tail=200 "$@" ;;
   open)
     url="http://localhost:$PORT"
     # gọi setup/state trước: chưa có chủ xưởng mà khoá đã hết hạn thì server tự sinh khoá mới
@@ -47,7 +48,7 @@ case "$cmd" in
     echo "$url"; (command -v xdg-open >/dev/null && xdg-open "$url") || (command -v open >/dev/null && open "$url") || true ;;
   update)
     if [ -d .git ]; then git pull --ff-only; else echo "Bản cài từ Release: chạy lại install.sh (giữ nguyên data/ và .env)"; exit 0; fi
-    dc build; dc up -d studio; [ -n "$(envget GS_AGENT_TOKEN)" ] && dc --profile agent up -d agent
+    dc build; dc up -d
     echo "✓ Đã cập nhật" ;;
   backup)
     mkdir -p data/backups; f="data/backups/gen-studio-$(date +%Y%m%d-%H%M%S).tar.gz"
@@ -77,9 +78,9 @@ case "$cmd" in
     dc up -d studio; echo "✓ Đã khôi phục" ;;
   uninstall)
     printf 'Gỡ Gen-Studio. Giữ dữ liệu trong %s/data? [G]iữ / [X]oá: ' "$HOME_DIR"; read -r a
-    dc --profile agent down --remove-orphans >/dev/null 2>&1 || true
+    dc down --remove-orphans >/dev/null 2>&1 || true
     case "$a" in [Xx]*) printf 'Xoá VĨNH VIỄN dữ liệu và phiên agent? Gõ "xoa": '; read -r b; [ "$b" = "xoa" ] || { echo "Đã giữ dữ liệu."; exit 0; }
-      dc --profile agent down -v >/dev/null 2>&1 || true; rm -rf data; echo "✓ Đã xoá dữ liệu" ;; *) echo "✓ Đã gỡ container, giữ $HOME_DIR/data" ;; esac
+      dc down -v >/dev/null 2>&1 || true; rm -rf data; echo "✓ Đã xoá dữ liệu" ;; *) echo "✓ Đã gỡ container, giữ $HOME_DIR/data" ;; esac
     rm -f /usr/local/bin/genstudio "$HOME/.local/bin/genstudio" 2>/dev/null || true ;;
   mcp)
     need_up
@@ -88,10 +89,14 @@ case "$cmd" in
   lang)
     if [ $# -eq 0 ]; then echo "${GS_LANG:-$(envget GS_LANG)}"; exit 0; fi
     case "$1" in vi|en) envset GS_LANG "$1"; dc up -d studio; echo "✓ Ngôn ngữ: $1" ;; *) echo "✗ Chỉ hỗ trợ vi | en" >&2; exit 2 ;; esac ;;
-  agent-token)
-    t="${1:?Dùng: genstudio agent-token <token>}"; envset GS_AGENT_TOKEN "$t"; dc --profile agent up -d agent; echo "✓ Agent đã bật" ;;
+  token)
+    # Nâng cao: cấp token tay (gst_…, không hết hạn) cho agent ngoài; ghi Nhật ký actor cli. Không thể duyệt quyền agent bằng CLI.
+    [ "${1:-}" = create ] || { echo "Dùng: genstudio token create [tên] [--scopes read,compose,run]" >&2; exit 2; }; shift
+    need_up
+    name="Agent token tay"; [ $# -gt 0 ] && case "$1" in --*) ;; *) name="$1"; shift ;; esac
+    exec $SUDO docker compose exec -T studio node server/main.js --create-token "$name" "$@" ;;
   agent-login)
-    exec $SUDO docker compose --profile agent run --rm -it agent claude login ;;
+    exec $SUDO docker compose run --rm -it agent claude login ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;
 esac

@@ -7,7 +7,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
 const { EventEmitter } = require('node:events');
-const { createRunner, buildPrompt } = require('../agent/runner.js');
+const { createRunner, buildPrompt, cliSpawnOptions, needsRefreshBeforeSpawn } = require('../agent/runner.js');
 
 test('d-runner: không đụng store — không require server/, không nhắc DATA_DIR/studio.db', () => {
   for (const f of ['runner.js', 'fake-agent.js']) {
@@ -72,4 +72,25 @@ test('d-runner: có việc → spawn claude -p với mcp-config + allowedTools; 
 test('d-runner: prompt coi nội dung là dữ liệu', () => {
   assert.match(buildPrompt(TASK), /DỮ LIỆU/);
   assert.throws(() => createRunner({}), /GS_MCP_URL/);
+});
+
+test('d-runner (CNS-068): CLI con chạy uid khác và không nhận biến GS_*; chỉ hạ quyền khi runner là root; refresh trước spawn nếu access sắp hết hạn', () => {
+  const env = { PATH: '/usr/bin', GS_CLI_UID: '1000', GS_CLI_GID: '1000', GS_AGENT_STATE: '/agent-state', GS_MCP_URL: 'http://studio:7490/mcp', ANTHROPIC_FOO: 'x' };
+  const root = cliSpawnOptions(env, () => 0);
+  assert.equal(root.drop, true); assert.equal(root.uid, 1000); assert.equal(root.gid, 1000); assert.equal(root.env.HOME, '/home/node');
+  assert.ok(!Object.keys(root.env).some(k => k.startsWith('GS_')), 'GS_* (kể cả GS_AGENT_STATE) không sang CLI'); assert.equal(root.env.ANTHROPIC_FOO, 'x'); assert.equal(root.env.PATH, '/usr/bin');
+  assert.equal(cliSpawnOptions(env, () => 1000).drop, false, 'không phải root thì không đặt uid');
+  assert.equal(cliSpawnOptions({ PATH: '/x' }, () => 0).drop, false, 'không cấu hình GS_CLI_UID thì không hạ quyền');
+  assert.equal(cliSpawnOptions(Object.assign({}, env, { GS_CLI_UID: '0' }), () => 0).drop, false, 'không bao giờ "hạ" xuống uid 0');
+  const now = 1e12, to = 30 * 60000;
+  assert.equal(needsRefreshBeforeSpawn(now + 34 * 60000, now, to), true);    // còn 34 phút < 30 + 5
+  assert.equal(needsRefreshBeforeSpawn(now + 36 * 60000, now, to), false);
+});
+
+test('d-runner (CNS-061): runner không đọc GS_AGENT_TOKEN từ môi trường — luôn đi đường ghép thiết bị', () => {
+  const old = process.env.GS_AGENT_TOKEN; process.env.GS_AGENT_TOKEN = 'gst_tu_moi_truong_khong_duoc_dung';
+  try { const r = createRunner({ url: 'http://127.0.0.1:1/mcp' }); assert.ok(r.auth, 'phải ở chế độ ghép thiết bị'); r.stop(); }
+  finally { if (old === undefined) delete process.env.GS_AGENT_TOKEN; else process.env.GS_AGENT_TOKEN = old; }
+  const src = fs.readFileSync(path.join(__dirname, '..', 'agent', 'runner.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');
+  assert.ok(!/process\.env\.GS_AGENT_TOKEN/.test(src));
 });
