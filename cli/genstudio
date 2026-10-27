@@ -60,8 +60,15 @@ case "$cmd" in
     printf 'Ghi đè dữ liệu hiện tại bằng %s? Gõ "co" để tiếp tục: ' "$f"; read -r a; [ "$a" = "co" ] || { echo "Đã huỷ."; exit 1; }
     dc stop studio >/dev/null 2>&1 || true
     keep="$(mktemp -d)"; [ -d data/run ] && cp -a data/run "$keep/" ; [ -d data/backups ] && cp -a data/backups "$keep/"
+    # Chỉ nhận thành viên thường/thư mục dưới data/, không đường dẫn tuyệt đối, không "..", không symlink/hardlink;
+    # giải nén vào thư mục tạm rồi chỉ chép đúng các phần dữ liệu cần khôi phục.
+    bad="$(tar -tzvf "$f" | awk '{t=substr($1,1,1); if (t!="-" && t!="d") print "loại " t ": " $NF}')"
+    bad="$bad$(tar -tzf "$f" | grep -Ev '^data/' || true)$(tar -tzf "$f" | grep -E '(^/|(^|/)\.\.(/|$))' || true)"
+    [ -z "$bad" ] || { echo "✗ File sao lưu có mục không hợp lệ, đã dừng: $(printf '%s' "$bad" | head -c 200)" >&2; dc up -d studio >/dev/null 2>&1 || true; exit 1; }
+    stage="$(mktemp -d)"; tar -xzf "$f" -C "$stage" --no-same-owner --no-same-permissions
     rm -rf data/media data/exports data/studio.db*
-    tar -xzf "$f"
+    for p in studio.db studio.db-wal studio.db-shm media exports; do [ -e "$stage/data/$p" ] && cp -a "$stage/data/$p" "data/$p"; done
+    rm -rf "$stage"
     mkdir -p data/run data/backups; [ -d "$keep/run" ] && cp -a "$keep/run/." data/run/; [ -d "$keep/backups" ] && cp -a "$keep/backups/." data/backups/; rm -rf "$keep"
     dc up -d studio; echo "✓ Đã khôi phục" ;;
   uninstall)
