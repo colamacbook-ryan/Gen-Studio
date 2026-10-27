@@ -30,7 +30,7 @@ class WriteError extends Error {
 const JSON_COLS = new Set([
   'scopes', 'prereq_ids', 'scan', 'data', 'camera_hints', 'terms_declared', 'subtitle', 'params', 'asset_ids', 'meta',
   'word_times', 'envelope', 'terms_detected', 'manifest', 'outputs', 'blocked_reason', 'measure', 'cost', 'error',
-  'result', 'payload', 'diff', 'before', 'after', 'value', 'sort', 'columns', 'redirect_uris',
+  'result', 'scopes_requested', 'scopes_granted', 'payload', 'diff', 'before', 'after', 'value', 'sort', 'columns', 'redirect_uris',
 ]);
 
 const bind = (p) => p.map((v) => (v === undefined ? null : typeof v === 'boolean' ? (v ? 1 : 0) : v));
@@ -194,10 +194,23 @@ function migrate(db) {
   }
   for (const f of pending) {
     const sql = fs.readFileSync(path.join(dir, f), 'utf8');
-    db.tx(() => {
-      db.raw.exec(sql);
-      db.run('INSERT INTO schema_migrations(version, applied_at) VALUES(?,?)', parseInt(f.slice(0, 4), 10), db.now());
-    });
+    // `-- fk-off` ở dòng đầu: dựng lại bảng cần tắt foreign_keys NGOÀI transaction, rồi kiểm foreign_key_check sau khi commit
+    const fkOff = /^--\s*fk-off\s*$/m.test(sql.split('\n', 3).join('\n'));
+    for (const m of sql.matchAll(/^--\s*require-empty:\s*(\w+)\s*$/gm)) {   // tiền kiểm: bảng sắp bị dựng lại phải rỗng
+      const n = db.get(`SELECT COUNT(*) AS n FROM ${m[1]}`).n;
+      if (n) throw new Error(`Migration ${f}: bảng ${m[1]} đang có ${n} hàng nên không dựng lại được. Hãy sao lưu và xử lý dữ liệu này trước khi nâng cấp.`);
+    }
+    if (fkOff) db.raw.exec('PRAGMA foreign_keys=OFF');
+    try {
+      db.tx(() => {
+        db.raw.exec(sql);
+        db.run('INSERT INTO schema_migrations(version, applied_at) VALUES(?,?)', parseInt(f.slice(0, 4), 10), db.now());
+      });
+      if (fkOff) {
+        const bad = db.all('PRAGMA foreign_key_check');
+        if (bad.length) throw new Error(`Migration ${f}: foreign_key_check báo ${bad.length} vi phạm (${bad[0].table} → ${bad[0].parent}).`);
+      }
+    } finally { if (fkOff) db.raw.exec('PRAGMA foreign_keys=ON'); }
   }
   return pending;
 }

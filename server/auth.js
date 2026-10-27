@@ -102,14 +102,22 @@ function getSession(db, token) {
 function destroySession(db, token) { if (token) db.run('DELETE FROM sessions WHERE token_hash=?', sha(token)); }
 
 // ---- token agent ----
-function verifyAgentToken(db, token) {
+// Token tay gst_… (không hết hạn, theo phạm vi của agent) hoặc access gsa_… (1 giờ, audience = server_id, phạm vi đã hạ).
+// Phạm vi hiệu lực = giao của phạm vi ghi trên token và phạm vi hiện tại của agent (đổi/thu hẹp agent có tác dụng ngay).
+function verifyAgentToken(db, token, opts = {}) {
   if (!token || String(token).length > 300) return null;
-  const ag = db.get(
-    `SELECT ag.* FROM agent_tokens t JOIN agents ag ON ag.id=t.agent_id
+  const t = db.get(
+    `SELECT t.kind AS tk_kind, t.expires_at AS tk_expires, t.audience AS tk_audience, t.scopes AS tk_scopes, ag.* FROM agent_tokens t JOIN agents ag ON ag.id=t.agent_id
      WHERE t.token_hash=? AND t.revoked_at IS NULL AND ag.deleted_at IS NULL AND ag.status!='revoked'`, secrets.hashToken(token));
-  if (!ag) return null;
+  if (!t) return null;
+  if (t.tk_kind === 'access') {
+    if (!t.tk_expires || t.tk_expires < new Date().toISOString()) return null;
+    if (!opts.audience || t.tk_audience !== opts.audience) return null;   // token cấp cho nơi khác (hoặc không nói rõ nơi dùng) → từ chối
+  }
+  const { tk_kind, tk_expires, tk_audience, tk_scopes, ...ag } = t;
   let scopes = [];
   try { scopes = JSON.parse(ag.scopes); } catch { scopes = []; }
+  if (tk_scopes) { let ts = []; try { ts = JSON.parse(tk_scopes); } catch { ts = []; } scopes = scopes.filter(s => ts.includes(s)); }
   db.run("UPDATE agents SET last_call_at=?, status=CASE WHEN status='stalled' THEN 'active' ELSE status END WHERE id=?", new Date().toISOString(), ag.id);
   return { agent: ag, scopes };
 }
@@ -129,7 +137,23 @@ function loginThrottled(ip, username) { const f = fails.get(throttleKey(ip, user
 function loginFailed(ip, username) { const k = throttleKey(ip, username), f = fails.get(k); const t = Date.now(); if (!f || t > f.until) fails.set(k, { n: 1, until: t + 300e3 }); else f.n++; }
 function loginOk(ip, username) { fails.delete(throttleKey(ip, username)); }
 
+// Giới hạn tần suất theo khoá (IP): limiter() → {hit(key, max, windowMs) → true nếu vượt}. Mỗi máy chủ một bộ đếm riêng (trong bộ nhớ).
+function limiter() {
+  const m = new Map();
+  return {
+    hit(key, max, windowMs) {
+      const t = Date.now();
+      if (m.size > 5000) for (const [k, v] of m) if (t > v.until) m.delete(k);
+      const f = m.get(key);
+      if (!f || t > f.until) { m.set(key, { n: 1, until: t + windowMs }); return false; }
+      f.n++;
+      return f.n > max;
+    },
+  };
+}
+
 module.exports = {
+  limiter,
   ownerExists, ensureAdminKey, renewAdminKey, checkAdminKey, consumeAdminKey, createOwner, resetOwnerPassword, checkLogin, validatePassword,
   createSession, getSession, destroySession, verifyAgentToken, parseCookies, bearer, eq, loginThrottled, loginFailed, loginOk,
 };

@@ -152,8 +152,26 @@ const GRIDS = {
       status: { label: 'Trạng thái', type: 'enum', expr: 'ag.status' },
       last_call_at: { label: 'Gọi gần nhất', type: 'date', expr: 'ag.last_call_at' },
       wake_limit_per_day: { label: 'Lượt/ngày', type: 'num', expr: 'ag.wake_limit_per_day' },
+      // hạn sớm nhất còn hiệu lực của quyền: lớn nhất trong token chưa thu hồi + refresh chưa dùng (token tay không hết hạn → trống)
+      expires_at: { label: 'Hết hạn', type: 'date', expr: "(SELECT MAX(x) FROM (SELECT t.expires_at AS x FROM agent_tokens t WHERE t.agent_id=ag.id AND t.revoked_at IS NULL UNION ALL SELECT g.expires_at FROM oauth_grants g WHERE g.agent_id=ag.id AND g.kind='refresh' AND g.used_at IS NULL AND g.revoked_at IS NULL))" },
     },
     sort: 'display_id',
+    footer: rows => ({ count: rows.length }),
+  },
+  auth_requests: {
+    from: 'auth_requests r',
+    where: "r.workspace_id=? AND r.status='pending' AND r.expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now')",
+    cols: {
+      display_id: { label: 'ID', type: 'id', expr: 'r.display_id', search: true },
+      kind: { label: 'Loại', type: 'enum', expr: 'r.kind' },
+      client_name: { label: 'Tên client', type: 'text', expr: 'r.client_name', search: true },
+      scopes_requested: { label: 'Phạm vi xin', type: 'json', expr: 'r.scopes_requested' },
+      channel: { label: 'Nguồn', type: 'text', expr: "CASE r.channel WHEN 'internal' THEN 'trong máy · container agent' WHEN 'loopback' THEN 'trong máy' ELSE 'qua Internet' END" },
+      redirect_uri: { label: 'Chuyển về', type: 'text', expr: 'r.redirect_uri' },
+      created_at: { label: 'Yêu cầu lúc', type: 'date', expr: 'r.created_at' },
+      expires_at: { label: 'Hết hạn', type: 'date', expr: 'r.expires_at' },
+    },
+    sort: '-created_at',
     footer: rows => ({ count: rows.length }),
   },
   providers: {

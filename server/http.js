@@ -8,6 +8,7 @@ const apiMod = require('./api.js');
 const auth = require('./auth.js');
 const events = require('./events.js');
 const pipeline = require('./pipeline.js');
+const oauthMod = require('./oauth.js');
 
 const STUDIO_DIR = path.join(__dirname, '..', 'studio');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
@@ -18,6 +19,7 @@ function allowedHosts(config, port) {
   const s = new Set();
   [`localhost:${port}`, `127.0.0.1:${port}`, `[::1]:${port}`, 'localhost', '127.0.0.1', '[::1]'].forEach(h => s.add(h));
   if (config.publicUrl) { try { s.add(new URL(config.publicUrl).host.toLowerCase()); } catch { /* bỏ qua URL sai */ } }
+  s.add(String(config.internalHost || 'studio:7490').toLowerCase());   // Host nội bộ của runner trong mạng Docker
   String(process.env.GS_ALLOWED_HOSTS || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean).forEach(h => s.add(h));
   return s;
 }
@@ -26,6 +28,8 @@ async function start(ctx) {
   const { db, config } = ctx;
   const api = apiMod.create(ctx);
   let hosts = null; // cần cổng thật (port 0 trong test)
+  const oauth = oauthMod.create(ctx, { hosts: () => hosts });
+  ctx.oauth = oauth;
   const baseHeaders = { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY' };
 
   function text(res, status, body, type = 'text/plain; charset=utf-8', extra) {
@@ -39,8 +43,13 @@ async function start(ctx) {
     if (req.headers.origin && !originOk(req.headers.origin, req.headers.host)) return apiMod.send(res, 403, { error: { code: 'forbidden', text_human: 'Origin không được phép.', detail: null } });
     if (req.method !== 'POST') return text(res, 405, 'Dùng POST.', 'text/plain; charset=utf-8', { Allow: 'POST' });
     const tok = auth.bearer(req);
-    const who = tok && auth.verifyAgentToken(db, tok);
-    if (!who) return apiMod.send(res, 401, { error: { code: 'unauthorized', text_human: 'Thiếu hoặc sai token agent.', detail: null } }, { 'WWW-Authenticate': 'Bearer realm="gen-studio"' });
+    const who = tok && auth.verifyAgentToken(db, tok, { audience: oauth.serverId() });
+    if (!who) {
+      // RFC 9728: trỏ client tới metadata để tự xin quyền (Claude Code, claude.ai Connectors)
+      const md = oauth.metadataUrl(req);   // chỉ khi Host hợp lệ; scope="…" để client MCP xin đủ phạm vi (chủ xưởng hạ bớt khi duyệt)
+      const www = 'Bearer realm="gen-studio"' + (md ? ', resource_metadata="' + md + '"' : '') + ', scope="read compose run"' + (tok ? ', error="invalid_token"' : '');
+      return apiMod.send(res, 401, { error: { code: 'unauthorized', text_human: 'Thiếu hoặc sai token agent.', detail: null } }, { 'WWW-Authenticate': www });
+    }
     let body;
     try { body = JSON.parse((await apiMod.readBody(req, 30 * 1024 * 1024)).toString('utf8')); }
     catch (e) { if (e && e.code === 'payload_too_large') return apiMod.send(res, 413, { error: { code: 'payload_too_large', text_human: e.text_human, detail: null } }); return apiMod.send(res, 400, { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }); }
@@ -108,6 +117,8 @@ async function start(ctx) {
       const url = new URL(req.url, 'http://x');
       if (url.pathname === '/mcp') return await handleMcp(req, res);
       if (url.pathname === '/api/health') return apiMod.send(res, 200, { ok: true, version: config.version });
+      // OAuth + well-known: tự kiểm Host (danh sách cho phép gồm studio:7490 cho runner) và gắn kênh vào (internal/loopback/public)
+      if (oauth.owns(url.pathname)) return await oauth.handle(req, res, url);
       // chống DNS rebinding: mọi đường dẫn UI phải có Host đã biết
       if (!hosts.has(String(req.headers.host || '').toLowerCase())) {
         return text(res, 403, 'Host không được phép. Nếu truy cập qua địa chỉ khác, thêm vào GS_ALLOWED_HOSTS (ví dụ 192.168.1.5:7490).');

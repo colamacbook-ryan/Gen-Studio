@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { WriteError } = require('./db');
+const { ulid } = require('./ids');
 const state = require('./state');
 const queue = require('./queue');
 const secrets = require('./secrets');
@@ -12,8 +13,8 @@ const secrets = require('./secrets');
 const MVP_BLOCKS = ['title', 'concept-chip', 'token-row', 'prob-card', 'stamp', 'takeaway', 'lesson-map', 'end-card', 'illustration'];
 // Trường chính sách kênh — chỉ owner sửa (CNS-036)
 const POLICY_FIELDS = ['schedule', 'loudness', 'subtitle_langs', 'limits', 'aspect', 'fps', 'publish', 'auto_publish'];
-const ACTOR_TYPES = ['user', 'agent', 'assistant', 'system', 'cli', 'runner'];
-const ENTRIES = ['ui', 'http', 'mcp', 'cli', 'runner', 'system', 'assistant'];
+const ACTOR_TYPES = ['user', 'agent', 'assistant', 'system', 'cli', 'runner', 'client'];
+const ENTRIES = ['ui', 'http', 'mcp', 'cli', 'runner', 'system', 'assistant', 'oauth'];
 const ASSET_KINDS = ['svg', 'image', 'audio', 'video', 'subtitle', 'cover', 'logo', 'manifest'];
 const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/svg+xml': 'svg', 'audio/wav': 'wav', 'audio/x-wav': 'wav',
   'video/mp4': 'mp4', 'text/plain': 'srt', 'application/x-subrip': 'srt', 'application/json': 'json' };
@@ -21,6 +22,50 @@ const LIMITS = { lines_max: 60, say_max_chars: 2000, beats_max: 400 };   // dùn
 const MAX_ASSET_BYTES = 200 * 1024 * 1024;
 
 const err = (code, text, detail) => new WriteError(code, text, detail);
+
+// ---- Duyệt quyền agent (OAuth 2.1 + ghép thiết bị) ----
+const SCOPES = ['read', 'compose', 'run'];
+const CODE_TTL_MS = 60e3, ACCESS_TTL_MS = 3600e3, REFRESH_TTL_MS = 30 * 86400e3, REQUEST_TTL_MS = 10 * 60e3, DEVICE_TTL_MS = 15 * 60e3, CLIENT_PENDING_MS = 3600e3;
+const PAIRING_WINDOW_MS = 10 * 60e3, REFRESH_GRACE_MS = 30e3, PURGE_AFTER_MS = 7 * 86400e3;
+const MAX_PENDING = { internal: 3, other: 10 }, MAX_PENDING_CLIENTS = 30;   // trần theo KÊNH VÀO (CNS-066); quá trần thì đẩy bỏ hàng cũ nhất
+const SELF_DECLARED = ' (tự khai)';
+const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
+const rnd = (prefix, n = 32) => prefix + crypto.randomBytes(n).toString('base64url');
+const sha256 = (s) => secrets.hashToken(s);
+const cleanName = (s, d) => { const v = String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s*\(tự khai\)\s*$/i, '').trim().slice(0, 80); return v || d; };
+// scope "read compose" | mảng → {scopes, ignored}; scope lạ bị bỏ (và ghi vào nhật ký); rỗng → đủ ba (chủ xưởng sẽ hạ nếu muốn)
+function parseScopes(v) {
+  const a = Array.isArray(v) ? v : String(v == null ? '' : v).split(/[\s,]+/).filter(Boolean);
+  const scopes = [...new Set(a.map(String).filter((x) => SCOPES.includes(x)))];
+  return { scopes: scopes.length ? scopes : SCOPES.slice(), ignored: [...new Set(a.map(String).filter((x) => !SCOPES.includes(x)))] };
+}
+// redirect_uri hợp lệ khi đăng ký: https, hoặc http loopback (RFC 8252); không fragment/userinfo
+function redirectUriOk(u) {
+  let x;
+  try { x = new URL(String(u)); } catch { return false; }
+  if (x.hash || x.username || x.password || String(u).length > 500) return false;
+  return x.protocol === 'https:' || (x.protocol === 'http:' && LOOPBACK.has(x.hostname));
+}
+// Khớp đúng chuỗi đã đăng ký; riêng loopback http cho phép đổi cổng (RFC 8252 §7.3)
+function redirectMatches(registered, requested) {
+  if (!Array.isArray(registered)) return false;
+  if (registered.includes(requested)) return true;
+  let r;
+  try { r = new URL(requested); } catch { return false; }
+  if (r.protocol !== 'http:' || !LOOPBACK.has(r.hostname)) return false;
+  return registered.some((u) => { try { const x = new URL(u); return x.protocol === 'http:' && x.hostname === r.hostname && x.pathname === r.pathname && x.search === r.search; } catch { return false; } });
+}
+const isLoopbackUri = (u) => { try { const x = new URL(u); return x.protocol === 'http:' && LOOPBACK.has(x.hostname); } catch { return false; } };
+const pkceOk = (verifier, challenge) => {
+  if (!/^[A-Za-z0-9\-._~]{43,128}$/.test(String(verifier || ''))) return false;
+  const h = crypto.createHash('sha256').update(String(verifier)).digest('base64url');
+  const a = Buffer.from(h), b = Buffer.from(String(challenge || ''));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+};
+// Lỗi kèm mã OAuth (detail.oauth) để server/oauth.js đổi thành {error, error_description}
+const oerr = (code, oauth, text) => err(code, text, { oauth });
+const inter = (a, b) => (a || []).filter((x) => (b || []).includes(x));
+
 const nonEmpty = (s) => typeof s === 'string' && s.trim().length > 0;
 
 // Vị trí từ (0-based, tách theo khoảng trắng) của chuỗi `word` trong `say`; -1 nếu không là chuỗi con.
@@ -47,7 +92,7 @@ function defaultValidateBlock(name, params) {
 }
 
 function actorString(a) {
-  return ['user', 'agent', 'runner'].includes(a.type) && a.id ? `${a.type}:${a.id}` : a.type;
+  return ['user', 'agent', 'runner', 'client'].includes(a.type) && a.id ? `${a.type}:${a.id}` : a.type;
 }
 function auditEntry(a) { return a.type === 'assistant' ? 'assistant' : a.entry; }
 
@@ -85,6 +130,10 @@ function createWriter(db, opts = {}) {
     composeOrSystem: (a) => isOwner(a) || agentHas(a, 'compose') || a.type === 'system' || a.type === 'runner',
     run: (a) => isOwner(a) || agentHas(a, 'run') || a.type === 'system',
     owner: (a) => isOwner(a),
+    ownerUi: (a) => isOwner(a) && a.entry === 'ui',   // duyệt quyền agent: chỉ phiên UI của chủ xưởng (R2b)
+    system: (a) => a.type === 'system',
+    oauth: (a) => a.type === 'client' && a.entry === 'oauth',   // /oauth/* không xác thực: chỉ vào được các op auth.register|request|exchange|refresh
+    ownerOrCli: (a) => isOwner(a) || (a.type === 'cli' && a.entry === 'cli'),   // cấp token tay; CLI không bao giờ duyệt được (auth.approve là ownerUi)
     ownerOrSystem: (a) => isOwner(a) || a.type === 'system',
     suggest: (a) => isOwner(a) || a.type === 'assistant',
   };
@@ -425,7 +474,7 @@ function createWriter(db, opts = {}) {
   });
 
   // ----- Agent / provider / settings -----
-  op('agent.create', 'owner', (c) => {
+  op('agent.create', 'ownerOrCli', (c) => {
     const p = c.p;
     const scopes = p.scopes || ['read'];
     if (!nonEmpty(p.name)) throw err('invalid', 'Agent cần có tên.', null);
@@ -434,15 +483,252 @@ function createWriter(db, opts = {}) {
     if (!['internal', 'token', 'oauth'].includes(kind)) throw err('invalid', 'Loại agent không hợp lệ.', null);
     const ag = db.insertRow('agents', { name: p.name, kind, scopes, cli: p.cli || null, wake_limit_per_day: p.wake_limit_per_day ?? null, status: 'active', created_by: c.by }, { prefix: 'AG' });
     const token = `gst_${crypto.randomBytes(24).toString('base64url')}`;
-    db.insertRow('agent_tokens', { agent_id: ag.id, token_hash: secrets.hashToken(token), prefix: token.slice(0, 8) });
+    db.insertRow('agent_tokens', { agent_id: ag.id, token_hash: secrets.hashToken(token), prefix: token.slice(0, 8), kind: 'static' });
     return { result: { agent: ag, token }, entity: ['agent', ag.display_id], before: null, after: { name: ag.name, kind, scopes } };
   });
+  // Thu hồi một agent: token (tay + access), client OAuth, mọi grant (code/refresh) — dùng cho agent.revoke, phát hiện refresh bị dùng lại, đăng ký lại cùng client.
+  const revokeAgentRows = (agentId) => {
+    const t = db.now();
+    db.update('agents', agentId, { status: 'revoked', deleted_at: null });
+    db.run('UPDATE agent_tokens SET revoked_at=? WHERE agent_id=? AND revoked_at IS NULL', t, agentId);
+    db.run('UPDATE oauth_clients SET revoked_at=? WHERE agent_id=? AND revoked_at IS NULL', t, agentId);
+    db.run('UPDATE oauth_grants SET revoked_at=? WHERE agent_id=? AND revoked_at IS NULL', t, agentId);
+  };
+  const getSetting = (key) => { const r = db.get('SELECT value FROM settings WHERE workspace_id=? AND key=?', ws(), key); if (!r) return null; try { return JSON.parse(r.value); } catch { return null; } };
+  const putSetting = (key, value, by) => db.run(`INSERT INTO settings(workspace_id,key,value,updated_at,updated_by) VALUES(?,?,?,?,?)
+    ON CONFLICT(workspace_id,key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at, updated_by=excluded.updated_by`, ws(), key, JSON.stringify(value), db.now(), by);
   op('agent.revoke', 'owner', (c) => {
     const ag = need('agents', c.p.agent, 'agent');
-    db.update('agents', ag.id, { status: 'revoked', deleted_at: null });
-    db.run('UPDATE agent_tokens SET revoked_at=? WHERE agent_id=? AND revoked_at IS NULL', db.now(), ag.id);
-    db.run('UPDATE oauth_clients SET revoked_at=? WHERE agent_id=? AND revoked_at IS NULL', db.now(), ag.id);
+    revokeAgentRows(ag.id);
+    if (ag.kind === 'internal') putSetting('pairing_window', null, c.by);   // "Tắt agent nội bộ": không tự xin lại cho tới khi chủ xưởng mở cửa sổ ghép (CNS-073)
     return { result: byRef('agents', ag.id), entity: ['agent', ag.display_id], before: { status: ag.status }, after: { status: 'revoked' } };
+  });
+
+  // ---- Duyệt quyền MCP (A3, R2b) ----
+  // Dọn: hết hạn → expired; xoá token/grant hết hạn quá 7 ngày (chỉ lá của chuỗi xoay vòng)
+  const sweepAuth = () => {
+    const t = db.now(), old = new Date(Date.now() - PURGE_AFTER_MS).toISOString();
+    db.run("UPDATE auth_requests SET status='expired' WHERE status='pending' AND expires_at<?", t);
+    db.run("DELETE FROM agent_tokens WHERE kind='access' AND expires_at<?", old);
+    db.run('DELETE FROM oauth_grants WHERE expires_at<? AND id NOT IN (SELECT parent_id FROM oauth_grants WHERE parent_id IS NOT NULL)', old);
+  };
+  const getRequest = (id) => db.json(db.get('SELECT * FROM auth_requests WHERE workspace_id=? AND (id=? OR display_id=?)', ws(), String(id || ''), String(id || '')));
+  const getClient = (id) => db.json(db.get('SELECT * FROM oauth_clients WHERE workspace_id=? AND client_id=?', ws(), String(id || '')));
+  const clientOk = (cl) => !!cl && !cl.revoked_at && (!cl.expires_at || cl.expires_at >= db.now());   // client chưa có agent hết hạn sau 1 h
+  const codeHash = (code) => sha256(String(code || '').trim().toUpperCase());
+  const redirectWith = (uri, params) => { const u = new URL(uri); for (const [k, v] of Object.entries(params)) if (v != null && v !== '') u.searchParams.set(k, v); return u.toString(); };
+  // đẩy bỏ yêu cầu pending cũ nhất của cùng nhóm kênh khi quá trần (không từ chối yêu cầu mới); trả mã hiển thị đã bị đẩy
+  const makeRoom = (channel) => {
+    const internal = channel === 'internal', cap = internal ? MAX_PENDING.internal : MAX_PENDING.other;
+    const cond = internal ? "channel='internal'" : "COALESCE(channel,'')!='internal'";
+    const rows = db.all(`SELECT id, display_id FROM auth_requests WHERE workspace_id=? AND status='pending' AND ${cond} ORDER BY created_at`, ws());
+    const evict = rows.slice(0, Math.max(0, rows.length - cap + 1));
+    evict.forEach((r) => db.run("UPDATE auth_requests SET status='expired' WHERE id=?", r.id));
+    return evict.map((r) => r.display_id);
+  };
+
+  // lần đầu: sinh server_id (định danh ổn định của xưởng, dùng làm audience của access token — không phụ thuộc URL)
+  op('auth.init', 'system', () => {
+    let id = getSetting('server_id');
+    if (!id) { id = 'srv_' + crypto.randomBytes(12).toString('base64url'); putSetting('server_id', id, 'system'); }
+    return { result: { server_id: id }, entity: ['setting', 'server_id'], before: null, after: { server_id: id } };
+  });
+  // chủ xưởng bấm "Bật agent nội bộ"/"Mở lại ghép" (channel internal) hoặc "Ghép CLI" (channel loopback): mở cửa sổ ghép 10 phút cho đúng kênh đó
+  op('auth.pairing_open', 'ownerUi', (c) => {
+    const channel = c.p.channel === 'loopback' ? 'loopback' : 'internal';
+    const w = { channel, open_until: new Date(Date.now() + PAIRING_WINDOW_MS).toISOString() };
+    putSetting('pairing_window', w, c.by);
+    return { result: w, entity: ['setting', 'pairing_window'], before: null, after: w };
+  });
+  // runner nội bộ báo trạng thái (unpaired|waiting|paired|error) qua /oauth/pairing-status; ghi khi đổi trạng thái
+  op('auth.runner_status', 'oauth', (c) => {
+    const v = { state: c.p.state, message: String(c.p.message || '').slice(0, 120), at: db.now() };
+    putSetting('runner_status', v, 'runner');
+    return { result: v, entity: ['setting', 'runner_status'], before: null, after: v };
+  });
+
+  op('auth.register', 'oauth', (c) => {
+    const p = c.p;
+    sweepAuth();
+    const uris = Array.isArray(p.redirect_uris) ? p.redirect_uris : [];
+    if (!uris.length || uris.length > 5 || !uris.every(redirectUriOk)) throw oerr('invalid', 'invalid_redirect_uri', 'redirect_uris phải là 1–5 địa chỉ https (hoặc http://127.0.0.1 | localhost cho máy cục bộ).');
+    const chan = p.channel || 'public';
+    const pend = db.all("SELECT client_id FROM oauth_clients WHERE workspace_id=? AND kind='dcr' AND agent_id IS NULL AND revoked_at IS NULL AND expires_at>=? AND created_channel=? ORDER BY created_at", ws(), db.now(), chan);
+    pend.slice(0, Math.max(0, pend.length - MAX_PENDING_CLIENTS + 1)).forEach((r) => db.run('UPDATE oauth_clients SET expires_at=? WHERE client_id=?', new Date(Date.now() - 1000).toISOString(), r.client_id));
+    const name = cleanName(p.client_name, 'Agent') + SELF_DECLARED;
+    const row = db.insertRow('oauth_clients', { client_id: rnd('cl_', 16), kind: 'dcr', redirect_uris: uris, name, created_channel: chan, created_ip: p.ip || null, expires_at: new Date(Date.now() + CLIENT_PENDING_MS).toISOString() });
+    return { result: { client_id: row.client_id, name, redirect_uris: uris }, entity: ['oauth_client', row.client_id], before: null, after: { name, redirect_uris: uris, channel: chan, ip: p.ip || null } };
+  });
+
+  // kind 'oauth': {client_id, redirect_uri, scope, state, resource, code_challenge, channel, ip}; kind 'device': {client_name, scope, channel, ip}
+  op('auth.request', 'oauth', (c) => {
+    const p = c.p;
+    sweepAuth();
+    const { scopes, ignored } = parseScopes(p.scope);
+    const chan = p.channel || 'public';
+    if (p.kind === 'device') {
+      // ghép thiết bị chỉ theo ý định của chủ xưởng và chỉ trong máy: không phục vụ qua host công khai; ngoài cửa sổ ghép (đúng kênh) thì không tạo hàng
+      if (chan === 'public') throw oerr('forbidden', 'access_denied', 'Ghép thiết bị chỉ dùng trong máy chủ. Từ xa hãy dùng OAuth (Claude Code, claude.ai) hoặc token tay.');
+      const win = getSetting('pairing_window');
+      if (!win || win.channel !== chan || !win.open_until || win.open_until < db.now()) throw oerr('invalid', 'pairing_closed', 'Cửa sổ ghép đang đóng. Chủ xưởng bấm "Bật agent nội bộ" / "Mở lại ghép" (hoặc "Ghép CLI") trên giao diện trước.');
+      const internal = chan === 'internal';    // chỉ kênh nội bộ (Host studio:7490 trong mạng Docker) mới là runner; mọi nguồn khác là oauth, tên tự khai
+      const name = internal ? 'Agent nội bộ' : cleanName(p.client_name, 'Agent') + SELF_DECLARED;
+      const evicted = makeRoom(chan);
+      const device = rnd('gsd_', 32);
+      let code, tries = 0;
+      do {
+        const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        code = Array.from({ length: 4 }, () => L[crypto.randomInt(L.length)]).join('') + '-' + String(crypto.randomInt(10000)).padStart(4, '0');
+        if (++tries > 50) throw err('conflict', 'Không sinh được mã ghép, thử lại.', null);
+      } while (db.get("SELECT 1 AS x FROM auth_requests WHERE user_code_hash=? AND status='pending'", codeHash(code)));
+      const cid = 'dev_' + ulid();
+      db.insertRow('oauth_clients', { client_id: cid, kind: 'device', redirect_uris: null, name, created_channel: chan, created_ip: p.ip || null, expires_at: new Date(Date.now() + DEVICE_TTL_MS).toISOString() });
+      const row = db.insertRow('auth_requests', { kind: 'device', client_id: cid, client_name: name, user_code_hash: codeHash(code), device_code_hash: sha256(device),
+        scopes_requested: scopes, resource: null, channel: chan, source_ip: p.ip || null, expires_at: new Date(Date.now() + DEVICE_TTL_MS).toISOString() }, { prefix: 'AR' });
+      return { result: { id: row.display_id, client_id: cid, device_code: device, user_code: code, expires_in: DEVICE_TTL_MS / 1000 }, entity: ['auth_request', row.display_id], before: null,
+        after: { kind: 'device', client_name: name, channel: chan, scopes, ignored_scopes: ignored, evicted, ip: p.ip || null } };
+    }
+    const cl = getClient(p.client_id);
+    if (!clientOk(cl) || cl.kind !== 'dcr') throw oerr('invalid', 'invalid_client', 'client_id không tồn tại, đã bị thu hồi hoặc hết hạn.');
+    if (!redirectMatches(cl.redirect_uris, String(p.redirect_uri || ''))) throw oerr('invalid', 'invalid_redirect_uri', 'redirect_uri không khớp địa chỉ đã đăng ký.');
+    if (!nonEmpty(p.code_challenge) || !/^[A-Za-z0-9\-._~]{43,128}$/.test(p.code_challenge)) throw oerr('invalid', 'invalid_request', 'Thiếu code_challenge PKCE hợp lệ.');
+    if (p.code_challenge_method !== 'S256') throw oerr('invalid', 'invalid_request', 'Chỉ nhận code_challenge_method=S256.');
+    const evicted = makeRoom(chan);
+    const row = db.insertRow('auth_requests', { kind: 'oauth', client_id: cl.client_id, client_name: cl.name, scopes_requested: scopes,
+      redirect_uri: p.redirect_uri, pkce_challenge: p.code_challenge, state: p.state ? String(p.state).slice(0, 512) : null, resource: p.resource || null,
+      channel: chan, source_ip: p.ip || null, expires_at: new Date(Date.now() + REQUEST_TTL_MS).toISOString() }, { prefix: 'AR' });
+    return { result: { id: row.display_id }, entity: ['auth_request', row.display_id], before: null,
+      after: { kind: 'oauth', client: cl.client_id, client_name: cl.name, channel: chan, scopes, ignored_scopes: ignored, evicted, ip: p.ip || null } };
+  });
+
+  // p: {id, scopes?, user_code? (bắt buộc với ghép CLI ngoài: chủ xưởng TỰ GÕ mã), confirm? (bắt buộc khi redirect không phải loopback)}
+  op('auth.approve', 'ownerUi', (c) => {
+    const rq = getRequest(c.p.id);
+    if (!rq) throw err('not_found', 'Không tìm thấy yêu cầu cấp quyền.', null);
+    if (rq.status !== 'pending' || rq.expires_at < db.now()) throw err('conflict', 'Yêu cầu này đã được xử lý hoặc đã hết hạn. Hãy cho agent xin lại.', { status: rq.status });
+    const internal = rq.kind === 'device' && rq.channel === 'internal';   // chỉ runner trong mạng Docker mới là agent nội bộ
+    if (rq.kind === 'device' && !internal && codeHash(c.p.user_code) !== rq.user_code_hash) throw err('invalid', 'Hãy gõ đúng mã ghép mà thiết bị đang in ra.', { need: 'user_code' });
+    if (rq.kind === 'oauth' && !isLoopbackUri(rq.redirect_uri) && c.p.confirm !== true) throw err('invalid', 'Xác nhận rằng chính bạn vừa tự bấm kết nối này.', { need: 'confirm' });
+    const asked = rq.scopes_requested || [];
+    const granted = c.p.scopes === undefined ? asked.slice() : c.p.scopes;
+    if (!Array.isArray(granted) || !granted.length || granted.some((x) => !SCOPES.includes(x))) throw err('invalid', 'Chọn ít nhất một phạm vi hợp lệ (read, compose, run).', { scopes: granted });
+    if (granted.some((x) => !asked.includes(x))) throw err('invalid', 'Chỉ được hạ phạm vi, không nâng quá mức agent xin.', { requested: asked, granted });
+    const cl = getClient(rq.client_id);
+    if (!clientOk(cl)) throw err('conflict', 'Client đã bị thu hồi hoặc hết hạn.', null);
+    // xin lại cùng client: luôn tạo agent MỚI với đúng phạm vi vừa duyệt và thu hồi agent cũ (không bao giờ sửa phạm vi của agent đã ràng buộc)
+    const old = cl.agent_id ? byRef('agents', cl.agent_id) : null;
+    if (old && old.status !== 'revoked') revokeAgentRows(old.id);
+    const ag = db.insertRow('agents', { name: rq.client_name || 'Agent', kind: internal ? 'internal' : 'oauth', scopes: granted, status: 'active', created_by: c.by }, { prefix: 'AG' });
+    db.run('UPDATE oauth_clients SET agent_id=?, expires_at=NULL, revoked_at=NULL WHERE client_id=?', ag.id, cl.client_id);
+    db.update('auth_requests', rq.id, { status: 'approved', scopes_granted: granted, decided_by: c.a.id, decided_at: db.now(), agent_id: ag.id, replaces_agent_id: old && old.status !== 'revoked' ? old.id : null });
+    const out = { id: rq.display_id, kind: rq.kind, agent: { display_id: ag.display_id, name: ag.name, kind: ag.kind, scopes: granted } };
+    if (rq.kind === 'oauth') {
+      const code = rnd('gsc_', 32);
+      db.insertRow('oauth_grants', { kind: 'code', token_hash: sha256(code), client_id: cl.client_id, agent_id: ag.id, auth_request_id: rq.id, scopes: granted,
+        pkce_challenge: rq.pkce_challenge, redirect_uri: rq.redirect_uri, resource: rq.resource, expires_at: new Date(Date.now() + CODE_TTL_MS).toISOString() });
+      out.redirect = redirectWith(rq.redirect_uri, { code, state: rq.state });   // code dùng 1 lần, 60 s — ngoại lệ duy nhất được nằm trong URL
+    }
+    return { result: out, entity: ['auth_request', rq.display_id], before: { status: 'pending', scopes_requested: asked },
+      after: { status: 'approved', scopes_granted: granted, agent: ag.display_id, replaced_agent: old && old.status !== 'revoked' ? old.display_id : null } };
+  });
+  op('auth.deny', 'ownerUi', (c) => {
+    const rq = getRequest(c.p.id);
+    if (!rq) throw err('not_found', 'Không tìm thấy yêu cầu cấp quyền.', null);
+    if (rq.status !== 'pending' || rq.expires_at < db.now()) throw err('conflict', 'Yêu cầu này đã được xử lý hoặc đã hết hạn.', { status: rq.status });
+    db.update('auth_requests', rq.id, { status: 'denied', decided_by: c.a.id, decided_at: db.now() });
+    const out = { id: rq.display_id, kind: rq.kind };
+    if (rq.kind === 'oauth') out.redirect = redirectWith(rq.redirect_uri, { error: 'access_denied', state: rq.state });
+    return { result: out, entity: ['auth_request', rq.display_id], before: { status: 'pending' }, after: { status: 'denied' } };
+  });
+
+  // Cấp cặp token mới: access gsa_ (1 giờ, audience = server_id, scopes đã hạ) + refresh gsr_ (xoay vòng, 30 ngày trượt).
+  // scopes của refresh con = base (không bao giờ rộng hơn agents.scopes); access có thể hẹp hơn nếu client xin thu hẹp.
+  const issueTokens = (ag, base, narrow, audience, { clientId, requestId, parentId }) => {
+    const access = rnd('gsa_', 32), refresh = rnd('gsr_', 32);
+    db.insertRow('agent_tokens', { agent_id: ag.id, token_hash: sha256(access), prefix: access.slice(0, 8), kind: 'access', audience, scopes: narrow, expires_at: new Date(Date.now() + ACCESS_TTL_MS).toISOString() });
+    const child = db.insertRow('oauth_grants', { kind: 'refresh', token_hash: sha256(refresh), client_id: clientId, agent_id: ag.id, auth_request_id: requestId || null,
+      scopes: base, parent_id: parentId || null, expires_at: new Date(Date.now() + REFRESH_TTL_MS).toISOString() });
+    if (parentId) db.run('UPDATE oauth_grants SET child_id=? WHERE id=?', child.id, parentId);
+    db.run('UPDATE oauth_clients SET last_used_at=? WHERE client_id=?', db.now(), clientId);
+    return { access_token: access, token_type: 'Bearer', expires_in: ACCESS_TTL_MS / 1000, refresh_token: refresh, scope: narrow.join(' ') };
+  };
+  const liveAgent = (id) => { const ag = byRef('agents', id); return ag && ag.status !== 'revoked' ? ag : null; };
+  // Phạm vi cấp ra: base = grant ∩ agents.scopes (không bao giờ nới); `scope` trong yêu cầu chỉ được thu hẹp
+  const scopesFor = (ag, grantScopes, wanted) => {
+    const base = inter(grantScopes, ag.scopes);
+    if (!wanted) return { base, narrow: base };
+    const want = String(wanted).split(/\s+/).filter(Boolean);
+    if (!want.length || want.some((x) => !base.includes(x))) throw oerr('invalid', 'invalid_scope', 'scope chỉ được thu hẹp so với quyền đã duyệt, không được nâng.');
+    return { base, narrow: [...new Set(want)] };
+  };
+  // trả {error} (có commit) thay vì ném khi cần giữ lại tác dụng phụ (đốt code, thu hồi)
+  const reject = (error, description, extra) => ({ result: { error, error_description: description }, entity: ['oauth_grant', 'reject'], before: null, after: Object.assign({ error }, extra) });
+
+  // {grant:'code', code, client_id, redirect_uri, code_verifier, resource_ok, scope, audience} | {grant:'device', device_code, client_id?, scope, audience}
+  op('auth.exchange', 'oauth', (c) => {
+    const p = c.p;
+    if (p.grant === 'device') {
+      const rq = db.json(db.get('SELECT * FROM auth_requests WHERE workspace_id=? AND device_code_hash=?', ws(), sha256(p.device_code || '')));
+      if (!rq || rq.kind !== 'device') throw oerr('invalid', 'invalid_grant', 'device_code không hợp lệ.');
+      if (p.client_id && p.client_id !== rq.client_id) throw oerr('invalid', 'invalid_grant', 'client_id không khớp.');
+      if (rq.status === 'approved' && db.get('SELECT 1 AS x FROM oauth_grants WHERE auth_request_id=?', rq.id)) throw oerr('invalid', 'invalid_grant', 'device_code đã được dùng.');   // đã đổi token một lần
+      if (rq.status === 'denied') throw oerr('forbidden', 'access_denied', 'Chủ xưởng đã từ chối yêu cầu này.');
+      if (rq.status === 'expired' || (rq.status === 'pending' && rq.expires_at < db.now())) throw oerr('invalid', 'expired_token', 'Yêu cầu đã hết hạn. Hãy xin mã mới.');
+      if (rq.status === 'pending') throw oerr('conflict', 'authorization_pending', 'Chủ xưởng chưa duyệt.');
+      const ag = liveAgent(rq.agent_id);
+      if (!ag) throw oerr('invalid', 'invalid_grant', 'Agent đã bị thu hồi.');
+      const sc = scopesFor(ag, rq.scopes_granted, p.scope);
+      db.update('auth_requests', rq.id, { last_poll_at: db.now() });
+      db.run('UPDATE oauth_clients SET last_used_at=? WHERE client_id=?', db.now(), rq.client_id);
+      const body = issueTokens(ag, sc.base, sc.narrow, p.audience, { clientId: rq.client_id, requestId: rq.id });
+      return { result: body, entity: ['agent', ag.display_id], before: null, after: { grant: 'device', agent: ag.display_id, scopes: sc.narrow } };
+    }
+    const g = db.json(db.get("SELECT * FROM oauth_grants WHERE kind='code' AND token_hash=?", sha256(p.code || '')));
+    if (!g) throw oerr('invalid', 'invalid_grant', 'code không hợp lệ.');
+    if (g.used_at || g.revoked_at) {
+      // dùng lại code ⇒ thu hồi mọi thứ đã cấp từ code đó (OAuth 2.1 §4.1.3)
+      const t = db.now();
+      db.run(`WITH RECURSIVE chain(id) AS (SELECT id FROM oauth_grants WHERE parent_id=? UNION ALL SELECT g2.id FROM oauth_grants g2 JOIN chain ON g2.parent_id=chain.id)
+              UPDATE oauth_grants SET revoked_at=? WHERE id IN (SELECT id FROM chain) AND revoked_at IS NULL`, g.id, t);
+      db.run("UPDATE agent_tokens SET revoked_at=? WHERE agent_id=? AND kind='access' AND created_at>=? AND revoked_at IS NULL", t, g.agent_id, g.used_at || g.created_at);
+      return reject('invalid_grant', 'code đã được dùng; token đã cấp từ code này bị thu hồi.', { code_reuse: true, agent_id: g.agent_id });
+    }
+    if (g.expires_at < db.now()) throw oerr('invalid', 'invalid_grant', 'code đã hết hạn (60 giây).');
+    const ag0 = liveAgent(g.agent_id);
+    const sc = ag0 ? scopesFor(ag0, g.scopes, p.scope) : null;     // nới phạm vi → invalid_scope (code chưa bị đốt)
+    db.run('UPDATE oauth_grants SET used_at=? WHERE id=?', db.now(), g.id);   // đốt code ngay, kể cả khi bước sau thất bại
+    if (g.client_id !== p.client_id || g.redirect_uri !== p.redirect_uri) return reject('invalid_grant', 'client_id hoặc redirect_uri không khớp lúc xin quyền.', {});
+    if (!pkceOk(p.code_verifier, g.pkce_challenge)) return reject('invalid_grant', 'code_verifier (PKCE) không khớp.', {});
+    if (p.resource && g.resource && p.resource !== g.resource) return reject('invalid_target', 'resource không khớp lúc xin quyền.', {});
+    if (!ag0) return reject('invalid_grant', 'Agent đã bị thu hồi.', {});
+    const body = issueTokens(ag0, sc.base, sc.narrow, p.audience, { clientId: g.client_id, requestId: g.auth_request_id, parentId: g.id });
+    return { result: body, entity: ['agent', ag0.display_id], before: null, after: { grant: 'authorization_code', agent: ag0.display_id, scopes: sc.narrow } };
+  });
+
+  // {refresh_token, client_id, scope?, audience}: xoay vòng. Dùng lại refresh cũ: trong 30 s và con chưa dùng → cấp lại cặp mới (thử lại sau mất phản hồi); ngoài ra thu hồi cả agent.
+  op('auth.refresh', 'oauth', (c) => {
+    const p = c.p;
+    const g = db.json(db.get("SELECT * FROM oauth_grants WHERE kind='refresh' AND token_hash=?", sha256(p.refresh_token || '')));
+    if (!g) throw oerr('invalid', 'invalid_grant', 'refresh_token không hợp lệ.');
+    const ag = byRef('agents', g.agent_id);
+    if (g.client_id !== p.client_id) throw oerr('invalid', 'invalid_grant', 'client_id không khớp.');
+    if (g.revoked_at || !ag || ag.status === 'revoked') throw oerr('invalid', 'invalid_grant', 'refresh_token đã bị thu hồi.');
+    let grace = false;
+    if (g.used_at) {
+      const child = db.get("SELECT id FROM oauth_grants WHERE parent_id=? AND kind='refresh' AND used_at IS NULL AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 1", g.id);
+      if (!child || Date.now() - Date.parse(g.used_at) > REFRESH_GRACE_MS) {
+        revokeAgentRows(ag.id);
+        return { result: { error: 'invalid_grant', error_description: 'refresh_token đã được dùng; agent bị thu hồi vì nghi bị đánh cắp.' },
+          entity: ['agent', ag.display_id], before: { status: ag.status }, after: { status: 'revoked', reason: 'refresh_reuse' } };
+      }
+      db.run('UPDATE oauth_grants SET revoked_at=? WHERE id=?', db.now(), child.id);   // cặp con chưa dùng bị thay (không lưu được token thô để trả lại đúng cặp cũ)
+      grace = true;
+    }
+    if (g.expires_at < db.now()) throw oerr('invalid', 'invalid_grant', 'refresh_token đã hết hạn.');
+    const sc = scopesFor(ag, g.scopes, p.scope);
+    if (!grace) db.run('UPDATE oauth_grants SET used_at=? WHERE id=?', db.now(), g.id);
+    const body = issueTokens(ag, sc.base, sc.narrow, p.audience, { clientId: g.client_id, requestId: g.auth_request_id, parentId: g.id });
+    return { result: body, entity: ['agent', ag.display_id], before: null, after: { grant: 'refresh_token', agent: ag.display_id, scopes: sc.narrow, grace } };
   });
   op('provider.save', 'owner', (c) => {
     const p = c.p;
@@ -509,4 +795,4 @@ function createWriter(db, opts = {}) {
   return write;
 }
 
-module.exports = { LIMITS, createWriter, WriteError, anchorIndex, MVP_BLOCKS, POLICY_FIELDS };
+module.exports = { LIMITS, SCOPES, createWriter, redirectUriOk, redirectMatches, isLoopbackUri, parseScopes, CODE_TTL_MS, ACCESS_TTL_MS, DEVICE_TTL_MS, REQUEST_TTL_MS, WriteError, anchorIndex, MVP_BLOCKS, POLICY_FIELDS };

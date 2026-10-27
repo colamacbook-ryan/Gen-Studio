@@ -43,7 +43,24 @@ async function boot(opts = {}) {
   };
 }
 
+// `genstudio token create` → node server/main.js --create-token <tên> [--scopes read,compose,run]: cấp token tay (nâng cao), in một lần. CLI cấp được token nhưng không bao giờ duyệt được yêu cầu quyền.
+function createToken(argv) {
+  const i = argv.indexOf('--create-token');
+  const name = argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : 'Agent token tay';
+  const si = argv.indexOf('--scopes');
+  const scopes = si >= 0 && argv[si + 1] ? argv[si + 1].split(',').map(x => x.trim()).filter(Boolean) : ['read', 'compose'];
+  const config = configMod.load();
+  const db = dbm.open(config.dataDir, { masterKey: config.masterKey });
+  try {
+    const write = createWriter(db, { events: eventsMod.create() });
+    const r = write({ type: 'cli', entry: 'cli' }, 'agent.create', { name, scopes, kind: 'token' });
+    console.log(`Agent ${r.agent.display_id} · phạm vi ${scopes.join(', ')}`);
+    console.log(`Token (chỉ hiện một lần): ${r.token}`);
+  } finally { db.close(); }
+}
+
 async function main() {
+  if (process.argv.includes('--create-token')) { createToken(process.argv); return; }
   if (process.argv.includes('--reset-password')) {
     const config = configMod.load();
     const db = dbm.open(config.dataDir, { masterKey: config.masterKey });

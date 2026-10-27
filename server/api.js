@@ -4,9 +4,11 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const auth = require('./auth.js');
+const secrets = require('./secrets.js');
 const grids = require('./grids.js');
 const events = require('./events.js');
 const state = require('./state.js');
+const { isLoopbackUri } = require('./write.js');
 
 const J = grids.J;
 const STATUS = { invalid: 400, unauthorized: 401, forbidden: 403, not_found: 404, conflict: 409, rate_limited: 429, master_key_mismatch: 500, payload_too_large: 413, bad_gateway: 502 };
@@ -100,6 +102,26 @@ function lessonDoc(db, lesson, version) {
   };
 }
 
+// Yêu cầu cấp quyền → dạng gửi lên UI (không bao giờ có device_code/code/token). Mã ghép của thiết bị NGOÀI không được hiện cho chủ xưởng:
+// chủ xưởng phải tự gõ mã thiết bị đang in ra (needs_code), không chọn từ danh sách.
+function authRequestView(db, r) {
+  let host = null;
+  if (r.redirect_uri) { try { host = new URL(r.redirect_uri).host; } catch { host = null; } }
+  const loopback = !!r.redirect_uri && isLoopbackUri(r.redirect_uri);
+  const expired = r.status === 'pending' && r.expires_at < new Date().toISOString();
+  const cl = r.client_id ? db.get('SELECT created_at FROM oauth_clients WHERE client_id=?', r.client_id) : null;
+  const internal = r.kind === 'device' && r.channel === 'internal';
+  return {
+    id: r.display_id, kind: r.kind, client_name: r.client_name, agent_kind: internal ? 'internal' : 'oauth', needs_code: r.kind === 'device' && !internal,
+    scopes_requested: r.scopes_requested || [], scopes_granted: r.scopes_granted || null, redirect_host: host, loopback,
+    needs_confirm: r.kind === 'oauth' && !loopback,   // mọi redirect không phải loopback (kể cả claude.ai): hỏi "bạn vừa tự bấm kết nối?"
+    channel: r.channel, source_ip: r.source_ip, registered_at: cl ? cl.created_at : null,
+    status: expired ? 'expired' : r.status, created_at: r.created_at, expires_at: r.expires_at,
+  };
+}
+const pendingAuth = db => db.all("SELECT * FROM auth_requests WHERE workspace_id=? AND status='pending' AND expires_at>=? ORDER BY created_at DESC", db.ws, new Date().toISOString()).map(r => authRequestView(db, db.json(r)));
+const settingVal = (db, key) => { const r = db.get('SELECT value FROM settings WHERE workspace_id=? AND key=?', db.ws, key); try { return r ? JSON.parse(r.value) : null; } catch { return null; } };
+
 // ---------- tuyến ----------
 function create(ctx) {
   const { db, write, config } = ctx;
@@ -160,6 +182,15 @@ function create(ctx) {
   add('GET', '/api/me', { sess: true }, async c => meBody(c.sess.user, c.sess.csrf));
 
   // ---- tổng quan + lưới ----
+  // thu hồi TỰ ĐỘNG (refresh bị dùng lại) của agent nội bộ mà chưa có agent nội bộ nào thay: Tổng quan hiện nút "Ghép lại"
+  const pairingLost = () => {
+    const last = db.get("SELECT entity_id FROM audit_log WHERE action='auth.refresh' AND after LIKE '%refresh_reuse%' ORDER BY ts DESC LIMIT 1");
+    if (!last) return null;
+    const ag = db.get("SELECT display_id, kind, status FROM agents WHERE display_id=?", last.entity_id);
+    if (!ag || ag.kind !== 'internal' || ag.status !== 'revoked') return null;
+    if (db.get("SELECT 1 AS x FROM agents WHERE kind='internal' AND status!='revoked' AND deleted_at IS NULL")) return null;
+    return { agent: ag.display_id };
+  };
   add('GET', '/api/overview', { sess: true }, async () => {
     const n = (sql, ...p) => db.get(sql, ...p).n;
     const ACTIVE = "('queued','voicing','judging','aligning','rendering','mixing','gating','retrying','waiting_quota')";
@@ -179,6 +210,8 @@ function create(ctx) {
     return {
       awaiting_review: n("SELECT COUNT(*) AS n FROM renders WHERE workspace_id=? AND state='awaiting_review'", db.ws),
       running: n('SELECT COUNT(*) AS n FROM renders WHERE workspace_id=? AND state IN ' + ACTIVE, db.ws),
+      pending_auth: n("SELECT COUNT(*) AS n FROM auth_requests WHERE workspace_id=? AND status='pending' AND expires_at>=?", db.ws, new Date().toISOString()),
+      pairing_lost: pairingLost(),
       stalled_work_orders: db.all("SELECT w.display_id, w.kind, w.brief, w.summary, w.opened_at, a.display_id AS agent FROM work_orders w LEFT JOIN agents a ON a.id=w.agent_id WHERE w.workspace_id=? AND w.state='stalled' ORDER BY w.opened_at", db.ws),
       yesterday: {
         work_orders: done.length,
@@ -235,6 +268,37 @@ function create(ctx) {
     return { status: 201, body: { display_id: pv.display_id, provider: pv } };
   });
   add('POST', '/api/providers/:id/scan', { sess: true }, async c => ctx.pipeline.scanProvider(ctx, need(db, 'providers', c.params.id, 'nhà cung cấp'), actorOf(c)));
+  // ---- duyệt quyền agent (A3, R2b): chỉ phiên UI của chủ xưởng; token agent → 403 ----
+  const lookups = auth.limiter();
+  add('GET', '/api/auth-requests', { sess: true }, async () => ({ requests: pendingAuth(db) }));
+  // chủ xưởng gõ mã ghép của thiết bị ngoài → tìm yêu cầu tương ứng (không liệt kê, không điền sẵn)
+  add('POST', '/api/auth-requests/lookup', { sess: true, ui: true, strictOrigin: true }, async c => {
+    if (lookups.hit('lk:' + c.sess.tokenHash, 10, 60e3)) throw fail('rate_limited', 'Tra mã quá nhiều lần. Thử lại sau một phút.');
+    const code = String(c.body.user_code || '').trim().toUpperCase();
+    const r = db.json(db.get("SELECT * FROM auth_requests WHERE workspace_id=? AND kind='device' AND status='pending' AND expires_at>=? AND user_code_hash=?", db.ws, new Date().toISOString(), secrets.hashToken(code)));
+    if (!r) throw fail('not_found', 'Không có yêu cầu ghép nào khớp mã này (có thể đã hết hạn hoặc cửa sổ ghép chưa mở).');
+    return { request: authRequestView(db, r) };
+  });
+  add('GET', '/api/auth-requests/:id', { sess: true }, async c => {
+    const r = db.json(db.get('SELECT * FROM auth_requests WHERE workspace_id=? AND (id=? OR display_id=?)', db.ws, c.params.id, c.params.id));
+    if (!r) throw fail('not_found', 'Không tìm thấy yêu cầu cấp quyền.');
+    return { request: authRequestView(db, r) };
+  });
+  add('POST', '/api/auth-requests/:id/approve', { sess: true, ui: true, strictOrigin: true }, async c => {
+    const r = write(actorOf(c), 'auth.approve', { id: c.params.id, scopes: c.body.scopes, user_code: c.body.user_code, confirm: c.body.confirm === true });
+    return { ok: true, redirect: r.redirect || null, agent: r.agent };
+  });
+  add('POST', '/api/auth-requests/:id/deny', { sess: true, ui: true, strictOrigin: true }, async c => {
+    const r = write(actorOf(c), 'auth.deny', { id: c.params.id });
+    return { ok: true, redirect: r.redirect || null };
+  });
+  // "Bật agent nội bộ" / "Mở lại ghép": mở cửa sổ ghép 10 phút (runner hỏi /oauth/pairing-status rồi tự xin mã)
+  add('POST', '/api/pairing/open', { sess: true, ui: true, strictOrigin: true }, async c => ({ ok: true, open_until: write(actorOf(c), 'auth.pairing_open', { channel: c.body.channel }).open_until }));
+  add('GET', '/api/runner-status', { sess: true }, async () => {
+    const rs = settingVal(db, 'runner_status'), win = settingVal(db, 'pairing_window');
+    return { runner: rs && { state: rs.state, message: rs.message, seen_at: rs.at, online: !!ctx.runnerSeenAt && Date.now() - ctx.runnerSeenAt < 90e3 },
+      pairing: { open: !!(win && win.open_until > new Date().toISOString()), channel: win ? win.channel : null, open_until: win ? win.open_until : null } };
+  });
   add('POST', '/api/agents', { sess: true }, async c => {
     const r = write(actorOf(c), 'agent.create', c.body);
     return { status: 201, body: { display_id: r.agent.display_id, token: r.token, agent: r.agent } };
@@ -279,7 +343,7 @@ function create(ctx) {
         sess = session(req);
         if (!sess) {
           // token agent không bao giờ thay được phiên UI: gọi review bằng token → 403 rõ ràng
-          if (route.opts.ui && auth.bearer(req)) throw fail('forbidden', 'Duyệt bản dựng chỉ làm được trên giao diện web bằng phiên đăng nhập của chủ xưởng; token agent không có quyền này.');
+          if (route.opts.ui && auth.bearer(req)) throw fail('forbidden', 'Thao tác này (duyệt bản dựng, duyệt quyền agent) chỉ làm được trên giao diện web bằng phiên đăng nhập của chủ xưởng; token agent không có quyền này.');
           throw fail('unauthorized', 'Cần đăng nhập.');
         }
       }

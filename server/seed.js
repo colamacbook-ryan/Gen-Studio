@@ -41,8 +41,8 @@ function seedDemo(db, opts = {}) {
     }
     for (const a of d.agents) {
       const ag = ins('agents', { display_id: a.id, name: a.name, kind: a.kind, scopes: a.scopes, cli: a.cli, wake_limit_per_day: a.wake_limit_per_day, status: 'active' });
-      if (a.kind === 'oauth') db.run('INSERT INTO oauth_clients(client_id, workspace_id, agent_id, redirect_uris, name, created_at) VALUES(?,?,?,?,?,?)',
-        `demo-${ag.display_id.toLowerCase()}`, db.ws, ag.id, JSON.stringify(['https://claude.ai/api/mcp/auth_callback']), a.name, db.now());
+      if (a.kind === 'oauth') db.run('INSERT INTO oauth_clients(client_id, workspace_id, agent_id, redirect_uris, name, kind, created_channel, created_at) VALUES(?,?,?,?,?,?,?,?)',
+        `demo-${ag.display_id.toLowerCase()}`, db.ws, ag.id, JSON.stringify(['https://claude.ai/api/mcp/auth_callback']), a.name, 'dcr', 'public', db.now());
     }
     const today = db.now().slice(0, 10);
     for (const p of d.providers) {

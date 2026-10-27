@@ -30,7 +30,7 @@ function sse(bus, req, res) {
 // Che chuỗi giống khoá/token trước khi ghi log (CLAUDE.md: không ghi secret ra log).
 function mask(s) {
   return String(s == null ? '' : s)
-    .replace(/gst?_[A-Za-z0-9_-]{12,}/g, 'gs_***')
+    .replace(/gs[tardc]?_[A-Za-z0-9_-]{12,}/g, 'gs_***')
     .replace(/AIza[0-9A-Za-z_-]{20,}/g, 'AIza***')
     .replace(/Bearer\s+[A-Za-z0-9._~+\/-]{12,}/g, 'Bearer ***')
     .replace(/[A-Fa-f0-9]{48,}/g, '***');
