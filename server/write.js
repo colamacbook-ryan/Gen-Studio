@@ -168,17 +168,61 @@ function createWriter(db, opts = {}) {
     return { result: { ...byRef('cast_members', m.id), version: v }, entity: ['cast_member', m.display_id], before: p.id ? { version: m.current_version } : null, after: { version: v } };
   });
 
+  // SVG chỉ nhận theo DANH SÁCH CHO PHÉP (không phải danh sách cấm): thẻ hình học/chữ/gradient tĩnh, thuộc tính trình bày;
+  // cấm thực thể (&#, <!ENTITY/<!DOCTYPE), animate/set/use/a/style/foreignObject, mọi on*, mọi href, url() ngoài #id.
+  const SVG_TAGS = new Set(['svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'text', 'tspan',
+    'defs', 'lineargradient', 'radialgradient', 'stop', 'clippath', 'mask', 'title', 'desc']);
+  const SVG_ATTRS = new Set(['xmlns', 'viewbox', 'width', 'height', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'cx', 'cy', 'r', 'rx', 'ry',
+    'd', 'points', 'transform', 'fill', 'fill-opacity', 'fill-rule', 'stroke', 'stroke-width', 'stroke-opacity', 'stroke-linecap',
+    'stroke-linejoin', 'stroke-dasharray', 'stroke-dashoffset', 'stroke-miterlimit', 'opacity', 'id', 'clip-path', 'clip-rule', 'mask',
+    'offset', 'stop-color', 'stop-opacity', 'gradientunits', 'gradienttransform', 'spreadmethod', 'fx', 'fy', 'font-family', 'font-size',
+    'font-weight', 'font-style', 'text-anchor', 'dominant-baseline', 'letter-spacing', 'dx', 'dy', 'preserveaspectratio', 'version',
+    'aria-hidden', 'role', 'aria-label', 'vector-effect', 'paint-order', 'clippathunits', 'maskunits']);
   const svgOk = (buf) => {
     const t = buf.toString('utf8');
-    return !(/<\s*script/i.test(t) || /\son\w+\s*=/i.test(t) || /javascript:/i.test(t) || /<\s*foreignObject/i.test(t)
-      || /<\s*(iframe|object|embed)/i.test(t) || /(?:xlink:)?href\s*=\s*["'](?!#)/i.test(t) || /url\(\s*["']?(?!#)/i.test(t));
+    if (/&#|<!|<\?(?!xml\s)|&(?!(amp|lt|gt|quot|apos);)/i.test(t)) return false;
+    const tagRe = /<\s*(\/?)\s*([a-zA-Z][\w:.-]*)([^>]*)>/g;
+    let m, seen = 0;
+    while ((m = tagRe.exec(t))) {
+      seen++;
+      if (!SVG_TAGS.has(m[2].toLowerCase())) return false;
+      if (m[1]) continue;
+      const attrRe = /([^\s=\/]+)\s*=\s*("([^"]*)"|'([^']*)')/g;
+      let a;
+      const rest = m[3].replace(/\/\s*$/, '');
+      const stripped = rest.replace(attrRe, '').trim();
+      if (stripped) return false;
+      while ((a = attrRe.exec(rest))) {
+        const name = a[1].toLowerCase(), val = a[3] !== undefined ? a[3] : a[4];
+        if (!SVG_ATTRS.has(name) && !name.startsWith('xmlns')) return false;
+        if (/url\(\s*['"]?(?!#)/i.test(val) || /javascript:|data:/i.test(val)) return false;
+      }
+    }
+    return seen > 0;
   };
   op('asset.put', 'composeOrSystem', (c) => {
     const p = c.p;
     if (!ASSET_KINDS.includes(p.kind)) throw err('invalid', 'Loại asset không hợp lệ.', { kind: p.kind });
     if (!Buffer.isBuffer(p.bytes) || !p.bytes.length) throw err('invalid', 'Asset không có dữ liệu.', null);
     if (p.bytes.length > MAX_ASSET_BYTES) throw err('invalid', 'Asset quá lớn.', { bytes: p.bytes.length });
-    if (p.kind === 'svg' && !svgOk(p.bytes)) throw err('invalid', 'SVG chứa script hoặc tham chiếu ngoài nên bị từ chối.', null);
+    // Kiểm theo NỘI DUNG thật + mime, không tin `kind`: mọi thứ trông như SVG/XML/HTML phải là kind 'svg' và qua svgOk;
+    // ảnh raster phải đúng magic bytes; kind và mime phải khớp nhau.
+    const head = p.bytes.subarray(0, 512).toString('utf8').replace(/^\uFEFF/, '').trimStart();
+    const looksMarkup = head.startsWith('<') || /svg|xml|html/i.test(String(p.mime || ''));
+    const magic = (b) => (b[0] === 0x89 && b[1] === 0x50) ? 'image/png' : (b[0] === 0xff && b[1] === 0xd8) ? 'image/jpeg'
+      : (b.subarray(0, 4).toString() === 'RIFF' && b.subarray(8, 12).toString() === 'WEBP') ? 'image/webp'
+      : (b.subarray(0, 3).toString() === 'GIF') ? 'image/gif' : null;
+    if (looksMarkup) {
+      if (p.kind !== 'svg' || (p.mime && p.mime !== 'image/svg+xml')) throw err('invalid', 'Tệp dạng SVG/XML phải khai kind "svg" và mime image/svg+xml.', { kind: p.kind, mime: p.mime || null });
+      if (!svgOk(p.bytes)) throw err('invalid', 'SVG chứa thành phần không được phép (script, sự kiện, tham chiếu ngoài, animate, use, style, thực thể) nên bị từ chối.', null);
+      p.mime = 'image/svg+xml';
+    } else if (p.kind === 'svg') {
+      throw err('invalid', 'Asset khai là SVG nhưng nội dung không phải SVG.', null);
+    } else if (p.kind === 'image' || p.kind === 'cover' || p.kind === 'logo') {
+      const real = magic(p.bytes);
+      if (!real || (p.mime && p.mime !== real)) throw err('invalid', 'Ảnh không đúng định dạng PNG/JPEG/WEBP/GIF hoặc mime không khớp nội dung.', { mime: p.mime || null, detected: real });
+      p.mime = real;
+    }
     const sha = crypto.createHash('sha256').update(p.bytes).digest('hex');
     const existing = db.json(db.get('SELECT * FROM assets WHERE workspace_id=? AND sha256=?', ws(), sha));
     if (existing) {
@@ -221,7 +265,14 @@ function createWriter(db, opts = {}) {
       wo = byRef('work_orders', p.work_order);
       if (!wo) E('work_order', 'Không tìm thấy lệnh sản xuất.');
       else if (!['open', 'assigned'].includes(wo.state)) E('work_order', `Lệnh sản xuất ${wo.display_id} đã ${wo.state}, không nộp thêm được.`);
+      else if (c.a.type === 'agent' && wo.agent_id) {
+        // cùng kiểm như work_order.complete: agent chỉ nộp vào lệnh giao cho chính nó
+        const ag = byRef('agents', c.a.id);
+        if (!ag || ag.id !== wo.agent_id) throw err('forbidden', 'Lệnh này đã giao cho agent khác.', { work_order: wo.display_id });
+      }
     }
+    if (wo && wo.channel_id && wo.channel_id !== channel.id) E('work_order', `Lệnh ${wo.display_id} thuộc kênh khác.`);
+    if (wo && wo.lesson_id && (!lesson || wo.lesson_id !== lesson.id)) E('work_order', `Lệnh ${wo.display_id} dành cho bài khác.`);
     const lines = Array.isArray(p.lines) ? p.lines : [];
     const beats = Array.isArray(p.beats) ? p.beats : [];
 
