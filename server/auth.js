@@ -24,17 +24,18 @@ function readFreshKey(dataDir) {
     return fs.readFileSync(p, 'utf8').trim() || null;
   } catch { return null; }
 }
-// Chưa có owner: bảo đảm có khoá còn hạn (sinh mới nếu thiếu/hết hạn). Có owner: xoá khoá.
-function ensureAdminKey(dataDir, db) {
+// Chưa có owner: bảo đảm có khoá còn hạn (sinh mới nếu thiếu/hết hạn). Có owner: xoá khoá. → {key, created}
+function renewAdminKey(dataDir, db) {
   const p = adminKeyPath(dataDir);
-  if (ownerExists(db)) { try { fs.unlinkSync(p); } catch { /* chưa có tệp */ } return null; }
+  if (ownerExists(db)) { try { fs.unlinkSync(p); } catch { /* chưa có tệp */ } return { key: null, created: false }; }
   const cur = readFreshKey(dataDir);
-  if (cur) return cur;
+  if (cur) return { key: cur, created: false };
   fs.mkdirSync(path.dirname(p), { recursive: true });
   const k = crypto.randomBytes(24).toString('base64url');
   fs.writeFileSync(p, k + '\n', { mode: 0o600 });
-  return k;
+  return { key: k, created: true };
 }
+const ensureAdminKey = (dataDir, db) => renewAdminKey(dataDir, db).key;
 function checkAdminKey(dataDir, k) {
   const cur = readFreshKey(dataDir);
   return !!(cur && k && eq(cur, k));
@@ -121,13 +122,14 @@ function parseCookies(req) {
 }
 function bearer(req) { const m = /^Bearer\s+(\S+)$/i.exec(req.headers.authorization || ''); return m ? m[1] : null; }
 
-// Chặn dò mật khẩu: 8 lần sai / 5 phút / IP.
+// Chặn dò mật khẩu: 8 lần sai / 5 phút theo cặp IP + tên đăng nhập (sau NAT Docker mọi người chung IP, khoá theo IP sẽ khoá cả chủ xưởng).
 const fails = new Map();
-function loginThrottled(ip) { const f = fails.get(ip); return !!(f && f.n >= 8 && Date.now() < f.until); }
-function loginFailed(ip) { const f = fails.get(ip); const t = Date.now(); if (!f || t > f.until) fails.set(ip, { n: 1, until: t + 300e3 }); else f.n++; }
-function loginOk(ip) { fails.delete(ip); }
+const throttleKey = (ip, username) => ip + '\u0001' + String(username == null ? '' : username).toLowerCase().slice(0, 100);
+function loginThrottled(ip, username) { const f = fails.get(throttleKey(ip, username)); return !!(f && f.n >= 8 && Date.now() < f.until); }
+function loginFailed(ip, username) { const k = throttleKey(ip, username), f = fails.get(k); const t = Date.now(); if (!f || t > f.until) fails.set(k, { n: 1, until: t + 300e3 }); else f.n++; }
+function loginOk(ip, username) { fails.delete(throttleKey(ip, username)); }
 
 module.exports = {
-  ownerExists, ensureAdminKey, checkAdminKey, consumeAdminKey, createOwner, resetOwnerPassword, checkLogin, validatePassword,
+  ownerExists, ensureAdminKey, renewAdminKey, checkAdminKey, consumeAdminKey, createOwner, resetOwnerPassword, checkLogin, validatePassword,
   createSession, getSession, destroySession, verifyAgentToken, parseCookies, bearer, eq, loginThrottled, loginFailed, loginOk,
 };

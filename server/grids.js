@@ -235,7 +235,7 @@ function parseQuery(grid, q) {
     const neg = !!m[1];
     let sql, p = [];
     if (m[2]) {
-      const col = grid.cols[m[2]];
+      const col = Object.hasOwn(grid.cols, m[2]) ? grid.cols[m[2]] : null;
       if (!col) throw bad('Cột không hợp lệ: ' + m[2] + '. Cột có thể dùng: ' + Object.keys(grid.cols).join(', '));
       const op = m[3], val = m[4] !== undefined ? m[4] : m[5];
       if (op === ':') {
@@ -267,13 +267,13 @@ function parseQuery(grid, q) {
 }
 
 function runGrid(db, name, { q, sort, limit } = {}) {
-  const g = GRIDS[name];
+  const g = Object.hasOwn(GRIDS, name) ? GRIDS[name] : null;
   if (!g) { const e = new Error('Không có lưới ' + name); e.code = 'not_found'; e.text_human = 'Không có lưới "' + name + '".'; throw e; }
   const ws = db.ws;
   const { conds, params } = parseQuery(g, q);
   let sk = String(sort || g.sort || ''), desc = false;
   if (sk[0] === '-') { desc = true; sk = sk.slice(1); }
-  if (!g.cols[sk]) { if (sort) throw bad('Không sắp xếp được theo cột: ' + sk); sk = Object.keys(g.cols)[0]; }
+  if (!Object.hasOwn(g.cols, sk)) { if (sort) throw bad('Không sắp xếp được theo cột: ' + sk); sk = Object.keys(g.cols)[0]; }
   const select = Object.entries(g.cols).map(([k, c]) => c.expr + ' AS ' + k).join(', ');
   const sql = 'SELECT ' + select + ' FROM ' + g.from + ' WHERE ' + g.where + (conds.length ? ' AND ' + conds.join(' AND ') : '') +
     ' ORDER BY ' + g.cols[sk].expr + (desc ? ' DESC' : ' ASC') + ' LIMIT 5000';

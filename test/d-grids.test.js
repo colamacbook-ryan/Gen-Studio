@@ -48,3 +48,14 @@ test('d-grids: mọi lưới chạy được trên DB seed demo, có footer và 
     assert.ok(cu.footer.total >= 4 && cu.footer.done >= 1);
   } finally { t.clean(); }
 });
+
+test('d-grids: khoá prototype (constructor, __proto__) → 400/404, không 500', () => {
+  const t = tmpDb();
+  try {
+    assert.throws(() => grids.runGrid(t.db, 'constructor', {}), e => e.code === 'not_found');
+    assert.throws(() => grids.runGrid(t.db, '__proto__', {}), e => e.code === 'not_found');
+    assert.throws(() => grids.runGrid(t.db, 'work_orders', { sort: 'constructor' }), e => e.code === 'invalid');
+    assert.throws(() => grids.runGrid(t.db, 'work_orders', { sort: '-toString' }), e => e.code === 'invalid');
+    assert.throws(() => grids.parseQuery(grids.GRIDS.work_orders, 'constructor:1'), e => e.code === 'invalid');
+  } finally { t.clean(); }
+});

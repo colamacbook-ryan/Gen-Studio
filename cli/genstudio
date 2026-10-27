@@ -41,7 +41,9 @@ case "$cmd" in
   logs) dc --profile agent logs -f --tail=200 "$@" ;;
   open)
     url="http://localhost:$PORT"
-    if [ -s data/run/admin-key ] && ! curl -fsS "$url/api/setup/state" 2>/dev/null | grep -q '"owner":true'; then url="$url/#/setup?k=$(cat data/run/admin-key)"; fi
+    # gọi setup/state trước: chưa có chủ xưởng mà khoá đã hết hạn thì server tự sinh khoá mới
+    st="$(curl -fsS "$url/api/setup/state" 2>/dev/null || true)"
+    if [ -s data/run/admin-key ] && ! printf '%s' "$st" | grep -q '"owner":true'; then url="$url/#/setup?k=$(cat data/run/admin-key)"; fi
     echo "$url"; (command -v xdg-open >/dev/null && xdg-open "$url") || (command -v open >/dev/null && open "$url") || true ;;
   update)
     if [ -d .git ]; then git pull --ff-only; else echo "Bản cài từ Release: chạy lại install.sh (giữ nguyên data/ và .env)"; exit 0; fi

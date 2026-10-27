@@ -17,6 +17,7 @@ const ENTRIES = ['ui', 'http', 'mcp', 'cli', 'runner', 'system', 'assistant'];
 const ASSET_KINDS = ['svg', 'image', 'audio', 'video', 'subtitle', 'cover', 'logo', 'manifest'];
 const EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/svg+xml': 'svg', 'audio/wav': 'wav', 'audio/x-wav': 'wav',
   'video/mp4': 'mp4', 'text/plain': 'srt', 'application/x-subrip': 'srt', 'application/json': 'json' };
+const LIMITS = { lines_max: 60, say_max_chars: 2000, beats_max: 400 };   // dùng chung với get_capabilities
 const MAX_ASSET_BYTES = 200 * 1024 * 1024;
 
 const err = (code, text, detail) => new WriteError(code, text, detail);
@@ -138,6 +139,7 @@ function createWriter(db, opts = {}) {
     for (const k of ['title', 'principle', 'status', 'ord']) if (p[k] !== undefined) f[k] = p[k];
     if (p.prereq !== undefined) f.prereq_ids = p.prereq;
     if (f.status && !['todo', 'in_progress', 'done'].includes(f.status)) throw err('invalid', 'Trạng thái giáo trình không hợp lệ.', null);
+    if (f.status === 'done' && c.a.type === 'agent') throw err('forbidden', 'Agent chỉ đặt được todo/in_progress; đánh dấu done là việc của chủ xưởng.', { status: f.status });
     if (p.parent !== undefined) f.parent_id = p.parent ? need('curriculum_nodes', p.parent, 'mục cha').id : null;
     if (p.id) {
       const cu = need('curriculum_nodes', p.id, 'mục giáo trình');
@@ -260,7 +262,9 @@ function createWriter(db, opts = {}) {
     }
     if (!nonEmpty(p.title)) E('title', 'Bài cần có tiêu đề.');
     if (!Array.isArray(p.lines) || !p.lines.length) E('lines', 'Bài cần ít nhất một câu.');
+    else if (p.lines.length > LIMITS.lines_max) E('lines', `Bài tối đa ${LIMITS.lines_max} câu (đang có ${p.lines.length}).`);
     if (!Array.isArray(p.beats)) E('beats', 'beats phải là mảng (có thể rỗng).');
+    else if (p.beats.length > LIMITS.beats_max) E('beats', `Bài tối đa ${LIMITS.beats_max} nhịp (đang có ${p.beats.length}).`);
     if (p.camera_hints != null && typeof p.camera_hints !== 'object') E('camera_hints', 'camera_hints phải là object hoặc null.');
     let wo = null;
     if (p.work_order) {
@@ -290,7 +294,7 @@ function createWriter(db, opts = {}) {
       const at = `lines[${i}]`;
       if (!l || typeof l !== 'object') { E(at, 'Câu không hợp lệ.'); return; }
       if (!nonEmpty(l.say)) E(`${at}.say`, 'Câu không có lời thoại.');
-      else if (l.say.length > 2000) E(`${at}.say`, 'Lời thoại quá dài (tối đa 2000 ký tự).');
+      else if (l.say.length > LIMITS.say_max_chars) E(`${at}.say`, `Lời thoại quá dài (tối đa ${LIMITS.say_max_chars} ký tự).`);
       if (l.lang !== undefined && !['vi', 'en'].includes(l.lang)) E(`${at}.lang`, 'lang phải là vi hoặc en.');
       if (l.terms !== undefined && !(Array.isArray(l.terms) && l.terms.every((t) => typeof t === 'string'))) E(`${at}.terms`, 'terms phải là mảng chuỗi.');
       if (l.subtitle != null && (typeof l.subtitle !== 'object' || Array.isArray(l.subtitle))) E(`${at}.subtitle`, 'subtitle phải là object.');
@@ -505,4 +509,4 @@ function createWriter(db, opts = {}) {
   return write;
 }
 
-module.exports = { createWriter, WriteError, anchorIndex, MVP_BLOCKS, POLICY_FIELDS };
+module.exports = { LIMITS, createWriter, WriteError, anchorIndex, MVP_BLOCKS, POLICY_FIELDS };

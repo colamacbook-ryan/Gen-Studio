@@ -68,3 +68,10 @@ test('lesson.submit: agent không nộp vào lệnh giao cho agent khác, lệnh
   assert.ok(r.lesson.display_id.startsWith('LS-'));
   t.clean();
 });
+
+test('events.mask che cả token gst_ lẫn gs_', () => {
+  const { mask } = require('../server/events');
+  const tok = 'gst_' + 'A1b2C3d4E5f6G7h8I9j0K1l2';
+  assert.ok(!mask('lỗi ' + tok).includes('A1b2C3d4'));
+  assert.ok(!mask('gs_' + 'A1b2C3d4E5f6G7h8').includes('A1b2C3d4'));
+});

@@ -69,3 +69,27 @@ test('d-auth: chặn dò mật khẩu theo IP', () => {
   assert.ok(auth.loginThrottled('9.9.9.9'));
   auth.loginOk('9.9.9.9'); assert.ok(!auth.loginThrottled('9.9.9.9'));
 });
+
+test('d-auth: khoá đăng nhập theo cặp IP + tên đăng nhập (NAT Docker không khoá chủ xưởng vì người khác dò)', () => {
+  for (let i = 0; i < 8; i++) auth.loginFailed('10.0.0.1', 'ke-tan-cong');
+  assert.ok(auth.loginThrottled('10.0.0.1', 'ke-tan-cong'));
+  assert.ok(!auth.loginThrottled('10.0.0.1', 'chu'), 'cùng IP, tên khác → không bị khoá');
+  assert.ok(!auth.loginThrottled('10.0.0.2', 'ke-tan-cong'), 'IP khác → không bị khoá');
+  auth.loginOk('10.0.0.1', 'ke-tan-cong'); assert.ok(!auth.loginThrottled('10.0.0.1', 'ke-tan-cong'));
+});
+
+test('d-auth: link thiết lập hết hạn thì sinh khoá mới (renewAdminKey), có owner thì không sinh', () => {
+  const t = tmpDb();
+  try {
+    const a = auth.renewAdminKey(t.dir, t.db);
+    assert.ok(a.created && a.key);
+    assert.deepEqual(auth.renewAdminKey(t.dir, t.db), { key: a.key, created: false });
+    const f = path.join(t.dir, 'run', 'admin-key');
+    const old = new Date(Date.now() - 31 * 60000); fs.utimesSync(f, old, old);
+    const b = auth.renewAdminKey(t.dir, t.db);
+    assert.ok(b.created && b.key !== a.key);
+    assert.ok(auth.checkAdminKey(t.dir, b.key));
+    auth.createOwner(t.db, { username: 'chu', display_name: 'Chủ', password: 'mat-khau-dai-123' });
+    assert.deepEqual(auth.renewAdminKey(t.dir, t.db), { key: null, created: false });
+  } finally { t.clean(); }
+});

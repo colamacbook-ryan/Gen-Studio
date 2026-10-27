@@ -163,3 +163,17 @@ test('d-http: lưới + overview qua REST trả đúng hình dạng', async () =
     assert.equal(ls.status, 200); assert.ok(ls.json.lines.length >= 1 && ls.json.versions.length >= 1);
   } finally { await t.clean(); }
 });
+
+test('d-http: GET /api/setup/state sinh lại khoá khi link thiết lập đã hết hạn (chưa có owner)', async () => {
+  const t = await bootTmp();
+  try {
+    const keyFile = path.join(t.dir, 'run', 'admin-key');
+    const k1 = fs.readFileSync(keyFile, 'utf8').trim();
+    const old = new Date(Date.now() - 31 * 60000); fs.utimesSync(keyFile, old, old);
+    assert.equal((await request(t.base, 'GET', '/api/setup/state')).json.owner, false);
+    const k2 = fs.readFileSync(keyFile, 'utf8').trim();
+    assert.notEqual(k2, k1);
+    const r = await request(t.base, 'POST', '/api/setup/owner?k=' + encodeURIComponent(k2), { body: { username: 'chu', display_name: 'Chủ', password: 'mat-khau-rat-dai-123' }, origin: t.base });
+    assert.equal(r.status, 201, r.text);
+  } finally { await t.clean(); }
+});

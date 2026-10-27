@@ -10,6 +10,7 @@ const pipeline = require('./pipeline.js');
 
 const J = grids.J;
 const PROTOCOLS = ['2025-06-18', '2025-03-26', '2024-11-05'];
+const { LIMITS } = require('./write.js');
 const POLICY_FIELDS = ['schedule', 'loudness', 'subtitle_langs', 'limits', 'aspect', 'fps', 'publish', 'auto_publish'];
 const INSTRUCTIONS = [
   'Gen-Studio: xưởng sản xuất video dạy học. Bạn là agent soạn bài; mọi thao tác đi qua các tool này.',
@@ -118,7 +119,7 @@ function createMcp(ctx) {
     const ch = channelOf(a.channel);
     const d = chanData(ch);
     const data = { app_version: config.version, blocks, providers, channel: { display_id: ch.display_id, name: ch.name }, cast: castOf(ch).map(m => ({ display_id: m.display_id, name: m.name, role_label: m.role_label })),
-      glossary: d.glossary || d.terms || [], limits: { lines_max: 60, say_max_chars: 2000 }, policy_fields_owner_only: POLICY_FIELDS };
+      glossary: d.glossary || d.terms || [], limits: LIMITS, policy_fields_owner_only: POLICY_FIELDS };
     return { text: `Khối: ${blocks.map(b => b.name + '@' + b.version).join(', ')}\nNhà cung cấp: ${providers.map(p => p.display_id + ' ' + p.kind + ' ' + p.model).join('; ') || '(chưa có)'}\nNhân vật: ${data.cast.map(m => m.display_id + ' ' + m.name).join(', ')}\nThuật ngữ: ${JSON.stringify(data.glossary)}`, data };
   });
 
@@ -259,7 +260,7 @@ function createMcp(ctx) {
     else db.all('SELECT r.* FROM renders r JOIN lesson_versions lv ON lv.id=r.lesson_version_id WHERE lv.lesson_id=? ORDER BY r.created_at', need('lessons', a.lesson, 'bài học').id).forEach(r => rows.push(...api.reviewNotes(db, r)));
     return { text: rows.map(n => `${n.review} ${n.decision} ${n.pin_ref}: ${n.text}`).join('\n') || 'Chưa có ghi chú duyệt.', data: { notes: rows } };
   });
-  tool('get_export', 'read', 'Đường dẫn gói xuất (MP4 + SRT + cover + manifest.json) của bản dựng đã duyệt.', { render: S }, ['render'], a => {
+  tool('get_export', 'run', 'Đường dẫn gói xuất (MP4 + SRT + cover + manifest.json) của bản dựng đã duyệt.', { render: S }, ['render'], a => {
     const r = need('renders', a.render, 'bản dựng');
     const ex = pipeline.exportRender(ctx, r);
     return { text: `Gói xuất ${r.display_id}: ${ex.dir} (${ex.files.join(', ')}).`, data: ex };

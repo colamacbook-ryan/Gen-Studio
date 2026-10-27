@@ -117,6 +117,10 @@ function create(ctx) {
   // ---- thiết lập + đăng nhập ----
   add('GET', '/api/setup/state', { pub: true }, async () => {
     const owner = auth.ownerExists(db);
+    if (!owner) {   // link thiết lập chết sau 30 phút → sinh khoá mới và in link ra stdout (cùng khuôn với lúc khởi động)
+      const k = auth.renewAdminKey(config.dataDir, db);
+      if (k.created) events.log(`Thiết lập lần đầu (link dùng một lần, 30 phút): ${config.publicUrl || `http://localhost:${ctx.port}`}/?k=${k.key}`);
+    }
     const w = db.get('SELECT name, locale FROM workspaces WHERE id=?', db.ws);
     return { owner, needs_owner: !owner, needs_setup: !owner, lang: config.lang, workspace: w };
   });
@@ -130,10 +134,11 @@ function create(ctx) {
   });
   add('POST', '/api/login', { pub: true }, async c => {
     const ip = c.req.socket.remoteAddress || '?';
-    if (auth.loginThrottled(ip)) throw fail('rate_limited', 'Đăng nhập sai quá nhiều lần. Thử lại sau vài phút.');
+    const uname = c.body && c.body.username;
+    if (auth.loginThrottled(ip, uname)) throw fail('rate_limited', 'Đăng nhập sai quá nhiều lần. Thử lại sau vài phút.');
     const u = auth.checkLogin(db, c.body.username, c.body.password);
-    if (!u) { auth.loginFailed(ip); throw fail('unauthorized', 'Sai tên đăng nhập hoặc mật khẩu.'); }
-    auth.loginOk(ip);
+    if (!u) { auth.loginFailed(ip, uname); throw fail('unauthorized', 'Sai tên đăng nhập hoặc mật khẩu.'); }
+    auth.loginOk(ip, uname);
     const s = auth.createSession(db, u.id, { ua: c.req.headers['user-agent'], ip });
     return { headers: { 'Set-Cookie': cookie(c.req, s.token, s.maxAgeSec) }, body: meBody(u, s.csrf) };
   });

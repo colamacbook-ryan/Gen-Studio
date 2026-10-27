@@ -182,3 +182,32 @@ test('d-mcp: agent scope run không rút bản dựng khỏi hàng chờ duyệt
     assert.equal(stateOf(), 'awaiting_review');
   } finally { t.clean(); }
 });
+
+test('d-mcp: lesson.submit chặn quá lines_max/beats_max (cùng hằng với get_capabilities); agent không đặt curriculum done; get_export cần run', async () => {
+  const { t, b, mk, call } = setup();
+  try {
+    const { c } = mk(['read', 'compose']);
+    const cap = await call(c, 'get_capabilities', {});
+    const lim = cap.structuredContent.limits;
+    assert.equal(lim.lines_max, 60);
+    const many = n => Array.from({ length: n }, (_, i) => ({ who: b.m1.display_id, say: 'Câu số ' + i }));
+    const over = await call(c, 'submit_lesson', Object.assign(lesson(b), { lines: many(lim.lines_max + 1), beats: [] }));
+    assert.ok(over.isError, 'quá lines_max phải bị từ chối');
+    const okN = await call(c, 'validate_lesson', Object.assign(lesson(b), { lines: many(lim.lines_max), beats: [] }));
+    assert.equal(okN.structuredContent.ok, true, okN.content[0].text);
+    const beats = Array.from({ length: lim.beats_max + 1 }, () => ({ block: 'title', anchor: { line: 0, word: 'Câu' }, params: { text: 'Hi' } }));
+    const ob = await call(c, 'validate_lesson', Object.assign(lesson(b), { beats }));
+    assert.equal(ob.structuredContent.ok, false);
+    assert.ok(ob.structuredContent.errors.some(e => e.path === 'beats'));
+    // curriculum: agent chỉ todo/in_progress
+    const cu = t.write(b.o, 'curriculum.save', { channel: b.ch.display_id, title: 'M' });
+    const d = await call(c, 'save_curriculum_node', { node: cu.display_id, status: 'done' });
+    assert.ok(d.isError && /forbidden/.test(d.content[0].text), d.content[0].text);
+    assert.equal(t.db.get('SELECT status FROM curriculum_nodes WHERE display_id=?', cu.display_id).status, 'todo');
+    const ip = await call(c, 'save_curriculum_node', { node: cu.display_id, status: 'in_progress' });
+    assert.ok(!ip.isError, ip.content[0].text);
+    // get_export cần scope run
+    const g = await call(c, 'get_export', { render: 'RD-0001' });
+    assert.ok(g.isError && /forbidden/.test(g.content[0].text));
+  } finally { t.clean(); }
+});
