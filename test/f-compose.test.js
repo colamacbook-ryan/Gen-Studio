@@ -138,3 +138,39 @@ test('backup không chứa data/.env (khoá chủ) và nhắc cất khoá riêng
   assert.match(s, /KHÔNG chứa GS_MASTER_KEY/);
   assert.match(s, /master_key_mismatch/);
 });
+
+// Cài thật bằng Docker (2026-10-28) lộ ra: installer chỉ bật studio (agent nội bộ không bao giờ chạy),
+// image tải phông từ mạng lúc build (hỏng khi mạng/proxy chặn), link thiết lập in cổng trong container.
+test('install.sh dựng + bật cả agent; studio vẫn chạy nếu agent dựng hỏng', () => {
+  const s = read('install.sh');
+  assert.match(s, /DC build agent/, 'phải dựng image agent');
+  assert.match(s, /DC up -d >/, 'khi agent dựng được phải bật mọi dịch vụ');
+  assert.match(s, /AGENT=0; warn /, 'agent dựng hỏng: cảnh báo, không dừng cài');
+});
+test('Dockerfile không tải phông từ mạng; phông OFL vendor có giấy phép + checksum', () => {
+  const d = read('Dockerfile');
+  assert.ok(!/curl[^\n]*\.ttf|FONT_BASE/.test(d), 'không curl phông lúc build');
+  assert.match(d, /COPY vendor\/fonts\//);
+  const root = path.join(__dirname, '..', 'vendor', 'fonts');
+  const sums = fs.readFileSync(path.join(root, 'SHA256SUMS'), 'utf8').trim().split('\n');
+  assert.equal(sums.length, 7);
+  for (const line of sums) {
+    const [sum, rel] = line.split(/\s+/);
+    const buf = fs.readFileSync(path.join(root, rel));
+    assert.equal(require('node:crypto').createHash('sha256').update(buf).digest('hex'), sum, rel);
+    assert.equal(buf.readUInt32BE(0), 0x00010000, rel + ' phải là TrueType');
+    assert.ok(fs.existsSync(path.join(root, path.dirname(rel), 'OFL.txt')), rel + ' thiếu OFL.txt');
+  }
+});
+test('compose truyền cổng máy chủ cho link thiết lập (GS_HOST_PORT)', () => {
+  assert.match(read('docker-compose.yml'), /GS_HOST_PORT: "\$\{GS_PORT:-7490\}"/);
+  const cfg = require('../server/config.js');
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'server', 'main.js'), 'utf8'), /config\.hostPort \|\| server\.port/);
+  assert.ok(typeof cfg === 'object' || typeof cfg === 'function');
+});
+test('Host hợp lệ gồm cả cổng phía máy chủ khi chạy Docker (GS_PORT ≠ 7490 không bị 403)', () => {
+  const { allowedHosts } = require('../server/http.js');
+  const h = allowedHosts({ hostPort: 7600 }, 7490);
+  for (const x of ['localhost:7600', '127.0.0.1:7600', 'localhost:7490', 'studio:7490']) assert.ok(h.has(x), x);
+  assert.ok(!allowedHosts({}, 7490).has('localhost:7600'));
+});

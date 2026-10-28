@@ -7,18 +7,11 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends chromium ffmpeg fonts-noto-core fontconfig ca-certificates curl \
  && rm -rf /var/lib/apt/lists/*
 
-# Font OFL (ASSET_MANIFEST): IBM Plex Sans/Mono, Be Vietnam Pro, Patrick Hand — tải lúc build, ghim nhánh main của google/fonts
-ARG FONT_BASE=https://raw.githubusercontent.com/google/fonts/main/ofl
+# Font OFL (ASSET_MANIFEST): IBM Plex Sans/Mono, Be Vietnam Pro, Patrick Hand — vendor trong repo (vendor/fonts, ghim commit google/fonts),
+# không tải mạng lúc build: cài được cả khi mạng chập chờn/sau proxy, và bản dựng nào cũng cùng phông.
+COPY vendor/fonts/ /tmp/gs-fonts/
 RUN set -eux; d=/usr/share/fonts/truetype/gen-studio; mkdir -p "$d"; \
-    dl() { curl -fsSL --retry 3 -o "$d/$2" "$FONT_BASE/$1"; test -s "$d/$2"; }; \
-    dl 'ibmplexsans/IBMPlexSans%5Bwdth,wght%5D.ttf' 'IBMPlexSans-Variable.ttf'; \
-    dl ibmplexmono/IBMPlexMono-Regular.ttf IBMPlexMono-Regular.ttf; \
-    dl ibmplexmono/IBMPlexMono-Medium.ttf IBMPlexMono-Medium.ttf; \
-    dl bevietnampro/BeVietnamPro-Regular.ttf BeVietnamPro-Regular.ttf; \
-    dl bevietnampro/BeVietnamPro-Medium.ttf BeVietnamPro-Medium.ttf; \
-    dl bevietnampro/BeVietnamPro-Bold.ttf BeVietnamPro-Bold.ttf; \
-    dl patrickhand/PatrickHand-Regular.ttf PatrickHand-Regular.ttf; \
-    fc-cache -f
+    cp /tmp/gs-fonts/*/*.ttf "$d/"; rm -rf /tmp/gs-fonts; fc-cache -f
 
 WORKDIR /app
 COPY . /app

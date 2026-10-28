@@ -17,7 +17,10 @@ const CSP = "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.
 
 function allowedHosts(config, port) {
   const s = new Set();
-  [`localhost:${port}`, `127.0.0.1:${port}`, `[::1]:${port}`, 'localhost', '127.0.0.1', '[::1]'].forEach(h => s.add(h));
+  // trong Docker cổng trình duyệt thấy (GS_HOST_PORT, từ GS_PORT của .env) khác cổng trong container
+  const ports = [...new Set([port, config.hostPort].filter(Boolean))];
+  ports.forEach(pt => [`localhost:${pt}`, `127.0.0.1:${pt}`, `[::1]:${pt}`].forEach(h => s.add(h)));
+  ['localhost', '127.0.0.1', '[::1]'].forEach(h => s.add(h));
   if (config.publicUrl) { try { s.add(new URL(config.publicUrl).host.toLowerCase()); } catch { /* bỏ qua URL sai */ } }
   s.add(String(config.internalHost || 'studio:7490').toLowerCase());   // Host nội bộ của runner trong mạng Docker
   String(process.env.GS_ALLOWED_HOSTS || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean).forEach(h => s.add(h));

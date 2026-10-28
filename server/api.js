@@ -148,7 +148,7 @@ function create(ctx) {
     const owner = auth.ownerExists(db);
     if (!owner) {   // link thiết lập chết sau 30 phút → sinh khoá mới và in link ra stdout (cùng khuôn với lúc khởi động)
       const k = auth.renewAdminKey(config.dataDir, db);
-      if (k.created) events.log(`Thiết lập lần đầu (link dùng một lần, 30 phút): ${config.publicUrl || `http://localhost:${ctx.port}`}/?k=${k.key}`);
+      if (k.created) events.log(`Thiết lập lần đầu (link dùng một lần, 30 phút): ${config.publicUrl || `http://localhost:${config.hostPort || ctx.port}`}/?k=${k.key}`);
     }
     const w = db.get('SELECT name, locale FROM workspaces WHERE id=?', db.ws);
     return { owner, needs_owner: !owner, needs_setup: !owner, lang: config.lang, workspace: w };

@@ -31,7 +31,7 @@ async function boot(opts = {}) {
   const key = auth.ensureAdminKey(config.dataDir, db);
   const server = await httpMod.start(ctx);
   ctx.port = server.port;
-  const base = config.publicUrl || `http://localhost:${server.port}`;
+  const base = config.publicUrl || `http://localhost:${config.hostPort || server.port}`;
   eventsMod.log(`Gen-Studio ${config.version} nghe tại ${config.host}:${server.port}`);
   if (key) eventsMod.log(`Thiết lập lần đầu (link dùng một lần, 30 phút): ${base}/?k=${key}`);
   const workers = opts.workers === false ? null : pipeline.startWorkers(ctx, opts.pipeline || {});

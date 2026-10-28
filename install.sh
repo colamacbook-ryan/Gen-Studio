@@ -21,6 +21,7 @@ case "$PORT" in ''|*[!0-9]*) echo "✗ Cổng không hợp lệ: $PORT — dùng
 
 step() { printf '◐ %s\n' "$1"; }
 done_() { printf '✓ %s\n' "$1"; }
+warn() { printf '⚠ %s\n' "$1" >&2; }
 die() { printf '✗ %s\n   → %s\n' "$1" "$2" >&2; exit 1; }
 
 # ---- 1. OS / arch
@@ -103,8 +104,14 @@ done_ "Khoá nằm ở data/run/admin-key"
 step "Dựng image (lần đầu vài phút)"
 DC build studio >/dev/null 2>&1 || { DC build studio 2>&1 | tail -5 >&2; die "Dựng image thất bại." "chạy: cd $DIR && docker compose build studio để xem lỗi đầy đủ"; }
 done_ "Image studio sẵn sàng"
+# agent nội bộ (runner luôn chạy, chờ chủ xưởng bấm "Bật agent nội bộ"); dựng hỏng thì studio vẫn chạy, báo cách sửa
+AGENT=1
+step "Dựng image agent (Claude Code CLI)"
+if DC build agent >/dev/null 2>&1; then done_ "Image agent sẵn sàng"
+else AGENT=0; warn "Chưa dựng được image agent — xưởng vẫn chạy; agent nội bộ bật sau bằng: genstudio update"; fi
 step "Khởi động"
-DC up -d studio >/dev/null 2>&1 || die "Không khởi động được." "chạy: cd $DIR && docker compose up studio để xem lỗi"
+if [ "$AGENT" = 1 ]; then DC up -d >/dev/null 2>&1 || die "Không khởi động được." "chạy: cd $DIR && docker compose up để xem lỗi"
+else DC up -d studio >/dev/null 2>&1 || die "Không khởi động được." "chạy: cd $DIR && docker compose up studio để xem lỗi"; fi
 done_ "Đã chạy nền"
 
 # ---- 7. Healthcheck
