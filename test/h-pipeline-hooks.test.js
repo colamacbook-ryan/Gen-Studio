@@ -12,7 +12,7 @@ const dbm = require('../server/db');
 const pipeline = require('../server/pipeline.js');
 const events = require('../server/events.js');
 const { createWriter } = require('../server/write');
-const { basics, lessonBody, owner } = require('./a-helpers');
+const { basics, lessonBody, owner, agent } = require('./a-helpers');
 const realGates = require('../media/gates/index.js');
 
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
@@ -104,7 +104,7 @@ test('pipeline: bài có thumbnail ⇒ 9 cổng; CHỈ phương án đạt thàn
     const ex = pipeline.exportRender(e.ctx, e.db.get('SELECT * FROM renders WHERE id=?', r.id), { actor: owner(e.db), entry: 'ui' });
     assert.ok(ex.files.includes(r.display_id + '.cover.jpg') && ex.files.includes(r.display_id + '.cover-1920.jpg') && !ex.files.some(f => /cover\.png/.test(f)));
     assert.deepEqual(st.exportLog.map(x => [x.actor, x.entry]), [['user', 'ui']]);
-    pipeline.exportRender(e.ctx, e.db.get('SELECT * FROM renders WHERE id=?', r.id), { actor: { type: 'agent' }, entry: 'mcp' });
+    pipeline.exportRender(e.ctx, e.db.get('SELECT * FROM renders WHERE id=?', r.id), { actor: agent(['run']), entry: 'mcp' });
     assert.deepEqual(st.exportLog.map(x => x.entry), ['ui', 'mcp'], 'hook phân biệt owner UI và agent MCP');
   } finally { e.clean(); }
 });
@@ -159,8 +159,8 @@ test('pipeline: brand → plan.style.brand + manifest.brand_hash (đổi brand �
     e.write(o, 'channel.update', { channel: b.ch.display_id, data: { brand: { tokens: { paper: '#FFFFFF' } } } });
     const r1 = await run(e, lessonBody(b));
     assert.equal(r1.state, 'awaiting_review', JSON.stringify(r1.blocked_reason));
-    assert.match(r1.manifest.brand_hash, /^[0-9a-f]{16}$/); assert.deepEqual(e.calls.renderPlan[0].brand.tokens, { paper: '#FFFFFF' });
-    e.write(o, 'channel.update', { channel: b.ch.display_id, data: { brand: { tokens: { paper: '#000000' } } } });
+    assert.match(r1.manifest.brand_hash, /^[0-9a-f]{16}$/); assert.equal(e.calls.renderPlan[0].brand.tokens.paper, '#FFFFFF');   // gói B: brand đã chuẩn hoá (đủ token theo preset)
+    e.write(o, 'channel.update', { channel: b.ch.display_id, data: { brand: { tokens: { paper: '#EEF7EE' } } } });   // phải đủ tương phản (gói B kiểm khi lưu)
     const r2 = await run(e, lessonBody(b, { title: 'B2' }));
     assert.notEqual(r2.manifest.brand_hash, r1.manifest.brand_hash);
     // approved_version: v1 chốt, v2 là bản nháp mới ⇒ bản dựng dùng v1; chưa chốt ⇒ bản hiện hành

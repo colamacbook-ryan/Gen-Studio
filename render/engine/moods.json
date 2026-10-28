@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "_doc": "Bảng tâm trạng của đạo diễn (SPEC-0.2.0 §3.6) — DỮ LIỆU, không phải mã. lines.mood → state Gen-Chibi + động tác khi nói + phản ứng người nghe. speak: {intro, intro_ms, motion} = động tác mở đầu câu rồi chuyển sang motion (mặc định talk); hold_ms + settle = giữ trạng thái (kèm hiệu ứng của nó) đúng ngần ấy ms rồi hạ về settle (giới hạn confetti ≤ 1,2 s, crown ≤ 1 s); beat:false = không chuyển sang point khi câu có beat; listen = phản ứng của người đang nghe (ms đầu câu của người nói); fx_note chỉ để người đọc (hiệu ứng đi theo state của engine).",
+  "default": "neutral",
+  "aliases": {
+    "calm": "neutral", "serious": "explain", "happy": "excited", "joy": "excited", "surprised": "shock", "surprise": "shock",
+    "confused": "unsure", "worried": "unsure", "thinking": "think", "cry": "sad", "rage": "angry", "scared": "panic", "lazy": "bored", "gloat": "smug"
+  },
+  "energy": {
+    "calm":      { "react": 0.85, "intro": 0.9 },
+    "warm":      { "react": 1,    "intro": 1 },
+    "energetic": { "react": 1.15, "intro": 1.1 },
+    "hyper":     { "react": 1.3,  "intro": 1.2 }
+  },
+  "temperament": {
+    "earnest":  {},
+    "tsundere": { "eyes": "half" },
+    "deadpan":  { "eyes": "half", "brows": "neutral" },
+    "curious":  { "brows": "raised" }
+  },
+  "laugh": { "giggle": "grin", "haha": "laugh", "smirk": "cat" },
+  "moods": {
+    "neutral": { "state": "normal", "speak": { "motion": "talk" }, "listen": { "motion": "nod", "ms": 900 } },
+    "explain": { "state": "normal", "brows": "raised", "speak": { "motion": "talk" }, "listen": { "motion": "nod", "ms": 900 } },
+    "excited": { "state": "proud", "fx_note": "confetti ≤ 1,2 s", "speak": { "intro": "fistPump", "intro_ms": 900, "motion": "talk" },
+                 "hold_ms": 1200, "settle": { "state": "normal", "eyes": "happy", "brows": "raised" }, "listen": { "motion": "cheer", "ms": 1200, "mouth": "laugh" } },
+    "shock":   { "state": "shock", "fx_note": "exclaim, speed", "speak": { "intro": "recoil", "intro_ms": 700, "motion": "talk" }, "listen": { "motion": "recoil", "state": "shock", "ms": 1400 } },
+    "think":   { "state": "think", "fx_note": "dots", "beat": false, "speak": { "motion": "chinHand" }, "listen": { "motion": "chinHand", "state": "think", "ms": 1500 } },
+    "unsure":  { "state": "unsure", "fx_note": "question, sweat", "speak": { "motion": "shrug" }, "listen": { "motion": "shrug", "state": "unsure", "ms": 1200 } },
+    "smug":    { "state": "smug", "fx_note": "sparkles", "speak": { "motion": "gloat" }, "listen": { "motion": "snicker", "ms": 1100, "mouth": "cat" } },
+    "sad":     { "state": "cry", "fx_note": "tears", "beat": false, "speak": { "intro": "weep", "intro_ms": 1500, "motion": "talk" }, "listen": { "motion": "coverHead", "ms": 1200 } },
+    "angry":   { "state": "rage", "fx_note": "vein, steam", "speak": { "intro": "stomp", "intro_ms": 800, "motion": "talk" }, "listen": { "motion": "recoil", "ms": 1000 } },
+    "panic":   { "state": "panic", "fx_note": "sweatMany", "beat": false, "speak": { "intro": "flail", "intro_ms": 900, "motion": "talk" }, "listen": { "motion": "scramble", "ms": 1100 } },
+    "greedy":  { "state": "greedy", "fx_note": "coins", "speak": { "motion": "rubHands" }, "listen": { "motion": "rubHands", "ms": 1100 } },
+    "beg":     { "state": "beg", "speak": { "motion": "plead" }, "listen": { "motion": "nod", "ms": 900 } },
+    "proud":   { "state": "proud", "fx_note": "crown ≤ 1 s", "speak": { "motion": "chestOut" },
+                 "hold_ms": 1000, "settle": { "state": "normal", "eyes": "happy", "brows": "raised" }, "listen": { "motion": "cheer", "ms": 1200 } },
+    "vow":     { "state": "vow", "fx_note": "aura", "speak": { "motion": "resolve" }, "listen": { "motion": "fistPump", "ms": 1100 } },
+    "bored":   { "state": "lazy", "fx_note": "gum", "beat": false, "speak": { "motion": "slouch" }, "listen": { "motion": "loaf", "ms": 1400 } },
+    "yell":    { "state": "rage", "fx_note": "fire, steam", "beat": false, "speak": { "motion": "fury" }, "listen": { "motion": "recoil", "ms": 1100 } }
+  }
+}

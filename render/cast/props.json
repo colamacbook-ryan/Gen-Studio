@@ -1,0 +1,32 @@
+{
+ "format": "gen-chibi.pack/1",
+ "id": "gen.studio",
+ "name": "Gen-Studio · đạo cụ dùng chung",
+ "owner": "Gen Labs",
+ "license": "© 2026 Gen Labs — All rights reserved",
+ "version": "0.2.0",
+ "description": "Đạo cụ và hoạt động trung tính cho host (laptop + gõ phím). Dữ liệu thuần, chạy trên Gen-Chibi ≥ 0.26.0.",
+ "props": [
+  {
+   "id": "host-laptop",
+   "label": "Laptop",
+   "layers": {
+    "propFront": "<path d=\"M70,176 L130,176 L136,196 L64,196 Z\" fill=\"{metal}\" stroke=\"{ink}\" stroke-width=\"3\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><path d=\"M74,140 L126,140 Q130,140 130,144 L130,176 L70,176 L70,144 Q70,140 74,140 Z\" fill=\"{trim}\" stroke=\"{ink}\" stroke-width=\"3\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><circle cx=\"100\" cy=\"158\" r=\"6\" fill=\"{accent}\" stroke=\"{ink}\" stroke-width=\"1.8\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><path d=\"M80,186 L120,186\" fill=\"none\" stroke=\"{ink}\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-opacity=\"0.5\"/>"
+   }
+  }
+ ],
+ "activities": [
+  {
+   "id": "host-typing",
+   "label": "Gõ phím laptop",
+   "group": "Studio",
+   "hint": "ngồi gõ laptop",
+   "posture": "sit-chair",
+   "action": "typing",
+   "state": "normal",
+   "props": [
+    "host-laptop"
+   ]
+  }
+ ]
+}

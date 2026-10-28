@@ -88,7 +88,8 @@
   var LIB = {
     slots: {}, parts: {}, eyeStyles: {}, eyePoses: {}, browStyles: {}, browPoses: {},
     mouths: {}, fx: {}, motions: {}, states: {}, stateOrder: [], traits: [], defaults: {}, profiles: {},
-    postures: {}, moves: {}, props: {}, activities: {}, activityOrder: []
+    postures: {}, moves: {}, props: {}, activities: {}, activityOrder: [],
+    derive: {}, tokenOwner: {}   // v0.26: token màu dẫn xuất (hairShade = hair pha đen…) + gói nào đăng ký token nào
   };
   var ASSETS = {};      // 'pack/id' → asset nhân vật
   var ASSET_ORDER = [];
@@ -143,7 +144,9 @@
       move: function (id, def) { def.id = id; LIB.moves[id] = tag(def, 'move'); },
       prop: function (id, def) { def.id = id; LIB.props[id] = tag(def, 'prop'); },
       activity: function (id, def) { def.id = id; LIB.activities[id] = tag(def, 'activity'); if (LIB.activityOrder.indexOf(id) < 0) LIB.activityOrder.push(id); },
-      defaults: function (pal) { for (var k in pal) LIB.defaults[k] = pal[k]; },
+      defaults: function (pal) { for (var k in pal) { LIB.defaults[k] = pal[k]; LIB.tokenOwner[k] = P.id; } },
+      // v0.26 (E7): token dẫn xuất — nhân vật không khai báo thì engine tính từ token gốc: derive('hairShade', { from: 'hair', to: '#000000', t: 0.28 })
+      derive: function (id, rule) { rule.pack = P.id; LIB.derive[id] = rule; LIB.tokenOwner[id] = P.id; },
       asset: function (def) { registerAsset(P.id, def); },
       item: function (def) { var r = registerItem(P.id, def); if (r.errors.length) throw new Error('item ' + def.id + ': ' + r.errors.join('; ')); },
       // phông (linh kiện của cảnh): draw(C) → chuỗi SVG trong khung 640×360 (đạo cụ cảnh: gốc toạ độ ở chân vật)
@@ -390,13 +393,43 @@
 
   /* ------------------------------------------------------------ 4. COMPOSE */
   var HEX = /^#[0-9a-fA-F]{3,8}$/;
+  // pha hai màu hex (#rgb / #rrggbb, bỏ alpha): mixHex(a, b, t) = a·(1−t) + b·t. Màu không đọc được → trả a
+  function hexRGB(h) {
+    h = String(h || '');
+    if (/^#[0-9a-fA-F]{3,4}$/.test(h)) return [parseInt(h[1] + h[1], 16), parseInt(h[2] + h[2], 16), parseInt(h[3] + h[3], 16)];
+    if (/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(h)) return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+    return null;
+  }
+  function mixHex(a, b, t) {
+    var A = hexRGB(a), B = hexRGB(b);
+    if (!A || !B) return a;
+    return '#' + A.map(function (v, i) { var x = Math.round(v + (B[i] - v) * t); return (x < 16 ? '0' : '') + Math.max(0, Math.min(255, x)).toString(16); }).join('');
+  }
   function palette(asset) {
     var P = {}, k;
     for (k in LIB.defaults) P[k] = LIB.defaults[k];
     // chỉ nhận mã màu hex: công thức có thể do người hoặc AI viết, không cho chèn markup vào SVG
     var src = asset.look.palette || {};
     for (k in src) if (HEX.test(String(src[k]))) P[k] = src[k];
+    // token dẫn xuất (E7): nhân vật không tự khai báo thì tính từ token gốc của chính nó — cel shading theo màu thật, không dùng đen trong suốt
+    for (k in LIB.derive) {
+      var r = LIB.derive[k];
+      if (!(own(src, k) && HEX.test(String(src[k]))) && own(P, r.from)) P[k] = mixHex(P[r.from], r.to, r.t);
+    }
     return P;
+  }
+  // TÂM TRẠNG (E4): nhóm nét mặt đang hiện, suy từ mắt / mày / miệng đã resolve (đạo diễn ghi đè nét mặt thì tâm trạng đổi theo).
+  // Linh kiện dữ liệu khai báo variants.mood.<mood | state id> để đổi lớp vẽ (tóc dựng, tai mèo cụp…) — engine chọn theo bảng này.
+  var MOODS = ['calm', 'happy', 'shock', 'think', 'sad', 'angry', 'smug'];
+  function moodOf(st) {
+    var e = st.eyes, m = st.mouth, b = st.brows;
+    if (e === 'angry' || e === 'fierce' || b === 'angry') return 'angry';
+    if (e === 'wide' || m === 'oBig' || m === 'shout') return 'shock';
+    if (e === 'spiral' || b === 'think' || st.id === 'think' || st.id === 'unsure') return 'think';
+    if (e === 'empty' || e === 'teary' || m === 'wail' || m === 'wavy' || b === 'sad' || b === 'worried') return 'sad';
+    if (e === 'smug') return 'smug';
+    if (e === 'happy' || e === 'star' || m === 'laugh' || m === 'grin') return 'happy';
+    return 'calm';
   }
 
   function num(v, def, min, max) {
@@ -427,15 +460,19 @@
     return t.trim();
   }
 
-  function compose(asset, stateId, director) {
+  // copts.ink (v0.26): màu viền INK cho lần dựng này — thắng palette.ink của nhân vật, thắng hằng INK của engine
+  function compose(asset, stateId, director, copts) {
     var st = resolveState(asset, stateId, director);
+    st.mood = moodOf(st);
     var P = palette(asset);
+    var ink = copts && HEX.test(String(copts.ink || '')) ? copts.ink : HEX.test(String(P.ink || '')) ? P.ink : INK;
+    P.ink = ink;
     var head = getPart('head', partRef(asset, 'head'), asset.pack) || getPart('head', 'round');
     var mask = getPart('mask', partRef(asset, 'mask'), asset.pack);
     P.eyeArea = (mask && mask.eyeArea) || P.skin;
     var K = st.kind || null, Q = K === 'q45', BACK = !!BACK_KINDS[K];
     var shape = K === 'q90' ? head.shape90 || head.shape45 : K === 'q135' ? head.shape135 || head.shape : K === 'q45' ? head.shape45 : null;
-    var C = { P: P, A: RIG.anchors, shape: shape || head.shape, ink: INK, asset: asset, flip: !!st.mirror, st: st, view: K || 'front' };
+    var C = { P: P, A: RIG.anchors, shape: shape || head.shape, ink: ink, asset: asset, flip: !!st.mirror, st: st, view: K || 'front' };
     var out = {};
     LAYER_IDS.forEach(function (l) { out[l] = ''; });
 
@@ -468,8 +505,10 @@
       put(res, p.params ? paramTransform(p.params, vals) : '', K && !vk && !held && !BACK);
     });
 
-    // đạo cụ của tư thế / di chuyển / động tác / hoạt động
-    st.props.forEach(function (id) { put(LIB.props[id].draw(C, st)); });
+    // đạo cụ của tư thế / di chuyển / động tác / hoạt động. Đạo cụ GẮN KHỚP TAY (E8: prop.anchor, z mặc định 'front') vẽ SAU bàn tay → xếp hàng, không bị đồ cầm tay / bàn tay đè
+    var late = [];
+    function putProp(id, side) { var pr = LIB.props[id]; if (pr.anchor && pr.anchor.z !== 'held') late.push([pr, side]); else put(pr.draw(C, st, side)); }
+    st.props.forEach(function (id) { putProp(id); });
 
     // đồ cầm tay: động tác cần tay trống thì cất; đồ dài cất khi tay đưa vào giữa mặt;
     // động tác cầm đạo cụ riêng (bát, sách, bút…) thì thay đồ của nhân vật
@@ -478,7 +517,7 @@
     if (handsBusy(st)) hide.push('heldL', 'heldR');
     ['L', 'R'].forEach(function (s) {
       var pid = mo.hold && mo.hold[s];
-      if (pid && LIB.props[pid] && !handsBusy(st)) { out['held' + s] = ''; put(LIB.props[pid].draw(C, st, s)); hide = hide.filter(function (x) { return x !== 'held' + s; }); hide.push('keep' + s); }
+      if (pid && LIB.props[pid] && !handsBusy(st)) { out['held' + s] = ''; putProp(pid, s); hide = hide.filter(function (x) { return x !== 'held' + s; }); hide.push('keep' + s); }
     });
     st.upright = {};
     ['L', 'R'].forEach(function (s) {
@@ -490,10 +529,11 @@
     });
     out.handL += hand(C, 'L');
     out.handR += hand(C, 'R');
+    late.forEach(function (x) { put(x[0].draw(C, st, x[1])); });
 
     // khuôn mặt = kiểu (theo công thức, có tham số) × dáng (theo trạng thái)
     var es = LIB.eyeStyles[asset.look.eyes] || LIB.eyeStyles.round;
-    var ep = LIB.eyePoses[st.eyes];
+    var ep = (es.poses && own(es.poses, st.eyes) && es.poses[st.eyes]) || LIB.eyePoses[st.eyes];   // E9: kiểu mắt có thể mang bộ dáng mắt riêng
     if (!ep) throw new Error(N_('thiếu dáng mắt {id}', { id: st.eyes }));
     var ev = paramValues(asset, 'eyes', EYE_PARAMS);
     if (!BACK) [-1, 1].forEach(function (side) {
@@ -551,12 +591,13 @@
       if (K === 'q180') ['L', 'R'].forEach(function (s) { out['held' + s + 'b'] += out['held' + s]; out['held' + s] = ''; });
     }
     if (K) st.fallback45 = fbSlots;
+    if (ink !== INK) for (var il in out) if (out[il]) out[il] = out[il].split(INK).join(ink);   // mã engine vẽ bằng hằng INK → đổi sang màu viền của lần dựng
     // nằm: cả người xoay theo root; hiệu ứng ở fxFront/fxBack (chữ Zzz, !!, pháo giấy) xoay ngược quanh đầu để luôn đứng thẳng
     var rr = ((LIB.postures[st.posture] || {}).base || {}).root;
     if (rr && rr.rot) ['fxFront', 'fxBack'].forEach(function (l) {
       if (out[l]) out[l] = '<g transform="rotate(' + (-rr.rot) + ' 100 100)">' + out[l] + '</g>';
     });
-    return { layers: out, state: st };
+    return { layers: out, state: st, ink: ink };
   }
 
   // Tham số khuôn mặt của engine (mọi kiểu mắt/mày/miệng đều hưởng)
@@ -573,7 +614,12 @@
     size: { label: 'Cỡ miệng', min: 0.7, max: 1.4, step: 0.05, def: 1 },
     y: { label: 'Độ cao miệng', min: -4, max: 5, step: 0.5, def: 0 }
   };
-  var HEAD_PARAMS = { size: { label: 'Cỡ đầu (tỉ lệ chibi)', min: 0.85, max: 1.2, step: 0.01, def: 1 } };
+  // size: E2 — hạ cận dưới 0,85 → 0,6 (đầu ≈ thân kiểu mascot dùng 0,9; tỉ lệ cao dùng 0,72). Mặc định 1 giữ nguyên.
+  // legs: E3 — chân dài (đùi giãn, cẳng giữ nguyên, thân nâng đúng phần chân dôi ra); 1 = như cũ
+  var HEAD_PARAMS = {
+    size: { label: 'Cỡ đầu (tỉ lệ chibi)', min: 0.6, max: 1.2, step: 0.01, def: 1 },
+    legs: { label: 'Chân dài', min: 1, max: 1.8, step: 0.05, def: 1 }
+  };
   var FACE_PARAMS = { eyes: EYE_PARAMS, brows: BROW_PARAMS, mouth: MOUTH_PARAMS, rig: HEAD_PARAMS };
 
   function hand(C, side) {
@@ -675,8 +721,9 @@
   }
   // bước chung cuối mọi tư thế (động tác lặp lẫn biên đạo choreo): cỡ đầu theo tham số, vai / hông trượt khi quay 3/4, lật gương
   function finishPose(asset, st, pose) {
-    var hs = paramValues(asset, 'rig', HEAD_PARAMS).size;
+    var rv = paramValues(asset, 'rig', HEAD_PARAMS), hs = rv.size;
     pose.head.sx *= hs; pose.head.sy *= hs;
+    if (rv.legs !== 1) stretchLegs(st, pose, rv.legs);
     if (st.turnLocal) {
       // thân quay ít hơn đầu: vai và hông trượt về phía quay, vai xa thu vào trong nhiều hơn
       var tb = st.turnLocal * (TURNED[st.kind] ? Q45.body : TURN.body), near = st.turnLocal < 0 ? 'R' : 'L', far = near === 'R' ? 'L' : 'R';
@@ -694,6 +741,15 @@
     }
     if (st.mirror) pose.root.sx *= -1;
     return pose;
+  }
+  // Chân dài (E3): đùi giãn L lần dọc trục đùi, cẳng co lại 1/L để cẳng + bàn chân giữ nguyên cỡ (đoạn chân dôi ra = 9·(L−1) đơn vị: từ gối y=203 → 212);
+  // thân nâng đúng đoạn đó × mức chân đang chống đất (đùi đang co lại khi ngồi / nhấc chân thì nâng ít hơn) để bàn chân vẫn chạm đất.
+  // Tư thế nằm / bay / bơi (posture.noLegLift) không nâng: không có mặt đất dưới chân.
+  var LEG_UNIT = 9;
+  function stretchLegs(st, pose, L) {
+    var support = Math.max(0, Math.min(1, Math.max(pose.thighL.sy, pose.thighR.sy)));
+    ['L', 'R'].forEach(function (s) { pose['thigh' + s].sy *= L; pose['shin' + s].sy /= L; });
+    if (!(LIB.postures[st.posture] || {}).noLegLift) pose.root.y -= LEG_UNIT * (L - 1) * support;
   }
   function addTrackJoint(pose, j, chans, u) {
     for (var ch in chans) {
@@ -758,7 +814,7 @@
   // Ruột SVG của nhân vật (toạ độ khung xương, chân ở 100,228) — để cảnh đặt nhân vật vào chỗ đứng
   function svgBody(asset, stateId, opts) {
     opts = opts || {};
-    var c = compose(asset, stateId, opts.director);
+    var c = compose(asset, stateId, opts.director, opts);
     // opts.t: vẽ đúng khung hình tại giây thứ t (xuất sprite sheet, kiểm chuyển động); mặc định khung đứng yên đại diện
     var pose = poseAt(asset, c.state, opts.t || 0, typeof opts.t !== 'number');
     var chain = chainTransforms(pose);
@@ -767,10 +823,93 @@
       var sd = shadowOf(c.state, pose);
       s += '<ellipse cx="' + sd.cx.toFixed(1) + '" cy="229" rx="' + sd.rx.toFixed(1) + '" ry="' + sd.ry.toFixed(1) + '" fill="rgba(20,24,22,' + (0.16 * sd.op).toFixed(3) + ')"/>';
     }
+    // E6: viền ngoài + viền dán nướng vào path — vẽ lại hình bóng các lớp (stroke rộng) NẰM DƯỚI mọi lớp thật, không dùng filter
+    var ol = normalizeOutline(opts.outline, c.ink);
+    if (ol) {
+      var parts = outlineParts(c.layers, ol, jointScales(pose)), w = '', k = '';
+      JOINT_IDS.forEach(function (j) { if (parts[j]) { w += parts[j][0] ? '<g transform="' + chain[j] + '">' + parts[j][0] + '</g>' : ''; k += '<g transform="' + chain[j] + '">' + parts[j][1] + '</g>'; } });
+      s += '<g class="gc-outline">' + w + k + '</g>';
+    }
     RIG.layers.forEach(function (l) {
       if (c.layers[l[0]]) s += '<g transform="' + chain[l[1]] + '">' + c.layers[l[0]] + '</g>';
     });
     return s;
+  }
+
+  /* ------------------------------------------- 5b. VIỀN NƯỚNG VÀO PATH (E6) */
+  // opts.outline = { color?, width?, sticker? } — color mặc định = màu INK của lần dựng · width 0,5–12 (mặc định 3, tính bằng đơn vị khung, KHÔNG đổi theo cỡ khớp)
+  // sticker: true | số (độ dày dải trắng, mặc định 3,4) | { width?, color? } · skip: ['fxBack', …] lớp không viền.
+  // Viền = chính các hình vẽ của từng lớp, tô lại bằng một màu + stroke rộng (trắng rồi ink), đặt DƯỚI các lớp thật → không có filter (L-42).
+  // Chi tiết mờ (opacity < 0,5: đổ bóng, má hồng) và nét mảnh (stroke < 3,5, không tô) bị bỏ khỏi hình bóng cho nhẹ — chúng nằm trong thân.
+  function normalizeOutline(o, ink) {
+    if (!o) return null;
+    if (o === true) o = {};
+    if (typeof o !== 'object') return null;
+    var st = o.sticker, r = { width: num(o.width, 3, 0.5, 12), color: HEX.test(String(o.color || '')) ? o.color : ink, sticker: null, skip: {} };
+    if (st === true) r.sticker = { width: 3.4, color: '#ffffff' };
+    else if (typeof st === 'number' && isFinite(st) && st > 0) r.sticker = { width: num(st, 3.4, 0.5, 12), color: '#ffffff' };
+    else if (st && typeof st === 'object') r.sticker = { width: num(st.width, 3.4, 0.5, 12), color: HEX.test(String(st.color || '')) ? st.color : '#ffffff' };
+    (Array.isArray(o.skip) ? o.skip : []).forEach(function (l) { if (LAYER_IDS.indexOf(l) >= 0) r.skip[l] = 1; });
+    return r;
+  }
+  var SIL_DROP = /^(defs|clipPath|mask|linearGradient|radialGradient|filter|style|title|desc|symbol|pattern|marker)$/;
+  var SIL_SHAPE = /^(path|circle|ellipse|rect|polygon|polyline|line|text)$/;
+  var SIL_TAG = /<(\/?)([A-Za-z][\w:-]*)((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/?)>/g;
+  var SIL_ATTR = /([A-Za-z_:][\w:.-]*)\s*=\s*"([^"]*)"/g;
+  var SIL_PAINT = { fill: 1, stroke: 1, 'stroke-width': 1, 'fill-opacity': 1, 'stroke-opacity': 1, opacity: 1, 'stroke-linecap': 1, 'stroke-linejoin': 1, 'stroke-dasharray': 1, 'stroke-dashoffset': 1 };
+  // hình bóng của một mảng SVG: specs = [{ color, grow }] → chuỗi SVG cho từng spec (dựng cùng một lượt duyệt)
+  function silhouette(svg, specs) {
+    var outs = specs.map(function () { return ''; }), drop = 0, inText = 0, last = 0, m, i;
+    SIL_TAG.lastIndex = 0;
+    while ((m = SIL_TAG.exec(svg))) {
+      var gap = svg.slice(last, m.index); last = SIL_TAG.lastIndex;
+      if (inText && !drop && gap) for (i = 0; i < outs.length; i++) outs[i] += gap;
+      var close = m[1] === '/', tag = m[2], self = m[4] === '/';
+      if (drop) { if (close) drop--; else if (!self) drop++; continue; }
+      if (close) {
+        if (tag === 'g' || tag === 'text') { if (tag === 'text') inText = 0; for (i = 0; i < outs.length; i++) outs[i] += '</' + tag + '>'; }
+        continue;
+      }
+      if (SIL_DROP.test(tag)) { if (!self) drop = 1; continue; }
+      if (tag === 'g') { for (i = 0; i < outs.length; i++) outs[i] += '<g' + m[3] + (self ? '/>' : '>'); continue; }
+      if (!SIL_SHAPE.test(tag)) continue;
+      var rest = '', a = {}, am;
+      SIL_ATTR.lastIndex = 0;
+      while ((am = SIL_ATTR.exec(m[3]))) { if (SIL_PAINT[am[1]]) a[am[1]] = am[2]; else rest += ' ' + am[1] + '="' + am[2] + '"'; }
+      var filled = tag !== 'line' && a.fill !== 'none', sw = a['stroke-width'] !== undefined ? +a['stroke-width'] : 1;
+      var hasStroke = a.stroke !== undefined && a.stroke !== 'none';
+      if ((a['fill-opacity'] !== undefined && +a['fill-opacity'] < 0.5 && filled) || (a.opacity !== undefined && +a.opacity < 0.5)) continue;   // đổ bóng, má hồng: nằm trong thân
+      var base;
+      if (filled) base = hasStroke && isFinite(sw) ? sw : 0;
+      else { if (!hasStroke || !isFinite(sw) || sw < 3.5) continue; base = sw; }   // nét mảnh không tô: chi tiết trong thân
+      for (i = 0; i < outs.length; i++) {
+        outs[i] += '<' + tag + rest + (filled ? ' fill="' + specs[i].color + '"' : ' fill="none"') + ' stroke="' + specs[i].color + '" stroke-width="' + f1n(base + 2 * specs[i].grow) +
+          '" stroke-linejoin="round" stroke-linecap="round"' + (self ? '/>' : '>');
+      }
+      if (tag === 'text' && !self) inText = 1;
+    }
+    return outs;
+  }
+  // độ co giãn đều của từng khớp (căn bậc hai |det|, kẹp 0,6–1,8) — để bề dày viền tính ở không gian màn hình: đầu thu 0,9 vẫn viền đủ dày
+  function jointScales(pose) {
+    var M = jointMatrices(pose), r = {};
+    JOINT_IDS.forEach(function (j) { var m = M[j], d = Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])); r[j] = Math.max(0.6, Math.min(1.8, d || 1)); });
+    return r;
+  }
+  // → { khớp: [chuỗi viền dán (trắng) hoặc '', chuỗi viền ink] } — gộp mọi lớp cùng khớp (hợp hình bóng không cần thứ tự lớp)
+  function outlineParts(layers, ol, scales) {
+    var by = {}, st = ol.sticker;
+    RIG.layers.forEach(function (l) {
+      var c = layers[l[0]];
+      if (!c || ol.skip[l[0]]) return;
+      var j = l[1], k = scales ? scales[j] : 1;
+      var specs = st ? [{ color: st.color, grow: (ol.width + st.width) / k }, { color: ol.color, grow: ol.width / k }] : [{ color: ol.color, grow: ol.width / k }];
+      var r = silhouette(c, specs);
+      if (!r[0] && (!r[1] || !r[1].length)) return;
+      var e = by[j] || (by[j] = ['', '']);
+      if (st) { e[0] += r[0]; e[1] += r[1]; } else e[1] += r[0];
+    });
+    return by;
   }
 
   /* ----------------------------------------------------------- 6. DIRECTOR */
@@ -1264,7 +1403,7 @@
   // (đánh dấu chiếu 45°: engine thay bằng phép chiếu mặt / thân thật lúc dựng — dữ liệu không cần clipPath, url())
   var MARK_CLASS = /^gc-(f45c?|b45[th])$/;
   function sanitizeSvg(src, errs, where, tokens, opts) {
-    var T = tokens || LIB.defaults, O = opts || {};
+    var T = tokens || PENDING_T || LIB.defaults, O = opts || {};
     src = String(src || '');
     if (src.length > 20000) { errs.push(where + ': ' + N_('quá 20 000 ký tự')); return ''; }
     src = src.replace(/\s+/g, ' ');   // gộp khoảng trắng: regex tách thẻ chạy tuyến tính, không bậc hai
@@ -1325,6 +1464,30 @@
       return o;
     }
     d.layers = layers(def.layers, 'layers');
+    // E4: variants.mood = { <tâm trạng | id trạng thái>: { lớp: svg } } — engine chọn theo nét mặt đang hiện; mode 'replace' (mặc định: thay lớp cùng tên) | 'append' (vẽ thêm lên trên lớp gốc)
+    function variants(src, where, marks) {
+      if (src == null) return undefined;
+      var v = { mode: 'replace', mood: {} }, n = 0;
+      if (typeof src !== 'object' || Array.isArray(src) || !src.mood || typeof src.mood !== 'object' || Array.isArray(src.mood)) { errs.push(where + ': ' + N_('cần { mood: { <tâm trạng>: { lớp: svg } } }')); return undefined; }
+      if (src.mode !== undefined) { if (src.mode === 'replace' || src.mode === 'append') v.mode = src.mode; else errs.push(where + '.mode: ' + N_('chọn replace | append')); }
+      Object.keys(src.mood).slice(0, 24).forEach(function (m) {
+        if (MOODS.indexOf(m) < 0 && !own(LIB.states, m)) { errs.push(where + '.mood.' + String(m).slice(0, 30) + ': ' + N_('không phải tâm trạng ({moods}) hay id trạng thái trong kho', { moods: MOODS.join(', ') })); return; }
+        var L = layers(src.mood[m], where + '.mood.' + m, marks);
+        if (Object.keys(L).length) { v.mood[m] = L; n++; }
+      });
+      if (!n) errs.push(where + ': ' + N_('chưa có tâm trạng nào vẽ được'));
+      return v;
+    }
+    if (def.variants !== undefined) { var vv = variants(def.variants, 'variants', false); if (vv) d.variants = vv; }
+    // dáng đầu (E5): linh kiện slot head khai báo viền đầu — mọi <path d="{shape}"> trong linh kiện khác (mặt nạ, tóc sau gáy) khít theo viền này
+    if (d.slot === 'head') {
+      ['shape', 'shape45', 'shape90', 'shape135'].forEach(function (k) {
+        var v = def[k];
+        if (v === undefined) { if (k === 'shape') errs.push('shape: ' + N_('dáng đầu cần viền đầu shape (path d, toạ độ khung 200 × 240)')); return; }
+        if (typeof v !== 'string' || !SVG_ATTRS.d.test(v) || v.length > 2000 || !/^\s*M/.test(v)) errs.push(k + ': ' + N_('cần path d hợp lệ, bắt đầu bằng M, tối đa 2000 ký tự'));
+        else d[k] = v.replace(/\s+/g, ' ').trim();
+      });
+    } else if (def.shape !== undefined || def.shape45 !== undefined || def.shape90 !== undefined || def.shape135 !== undefined) errs.push('shape: ' + N_('chỉ dáng đầu (slot head) mới có viền đầu'));
     if (def.icon) {   // khung icon khi linh kiện được dùng làm item (vật cầm tay…)
       var ic = def.icon;
       if (![ic.cx, ic.cy, ic.size].every(function (x) { return typeof x === 'number' && isFinite(x); })) errs.push('icon: ' + N_('cần cx, cy, size (số)'));
@@ -1334,7 +1497,7 @@
     var mode = v && (typeof v === 'string' ? v : v.mode);
     if (['drawn', 'same', 'face45', 'body45'].indexOf(mode) < 0) errs.push('views.q45: ' + N_('bắt buộc, chọn mode drawn (kèm layers) | same | face45 | body45 — xem quy trình 45°'));
     d.views = { q45: { mode: mode } };
-    if (mode === 'drawn') d.views.q45.layers = layers(v.layers, 'views.q45.layers', true);
+    if (mode === 'drawn') { d.views.q45.layers = layers(v.layers, 'views.q45.layers', true); var qv = variants(v.variants, 'views.q45.variants', true); if (qv) d.views.q45.variants = qv; }
     // 8 hướng (tuỳ chọn): q90 nghiêng hẳn · q135 sau-45° · q180 sau lưng. drawn | same (= bản 45°) | front (= bản chính diện) | hide
     ['q90', 'q135', 'q180'].forEach(function (k) {
       var w = def.views && def.views[k];
@@ -1342,7 +1505,7 @@
       var m = typeof w === 'string' ? w : w.mode;
       if (['drawn', 'same', 'front', 'hide'].indexOf(m) < 0) { errs.push('views.' + k + ': ' + N_('mode drawn (kèm layers) | same | front | hide')); return; }
       d.views[k] = { mode: m };
-      if (m === 'drawn') d.views[k].layers = layers(w.layers, 'views.' + k + '.layers', true);
+      if (m === 'drawn') { d.views[k].layers = layers(w.layers, 'views.' + k + '.layers', true); var wv = variants(w.variants, 'views.' + k + '.variants', true); if (wv) d.views[k].variants = wv; }
     });
     // thuộc tính riêng theo bộ phận: mặt nạ tô vùng quanh mắt (mặt nạ kinh kịch) · vật cầm tay dài (giấu khi động tác cần hai tay) / cầm nghiêng
     if (def.eyeArea !== undefined) { if (d.slot === 'mask' && /^#[0-9a-fA-F]{6}$/.test(String(def.eyeArea))) d.eyeArea = def.eyeArea; else errs.push('eyeArea: ' + N_('chỉ cho mặt nạ (mask), mã hex #rrggbb')); }
@@ -1379,7 +1542,7 @@
     if ((d.slot === 'heldL' || d.slot === 'heldR') && !d.icon) w.push(N_('Vật cầm tay chưa có icon { cx, cy, size, rot }: thẻ trang bị sẽ lấy khung mặc định.'));
     return w;
   }
-  function fillTokens(svg, P, shape) { return svg.replace(/\{([a-zA-Z]{1,20})\}/g, function (_, k) { return k === 'ink' ? INK : k === 'shape' ? shape || 'M100,100Z' : (own(P, k) && HEX.test(P[k]) ? P[k] : '#ff00ff'); }); }
+  function fillTokens(svg, P, shape) { return svg.replace(/\{([a-zA-Z]{1,20})\}/g, function (_, k) { return k === 'ink' ? (P && typeof P.ink === 'string' && HEX.test(P.ink) ? P.ink : INK) : k === 'shape' ? shape || 'M100,100Z' : (own(P, k) && HEX.test(P[k]) ? P[k] : '#ff00ff'); }); }
   // thay đánh dấu chiếu <g class="gc-…">…</g> bằng phép chiếu thật (helpers của thư viện lõi). Vòng lặp tuyến tính, KHÔNG đệ quy vào
   // nội dung (bộ lọc đã cấm lồng; đệ quy + phép chiếu nhân đôi = phình luỹ thừa); bỏ qua <g …/> tự đóng khi đếm cặp; nhóm không cân → để nguyên
   function expandMarks(svg, C) {
@@ -1413,14 +1576,28 @@
       P.counts.scenery = Object.keys(LIB.parts).filter(function (k) { return k.indexOf(packId + '/') === 0 && LIB.parts[k].kind === 'scenery'; }).length;
       return { errors: [], def: d, part: sp };
     }
-    function draw(L) { return function (C) { var o = {}; for (var l in L) o[l] = expandMarks(fillTokens(L[l], C.P, C.shape), C); return o; }; }
-    var front = draw(d.layers), q = d.views.q45, q45;
-    if (q.mode === 'drawn') q45 = draw(q.layers);
+    // E4: biến thể theo tâm trạng — khoá tâm trạng suy từ nét mặt đang hiện (moodOf) thắng id trạng thái; không khớp thì giữ lớp gốc
+    function pick(V, C) {
+      if (!V) return null;
+      var st = C.st || {}, m = st.mood || moodOf(st);
+      return own(V.mood, m) ? V.mood[m] : own(V.mood, st.id) ? V.mood[st.id] : null;
+    }
+    function layersOf(L, V, C) {
+      var ov = pick(V, C);
+      if (!ov) return L;
+      var src = {}, l;
+      for (l in L) src[l] = L[l];
+      for (l in ov) src[l] = V.mode === 'append' && L[l] ? L[l] + ov[l] : ov[l];
+      return src;
+    }
+    function draw(L, V) { return function (C) { var o = {}, src = V ? layersOf(L, V, C) : L; for (var l in src) o[l] = expandMarks(fillTokens(src[l], C.P, C.shape), C); return o; }; }
+    var front = draw(d.layers, d.variants), q = d.views.q45, q45;
+    if (q.mode === 'drawn') q45 = draw(q.layers, q.variants);
     else if (q.mode === 'same') q45 = front;
     // face45: viền đầu {shape} giữ nguyên (đã là dáng đầu 45°), chỉ chiếu phần hoạ tiết bám mặt
     else if (q.mode === 'face45') q45 = function (C) {
-      var o = {};
-      for (var l in d.layers) { var raw = d.layers[l], base = (raw.match(SHAPE_EL) || []).join(''); o[l] = fillTokens(base, C.P, C.shape) + G.GenChibi.helpers.face45(C, fillTokens(raw.replace(SHAPE_EL, ''), C.P, C.shape), l === 'mask'); }
+      var o = {}, src = layersOf(d.layers, d.variants, C);
+      for (var l in src) { var raw = src[l], base = (raw.match(SHAPE_EL) || []).join(''); o[l] = fillTokens(base, C.P, C.shape) + G.GenChibi.helpers.face45(C, fillTokens(raw.replace(SHAPE_EL, ''), C.P, C.shape), l === 'mask'); }
       return o;
     };
     else q45 = function (C) { var o = front(C), H = G.GenChibi.helpers; for (var l in o) o[l] = l === 'hem' ? H.body45(o[l], H.HEM) : l === 'body' ? H.body45(o[l], H.TORSO_UP) : o[l]; return o; };
@@ -1428,13 +1605,554 @@
     ['q90', 'q135', 'q180'].forEach(function (k) {
       var w = d.views[k];
       if (!w) return;
-      views[k] = w.mode === 'drawn' ? draw(w.layers) : w.mode === 'same' ? q45 : w.mode === 'front' ? front : function () { return null; };
+      views[k] = w.mode === 'drawn' ? draw(w.layers, w.variants) : w.mode === 'same' ? q45 : w.mode === 'front' ? front : function () { return null; };
     });
     var part = { slot: d.slot, id: d.id, label: d.label, draw: front, views: views, params: d.params, data: d, icon: d.icon,
       eyeArea: d.eyeArea, tall: d.tall, upright: d.upright, grip: d.grip, source: 'data:' + packId, license: P.license, pack: packId };
+    if (d.slot === 'head') { part.shape = d.shape; if (d.shape45) part.shape45 = d.shape45; if (d.shape90) part.shape90 = d.shape90; if (d.shape135) part.shape135 = d.shape135; }
     LIB.parts[packId + '/' + d.slot + ':' + d.id] = part;
     P.counts.part = Object.keys(LIB.parts).filter(function (k) { return k.indexOf(packId + '/') === 0 && LIB.parts[k].kind !== 'scenery'; }).length;
     return { errors: [], def: d, part: part };
+  }
+
+  /* ------------------------------------------- 7b. GÓI DỮ LIỆU (v0.26, E5 / E7 / E8 / E9) */
+  // Một gói (pack) THUẦN JSON: token màu, kiểu mắt (kèm bộ dáng mắt riêng), dáng mắt, kiểu / dáng mày, miệng, linh kiện (kể cả dáng đầu, biến thể tâm trạng),
+  // đạo cụ (gắn khớp tay), hiệu ứng, động tác, hoạt động, nhân vật. Không mã, không hàm: mọi SVG đi qua sanitizeSvg, mọi con số qua bộ biểu thức an toàn.
+  // checkDataPack(def) kiểm TRỌN gói trước khi đụng kho (lỗi → không đăng ký gì); registerDataPack(def) kiểm rồi đăng ký, nhân vật phải qua cổng gate.
+  var PENDING_T = null;   // bảng token tạm trong lúc kiểm một gói (token của gói chưa vào LIB.defaults)
+  var EXPR_FN = {
+    min: Math.min, max: Math.max, abs: Math.abs, sqrt: Math.sqrt, round: Math.round, floor: Math.floor, ceil: Math.ceil, sin: Math.sin, cos: Math.cos,
+    pow: Math.pow, clamp: function (v, a, b) { return Math.max(a, Math.min(b, v)); }, iff: function (c, a, b) { return c ? a : b; }
+  };
+  // Biểu thức số an toàn (KHÔNG eval / Function): số, tên biến, + − * / %, so sánh, && || !, c ? a : b, hàm (min max abs sqrt round floor ceil sin cos pow clamp iff), ngoặc.
+  // names: bảng tên biến hợp lệ (kiểm lúc biên dịch). Trả hàm (ctx) → số. Ném Error có thông điệp tiếng Việt khi sai.
+  function compileExpr(src, names) {
+    src = String(src);
+    if (src.length > 200) throw new Error(N_('biểu thức quá dài (tối đa 200 ký tự)'));
+    var toks = [], re = /\s*(?:(\d+\.?\d*|\.\d+)|([A-Za-z_]\w*)|(<=|>=|==|!=|&&|\|\||[-+*\/%()<>?:,!]))/y, pos = 0, m;
+    while (pos < src.length) {
+      re.lastIndex = pos; m = re.exec(src);
+      if (!m) { if (!src.slice(pos).trim()) break; throw new Error(N_('ký tự lạ trong biểu thức gần "{text}"', { text: src.slice(pos, pos + 12) })); }
+      pos = re.lastIndex;
+      toks.push(m[1] !== undefined ? { n: +m[1] } : m[2] !== undefined ? { id: m[2] } : { op: m[3] });
+    }
+    if (!toks.length) throw new Error(N_('biểu thức rỗng'));
+    var i = 0, depth = 0;
+    function isOp(o) { return toks[i] && toks[i].op === o; }
+    function eat(o) { if (!isOp(o)) throw new Error(N_('thiếu "{op}" trong biểu thức', { op: o })); i++; }
+    function level(next, table) {
+      return function () {
+        var l = next();
+        while (toks[i] && toks[i].op && own(table, toks[i].op)) {
+          var g = table[toks[i].op]; i++;
+          l = (function (a, b, h) { return function (x) { return h(a(x), b(x)); }; })(l, next(), g);
+        }
+        return l;
+      };
+    }
+    function unary() {
+      if (isOp('-')) { i++; var a = unary(); return function (x) { return -a(x); }; }
+      if (isOp('+')) { i++; return unary(); }
+      if (isOp('!')) { i++; var b = unary(); return function (x) { return b(x) ? 0 : 1; }; }
+      return primary();
+    }
+    function primary() {
+      var t = toks[i];
+      if (!t) throw new Error(N_('biểu thức cụt'));
+      if (++depth > 24) throw new Error(N_('biểu thức lồng quá sâu'));
+      var r;
+      if (t.n !== undefined) { i++; r = (function (v) { return function () { return v; }; })(t.n); }
+      else if (t.id !== undefined) {
+        i++;
+        if (isOp('(')) {
+          if (!own(EXPR_FN, t.id)) throw new Error(N_('hàm lạ "{id}" (có: {ids})', { id: t.id, ids: Object.keys(EXPR_FN).join(', ') }));
+          i++;
+          var args = [];
+          if (!isOp(')')) { do { args.push(ternary()); } while (isOp(',') && ++i); }
+          eat(')');
+          var fn = EXPR_FN[t.id];
+          r = function (x) { return fn.apply(null, args.map(function (a) { return a(x); })); };
+        } else {
+          if (!own(names, t.id)) throw new Error(N_('biến lạ "{id}" (có: {ids})', { id: t.id, ids: Object.keys(names).slice(0, 14).join(', ') }));
+          r = (function (k) { return function (x) { var v = x[k]; return typeof v === 'number' ? v : 0; }; })(t.id);
+        }
+      } else if (isOp('(')) { i++; r = ternary(); eat(')'); }
+      else throw new Error(N_('"{op}" không đứng được ở đây trong biểu thức', { op: t.op }));
+      depth--;
+      return r;
+    }
+    var mul = level(unary, { '*': function (a, b) { return a * b; }, '/': function (a, b) { return b ? a / b : 0; }, '%': function (a, b) { return b ? a % b : 0; } });
+    var add = level(mul, { '+': function (a, b) { return a + b; }, '-': function (a, b) { return a - b; } });
+    var rel = level(add, { '<': function (a, b) { return a < b ? 1 : 0; }, '>': function (a, b) { return a > b ? 1 : 0; }, '<=': function (a, b) { return a <= b ? 1 : 0; }, '>=': function (a, b) { return a >= b ? 1 : 0; } });
+    var eq = level(rel, { '==': function (a, b) { return a === b ? 1 : 0; }, '!=': function (a, b) { return a !== b ? 1 : 0; } });
+    var and = level(eq, { '&&': function (a, b) { return a && b ? 1 : 0; } });
+    var or = level(and, { '||': function (a, b) { return a || b ? 1 : 0; } });
+    function ternary() {
+      var c = or();
+      if (isOp('?')) { i++; var a = ternary(); eat(':'); var b = ternary(); return function (x) { return c(x) ? a(x) : b(x); }; }
+      return c;
+    }
+    var out = ternary();
+    if (i < toks.length) throw new Error(N_('thừa "{op}" cuối biểu thức', { op: toks[i].op || toks[i].id || toks[i].n }));
+    return out;
+  }
+  function f1n(v) { v = Math.max(-9999, Math.min(9999, v)); return String(Math.round(v * 100) / 100); }
+  function fnum(v) { return isFinite(v) ? f1n(v) : '0'; }
+  // Mẫu SVG có chỗ điền số: {=biểu thức} (số) · {token} (màu bảng màu) · {ink}. Kiểm bằng cách dựng thử với số mẫu rồi cho qua sanitizeSvg:
+  // đầu ra thật chỉ khác đầu ra thử ở các con số (đã kẹp ±9999, làm tròn 2 số lẻ) nên vẫn đi qua bộ lọc.
+  function compileTpl(src, names, errs, where, T) {
+    src = String(src == null ? '' : src);
+    if (src.length > 6000) { errs.push(where + ': ' + N_('quá 6 000 ký tự')); return null; }
+    var segs = [], last = 0, re = /\{=([^{}]{1,200})\}/g, m, dummy = {}, k;
+    for (k in names) dummy[k] = 7;
+    while ((m = re.exec(src))) {
+      segs.push(src.slice(last, m.index));
+      try { segs.push(compileExpr(m[1], names)); } catch (e) { errs.push(where + ': ' + e.message); return null; }
+      last = re.lastIndex;
+    }
+    segs.push(src.slice(last));
+    var tpl = { segs: segs }, n0 = errs.length;
+    sanitizeSvg(runTpl(tpl, dummy), errs, where, T);
+    return errs.length > n0 ? null : tpl;
+  }
+  function runTpl(tpl, ctx) {
+    var s = '', i, g;
+    for (i = 0; i < tpl.segs.length; i++) { g = tpl.segs[i]; s += typeof g === 'string' ? g : fnum(g(ctx)); }
+    return s;
+  }
+  // svg: chuỗi | mảng phần tử (chuỗi | { if: biểu thức, svg: chuỗi }) — phần có "if" chỉ vẽ khi biểu thức khác 0
+  function compileParts(items, names, errs, where, T) {
+    if (typeof items === 'string') items = [items];
+    if (!Array.isArray(items) || !items.length || items.length > 24) { errs.push(where + ': ' + N_('cần svg — một chuỗi hoặc mảng 1–24 phần')); return null; }
+    var out = [], total = 0, n0 = errs.length;
+    items.forEach(function (it, i) {
+      var w = where + '[' + i + ']', cond = null, svg = it;
+      if (it && typeof it === 'object' && !Array.isArray(it)) {
+        Object.keys(it).forEach(function (k) { if (k !== 'svg' && k !== 'if') errs.push(w + ': ' + N_('khoá lạ "{key}"', { key: String(k).slice(0, 30) })); });
+        svg = it.svg;
+        if (it['if'] !== undefined) { try { cond = compileExpr(it['if'], names); } catch (e) { errs.push(w + '.if: ' + e.message); return; } }
+      }
+      if (typeof svg !== 'string') { errs.push(w + ': ' + N_('svg phải là chuỗi')); return; }
+      total += svg.length;
+      var tpl = compileTpl(svg, names, errs, w, T);
+      if (tpl) out.push({ cond: cond, tpl: tpl });
+    });
+    if (total > 12000) errs.push(where + ': ' + N_('tổng svg quá 12 000 ký tự'));
+    return errs.length > n0 ? null : out;
+  }
+  function runParts(parts, ctx, P) {
+    var s = '', i;
+    for (i = 0; i < parts.length; i++) if (!parts[i].cond || parts[i].cond(ctx)) s += runTpl(parts[i].tpl, ctx);
+    return fillTokens(s, P);
+  }
+  // biến: { tên: số | biểu thức } — tính tuần tự (biến sau dùng được biến trước). Trả danh sách đã biên dịch + bảng tên (bản sao, có thêm tên biến)
+  var VAR_NAME = /^[a-zA-Z][a-zA-Z0-9]{0,15}$/;
+  function compileVars(vars, names, reserved, errs, where) {
+    var list = [], nm = Object.assign({}, names);
+    if (vars === undefined) return { list: list, names: nm };
+    if (!vars || typeof vars !== 'object' || Array.isArray(vars) || Object.keys(vars).length > 16) { errs.push(where + ': ' + N_('vars phải là object { tên: số | biểu thức }, tối đa 16 biến')); return { list: list, names: nm }; }
+    Object.keys(vars).forEach(function (k) {
+      var v = vars[k], w = where + '.' + k;
+      if (!VAR_NAME.test(k) || own(reserved, k) || own(EXPR_FN, k)) { errs.push(w + ': ' + N_('tên biến chỉ gồm chữ + số (≤ 16), không trùng biến có sẵn / tên hàm')); return; }
+      try {
+        if (typeof v === 'number' && isFinite(v)) list.push({ k: k, v: v });
+        else if (typeof v === 'string') list.push({ k: k, fn: compileExpr(v, nm) });
+        else { errs.push(w + ': ' + N_('cần số hoặc biểu thức')); return; }
+        nm[k] = 1;
+      } catch (e) { errs.push(w + ': ' + e.message); }
+    });
+    return { list: list, names: nm };
+  }
+  function evalVars(list, ctx) { for (var i = 0; i < list.length; i++) ctx[list[i].k] = list[i].fn ? +fnum(list[i].fn(ctx)) : list[i].v; }
+  function evalTokens() { var T = Object.assign({}, PENDING_T || LIB.defaults); T.ink = 1; T.eyeArea = 1; return T; }   // màu dùng được trong mắt / miệng / đạo cụ: bảng màu + {ink} + vùng quanh mắt
+  var DATA_ID = /^[a-z][a-zA-Z0-9-]{1,29}$/;
+  function idErr(errs, where, id) { if (!DATA_ID.test(String(id || ''))) errs.push(where + '.id: ' + N_('chữ thường đầu, chữ + số + gạch nối, 2–30 ký tự')); }
+  function lbl(v, id, n) { return plain(v == null ? id : v, n || 40) || id; }
+  function numIn(errs, where, v, lo, hi, def) {
+    if (v === undefined) return def;
+    if (typeof v !== 'number' || !isFinite(v) || v < lo || v > hi) { errs.push(where + ': ' + N_('số trong [{min}, {max}]', { min: lo, max: hi })); return def; }
+    return v;
+  }
+  function knownKeys(o, ok, errs, where) { Object.keys(o).forEach(function (k) { if (ok.indexOf(k) < 0) errs.push(where + ': ' + N_('khoá lạ "{key}"', { key: String(k).slice(0, 30) })); }); }
+  function isObj(x) { return !!x && typeof x === 'object' && !Array.isArray(x); }
+
+  // --- dáng mắt (global hoặc riêng của một kiểu mắt) ---
+  // biến có sẵn: x, y = tâm mắt · w, h = nửa rộng / nửa cao của kiểu mắt · side = −1 mắt trái, +1 mắt phải · lid, slant = của kiểu mắt (0 nếu không có)
+  var EYE_NAMES = { x: 1, y: 1, w: 1, h: 1, side: 1, lid: 1, slant: 1 };
+  // Thứ tự tính của một dáng thuộc kiểu mắt: style.vars (mặc định) → pose.vars (ghi đè) → style.calc (tính SAU khi dáng đã chọn xong biến) → vẽ svg
+  function checkEyePose(p, where, errs, T, styleNames, calcNames) {
+    if (!isObj(p)) { errs.push(where + ': ' + N_('dáng mắt phải là object')); return null; }
+    knownKeys(p, ['id', 'label', 'vars', 'svg'], errs, where);
+    var cv = compileVars(p.vars, styleNames || EYE_NAMES, EYE_NAMES, errs, where + '.vars');
+    return { vlist: cv.list, names: Object.assign({}, cv.names, calcNames || {}), parts: p.svg === undefined ? null : compileParts(p.svg, Object.assign({}, cv.names, calcNames || {}), errs, where + '.svg', T), hasSvg: p.svg !== undefined };
+  }
+  function eyeFn(style, d) {
+    return function (S, side, x, y, C) {
+      var ctx = { x: x, y: y, w: S.w, h: S.h, side: side, lid: S.lid || 0, slant: S.slant || 0 };
+      if (style) evalVars(style.vlist, ctx);
+      evalVars(d.vlist, ctx);
+      if (style) evalVars(style.calc, ctx);
+      return runParts(d.parts, ctx, C.P);
+    };
+  }
+  function checkEyeStyle(s, where, errs, T) {
+    var d = { poses: {} };
+    if (!isObj(s)) { errs.push(where + ': ' + N_('kiểu mắt phải là object')); return null; }
+    knownKeys(s, ['id', 'label', 'w', 'h', 'lid', 'slant', 'small', 'vars', 'calc', 'template', 'poses'], errs, where);
+    idErr(errs, where, s.id);
+    d.id = String(s.id || ''); d.label = lbl(s.label, d.id);
+    d.w = numIn(errs, where + '.w', s.w, 3, 24, 9); d.h = numIn(errs, where + '.h', s.h, 2, 24, 11);
+    if (s.lid !== undefined) d.lid = numIn(errs, where + '.lid', s.lid, 0, 0.9, 0);
+    if (s.slant !== undefined) d.slant = numIn(errs, where + '.slant', s.slant, -30, 30, 0);
+    if (s.small !== undefined) d.small = !!s.small;
+    var sv = compileVars(s.vars, EYE_NAMES, EYE_NAMES, errs, where + '.vars');
+    d.vlist = sv.list;
+    var P = s.poses;
+    if (P !== undefined && (!isObj(P) || Object.keys(P).length > 40)) { errs.push(where + '.poses: ' + N_('object { id dáng: { vars?, svg? } }, tối đa 40 dáng')); P = undefined; }
+    // tên biến dùng được trong mẫu chung = biến của kiểu mắt ∪ biến của mọi dáng (dáng không khai thì biến đó = 0)
+    var all = Object.assign({}, sv.names);
+    Object.keys(P || {}).forEach(function (k) { var v = P[k] && P[k].vars; if (isObj(v)) Object.keys(v).forEach(function (n) { if (VAR_NAME.test(n) && !own(EYE_NAMES, n)) all[n] = 1; }); });
+    // calc: biến tính sau khi dáng đã đặt xong biến của nó (vd. nửa rộng mắt = w · k, với k do từng dáng quyết định)
+    var cc = compileVars(s.calc, all, EYE_NAMES, errs, where + '.calc');
+    d.calc = cc.list;
+    var tpl = null;
+    if (s.template !== undefined) tpl = compileParts(s.template, cc.names, errs, where + '.template', T);
+    Object.keys(P || {}).forEach(function (k) {
+      var w = where + '.poses.' + k;
+      if (!DATA_ID.test(k)) { errs.push(w + ': ' + N_('id dáng mắt: chữ thường đầu, chữ + số + gạch nối, 2–30 ký tự')); return; }
+      var q = checkEyePose(P[k], w, errs, T, sv.names, cc.names);
+      if (!q) return;
+      if (!q.hasSvg) { if (tpl) q.parts = tpl; else if (s.template === undefined) errs.push(w + ': ' + N_('cần svg hoặc template chung của kiểu mắt')); }
+      if (q.parts) d.poses[k] = q;
+    });
+    return d;
+  }
+  function checkBrowStyle(s, where, errs) {
+    if (!isObj(s)) { errs.push(where + ': ' + N_('kiểu mày phải là object')); return { id: '' }; }
+    knownKeys(s, ['id', 'label', 'w', 'len'], errs, where);
+    idErr(errs, where, s.id);
+    var id = String(s.id || '');
+    return { id: id, label: lbl(s.label, id), w: numIn(errs, where + '.w', s.w, 1, 14, 3.8), len: numIn(errs, where + '.len', s.len, 6, 40, 14) };
+  }
+  function checkBrowPose(s, where, errs) {
+    if (!isObj(s)) { errs.push(where + ': ' + N_('dáng mày phải là object')); return { id: '' }; }
+    knownKeys(s, ['id', 'label', 'rot', 'dy', 'arc', 'rotR', 'dyR'], errs, where);
+    idErr(errs, where, s.id);
+    var id = String(s.id || ''), d = { id: id, label: lbl(s.label, id) };
+    d.rot = numIn(errs, where + '.rot', s.rot, -60, 60, 0); d.dy = numIn(errs, where + '.dy', s.dy, -24, 24, 0); d.arc = numIn(errs, where + '.arc', s.arc, -12, 12, 2);
+    if (s.rotR !== undefined) d.rotR = numIn(errs, where + '.rotR', s.rotR, -60, 60, 0);
+    if (s.dyR !== undefined) d.dyR = numIn(errs, where + '.dyR', s.dyR, -24, 24, 0);
+    return d;
+  }
+  var MOUTH_NAMES = { x: 1, y: 1 };   // mỏ neo miệng (100, 131)
+  function checkMouth(s, where, errs, T) {
+    var d = {};
+    if (!isObj(s)) { errs.push(where + ': ' + N_('miệng phải là object')); return null; }
+    knownKeys(s, ['id', 'label', 'vars', 'svg'], errs, where);
+    idErr(errs, where, s.id);
+    d.id = String(s.id || ''); d.label = lbl(s.label, d.id);
+    var cv = compileVars(s.vars, MOUTH_NAMES, MOUTH_NAMES, errs, where + '.vars');
+    d.vlist = cv.list; d.parts = compileParts(s.svg, cv.names, errs, where + '.svg', T);
+    return d;
+  }
+  // --- đạo cụ, hiệu ứng ---
+  var PROP_LAYERS = ['propBack', 'propMid', 'propFront', 'heldL', 'heldR', 'held'];
+  var FX_LAYERS = ['fxBack', 'fxHead', 'fxFront', 'cheeks'];
+  function plainLayers(src, allow, where, errs, T) {
+    var o = {}, n = 0;
+    if (!isObj(src)) { errs.push(where + ': ' + N_('cần object { lớp: svg }')); return o; }
+    Object.keys(src).forEach(function (l) {
+      if (allow.indexOf(l) < 0) { errs.push(where + '.' + String(l).slice(0, 24) + ': ' + N_('lớp không dùng được ở đây (chọn {ids})', { ids: allow.join(', ') })); return; }
+      var c = sanitizeSvg(src[l], errs, where + '.' + l, T);
+      if (c) { o[l] = c; n++; }
+    });
+    if (!n) errs.push(where + ': ' + N_('chưa có lớp nào vẽ được'));
+    return o;
+  }
+  // anchor (E8): { joint: handL | handR | hand (theo tay đang cầm, mặc định phải), dx?, dy?, rot?, scale?, z?: front | held }. Lớp "held" vẽ trong toạ độ CỤC BỘ của bàn tay:
+  // gốc (0, 0) = điểm nắm (RIG.anchors.gripL / gripR), nằm trên khớp handL / handR nên đi cùng cánh tay ở mọi tư thế; z "front" (mặc định) = trên bàn tay, "held" = lớp đồ cầm tay (bị cất khi động tác cất tay).
+  function checkProp(s, where, errs, T) {
+    if (!isObj(s)) { errs.push(where + ': ' + N_('đạo cụ phải là object')); return null; }
+    knownKeys(s, ['id', 'label', 'anchor', 'layers'], errs, where);
+    idErr(errs, where, s.id);
+    var d = { id: String(s.id || ''), label: lbl(s.label, String(s.id || '')) };
+    d.layers = plainLayers(s.layers, PROP_LAYERS, where + '.layers', errs, T);
+    if (s.anchor !== undefined) {
+      var a = s.anchor;
+      if (!isObj(a)) errs.push(where + '.anchor: ' + N_('cần object { joint, dx?, dy?, rot?, scale?, z? }'));
+      else {
+        knownKeys(a, ['joint', 'dx', 'dy', 'rot', 'scale', 'z'], errs, where + '.anchor');
+        if (['handL', 'handR', 'hand'].indexOf(a.joint) < 0) errs.push(where + '.anchor.joint: ' + N_('chọn handL | handR | hand'));
+        if (a.z !== undefined && ['front', 'held'].indexOf(a.z) < 0) errs.push(where + '.anchor.z: ' + N_('chọn front | held'));
+        d.anchor = { joint: a.joint, dx: numIn(errs, where + '.anchor.dx', a.dx, -120, 120, 0), dy: numIn(errs, where + '.anchor.dy', a.dy, -120, 120, 0),
+          rot: numIn(errs, where + '.anchor.rot', a.rot, -360, 360, 0), scale: numIn(errs, where + '.anchor.scale', a.scale, 0.05, 6, 1), z: a.z || 'front' };
+      }
+    }
+    if (own(d.layers, 'held') && !d.anchor) errs.push(where + '.layers.held: ' + N_('lớp "held" (toạ độ cục bộ của bàn tay) cần anchor'));
+    if (d.anchor && !own(d.layers, 'held')) errs.push(where + '.anchor: ' + N_('anchor chỉ đi với lớp "held"'));
+    return d;
+  }
+  function propFn(d) {
+    var A = d.anchor, ly = d.layers;
+    return function (C, st, side) {
+      var o = {}, l, s = A ? (A.joint === 'handL' ? 'L' : A.joint === 'handR' ? 'R' : side === 'L' ? 'L' : 'R') : '';
+      for (l in ly) {
+        var c = fillTokens(ly[l], C.P);
+        if (l === 'held') {
+          var g = s === 'L' ? C.A.gripL : C.A.gripR, k = (A.z === 'held' ? 'held' : 'hand') + s;
+          o[k] = (o[k] || '') + '<g transform="translate(' + f1n(g[0] + A.dx) + ' ' + f1n(g[1] + A.dy) + ')' + (A.rot ? ' rotate(' + f1n(A.rot) + ')' : '') + (A.scale !== 1 ? ' scale(' + f1n(A.scale) + ')' : '') + '">' + c + '</g>';
+        } else o[l] = (o[l] || '') + c;
+      }
+      return o;
+    };
+  }
+  function checkFx(s, where, errs, T) {
+    if (!isObj(s)) { errs.push(where + ': ' + N_('hiệu ứng phải là object')); return null; }
+    knownKeys(s, ['id', 'label', 'face', 'layers'], errs, where);
+    idErr(errs, where, s.id);
+    var d = { id: String(s.id || ''), label: lbl(s.label, String(s.id || '')), face: !!s.face };
+    d.layers = plainLayers(s.layers, FX_LAYERS, where + '.layers', errs, T);
+    d.layer = Object.keys(d.layers)[0] || 'fxHead';
+    return d;
+  }
+  // --- động tác, hoạt động ---
+  var CH_RANGE = { x: [-300, 300], y: [-300, 300], rot: [-1080, 1080], sx: [0.01, 6], sy: [0.01, 6] };
+  function checkMotion(s, where, errs, hasProp) {
+    if (!isObj(s)) { errs.push(where + ': ' + N_('động tác phải là object')); return null; }
+    knownKeys(s, ['id', 'label', 'dur', 'still', 'breath', 'loop', 'tracks', 'hide', 'hold', 'props'], errs, where);
+    idErr(errs, where, s.id);
+    var d = { id: String(s.id || ''), label: lbl(s.label, String(s.id || '')), dur: numIn(errs, where + '.dur', s.dur, 0.1, 12, 1), still: numIn(errs, where + '.still', s.still, 0, 1, 0.25), tracks: {} };
+    if (s.breath === false) d.breath = false;
+    if (s.loop === false) d.loop = false;
+    var T = s.tracks, nj = 0;
+    if (!isObj(T)) errs.push(where + '.tracks: ' + N_('cần object { khớp: { kênh: [[t, giá trị], …] } }'));
+    else Object.keys(T).forEach(function (j) {
+      if (!own(RIG.joints, j) || j === 'stage') { errs.push(where + '.tracks.' + String(j).slice(0, 20) + ': ' + N_('khớp lạ (chọn {ids})', { ids: JOINT_IDS.join(', ') })); return; }
+      if (++nj > 18) return;
+      var ch = T[j];
+      if (!isObj(ch)) { errs.push(where + '.tracks.' + j + ': ' + N_('cần object { kênh: khoá }')); return; }
+      d.tracks[j] = {};
+      Object.keys(ch).forEach(function (c) {
+        var w = where + '.tracks.' + j + '.' + String(c).slice(0, 8), ks = ch[c];
+        if (!own(CH_RANGE, c)) { errs.push(w + ': ' + N_('kênh lạ (chọn x, y, rot, sx, sy)')); return; }
+        if (!Array.isArray(ks) || !ks.length || ks.length > 16) { errs.push(w + ': ' + N_('1–16 khoá [t, giá trị]')); return; }
+        var out = [], bad = false;
+        ks.forEach(function (k, i) {
+          if (!Array.isArray(k) || k.length !== 2 || !finite(k[0]) || !finite(k[1]) || k[0] < 0 || k[0] > 1 || (i && k[0] < ks[i - 1][0]) || k[1] < CH_RANGE[c][0] || k[1] > CH_RANGE[c][1]) bad = true;
+          else out.push([k[0], k[1]]);
+        });
+        if (bad) errs.push(w + ': ' + N_('khoá sai: t tăng dần trong [0, 1], giá trị trong [{min}, {max}]', { min: CH_RANGE[c][0], max: CH_RANGE[c][1] }));
+        else d.tracks[j][c] = out;
+      });
+    });
+    if (s.hide !== undefined) {
+      if (!Array.isArray(s.hide) || s.hide.length > 8 || s.hide.some(function (x) { return !/^(held|tall)[LR]$/.test(String(x)); })) errs.push(where + '.hide: ' + N_('mảng heldL | heldR | tallL | tallR'));
+      else d.hide = s.hide.slice();
+    }
+    if (s.hold !== undefined) {
+      if (!isObj(s.hold)) errs.push(where + '.hold: ' + N_('object { L?: đạo cụ, R?: đạo cụ }'));
+      else { d.hold = {}; Object.keys(s.hold).forEach(function (sd) { if ((sd !== 'L' && sd !== 'R') || !hasProp(s.hold[sd])) errs.push(where + '.hold.' + String(sd).slice(0, 8) + ': ' + N_('L | R trỏ tới đạo cụ có thật')); else d.hold[sd] = s.hold[sd]; }); }
+    }
+    if (s.props !== undefined) {
+      if (!Array.isArray(s.props) || s.props.length > 6 || !s.props.every(function (x) { return hasProp(x); })) errs.push(where + '.props: ' + N_('mảng đạo cụ có thật'));
+      else d.props = s.props.slice();
+    }
+    return d;
+  }
+  function checkActivity(s, where, errs, R) {
+    if (!isObj(s)) { errs.push(where + ': ' + N_('hoạt động phải là object')); return null; }
+    knownKeys(s, ['id', 'label', 'group', 'hint', 'posture', 'move', 'action', 'state', 'face', 'fx', 'props'], errs, where);
+    idErr(errs, where, s.id);
+    var id = String(s.id || ''), d = { id: id, label: lbl(s.label, id), group: lbl(s.group, 'Gói', 30), hint: plain(s.hint || '', 80) };
+    var CH = G.GenChibi && G.GenChibi.choreo;
+    if (own(LIB.states, id)) errs.push(where + '.id: ' + N_('trùng tên trạng thái (state) của kịch bản — đổi tên'));
+    if (CH && CH.ACTIONS && own(CH.ACTIONS, id)) errs.push(where + '.id: ' + N_('trùng tên đòn của biên đạo — đổi tên'));
+    [['posture', function (x) { return own(LIB.postures, x); }], ['move', function (x) { return own(LIB.moves, x); }], ['action', R.motion], ['state', function (x) { return own(LIB.states, x); }]].forEach(function (p) {
+      if (s[p[0]] === undefined) return;
+      if (typeof s[p[0]] !== 'string' || !p[1](s[p[0]])) errs.push(where + '.' + p[0] + ': ' + N_('"{ref}" không có trong kho', { ref: String(s[p[0]]).slice(0, 30) }));
+      else d[p[0]] = s[p[0]];
+    });
+    if (s.face !== undefined) {
+      if (!isObj(s.face)) errs.push(where + '.face: ' + N_('object { eyes?, brows?, mouth? }'));
+      else {
+        d.face = {};
+        [['eyes', R.eye], ['brows', R.brow], ['mouth', R.mouth]].forEach(function (p) {
+          if (s.face[p[0]] === undefined) return;
+          if (typeof s.face[p[0]] !== 'string' || !p[1](s.face[p[0]])) errs.push(where + '.face.' + p[0] + ': ' + N_('"{ref}" không có trong kho', { ref: String(s.face[p[0]]).slice(0, 30) }));
+          else d.face[p[0]] = s.face[p[0]];
+        });
+      }
+    }
+    if (s.fx !== undefined) { if (!Array.isArray(s.fx) || s.fx.length > 8 || !s.fx.every(function (x) { return typeof x === 'string' && R.fx(x); })) errs.push(where + '.fx: ' + N_('mảng hiệu ứng có thật')); else d.fx = s.fx.slice(); }
+    if (s.props !== undefined) { if (!Array.isArray(s.props) || s.props.length > 6 || !s.props.every(function (x) { return typeof x === 'string' && R.prop(x); })) errs.push(where + '.props: ' + N_('mảng đạo cụ có thật')); else d.props = s.props.slice(); }
+    return d;
+  }
+  // --- token màu (E7): "#hex" cố định, hoặc { from, to?, t? } = dẫn xuất (from pha t phần với to; nhân vật không khai báo thì engine tính) ---
+  var TOKEN_RESERVED = { ink: 1, shape: 1, eyeArea: 1 };
+  function checkTokens(src, errs, packId) {
+    var out = {};
+    if (src === undefined) return out;
+    if (!isObj(src) || Object.keys(src).length > 32) { errs.push('tokens: ' + N_('object { tên: "#hex" | { from, to?, t? } }, tối đa 32 token')); return out; }
+    Object.keys(src).forEach(function (k) {
+      var v = src[k], w = 'tokens.' + String(k).slice(0, 20);
+      if (!/^[a-zA-Z]{1,20}$/.test(k) || own(TOKEN_RESERVED, k)) { errs.push(w + ': ' + N_('tên token chỉ gồm chữ (≤ 20), không dùng ink / shape / eyeArea')); return; }
+      if (own(LIB.tokenOwner, k) && LIB.tokenOwner[k] !== packId) { errs.push(w + ': ' + N_('token đã thuộc thư viện {pack}', { pack: LIB.tokenOwner[k] })); return; }
+      if (typeof v === 'string' && HEX.test(v)) { out[k] = { value: v }; return; }
+      if (isObj(v)) {
+        knownKeys(v, ['from', 'to', 't'], errs, w);
+        var to = v.to === undefined ? '#000000' : v.to, t = numIn(errs, w + '.t', v.t, 0, 1, 0.3);
+        var fromHex = typeof v.from === 'string' && own(src, v.from) && typeof src[v.from] === 'string' && HEX.test(src[v.from]);
+        var fromLib = typeof v.from === 'string' && own(LIB.defaults, v.from) && !own(LIB.derive, v.from) && !(own(src, v.from));
+        if (!fromHex && !fromLib) { errs.push(w + '.from: ' + N_('token gốc phải có sẵn trong kho (không dẫn xuất) hoặc là token "#hex" của gói')); return; }
+        if (typeof to !== 'string' || !HEX.test(to)) { errs.push(w + '.to: ' + N_('mã màu hex')); return; }
+        out[k] = { value: mixHex(fromHex ? src[v.from] : LIB.defaults[v.from], to, t), rule: { from: v.from, to: to, t: t } };
+        return;
+      }
+      errs.push(w + ': ' + N_('"#hex" hoặc { from, to?, t? }'));
+    });
+    return out;
+  }
+
+  var PACK_KEYS = ['format', 'id', 'name', 'owner', 'license', 'version', 'description', 'tokens', 'eyeStyles', 'eyePoses', 'browStyles', 'browPoses', 'mouths', 'parts', 'props', 'fx', 'motions', 'activities', 'assets'];
+  var PACK_LISTS = { eyeStyles: 40, eyePoses: 60, browStyles: 20, browPoses: 40, mouths: 40, parts: 120, props: 40, fx: 40, motions: 60, activities: 60, assets: 20 };
+  // id đã thuộc gói KHÁC (cùng gói = nạp lại, được phép)
+  function foreign(map, id, packId) { return own(map, id) && !!map[id] && map[id].pack !== undefined && map[id].pack !== packId; }
+  // Kiểm trọn một gói. → { errors, warnings, def } — def = bản đã chuẩn hoá (chuỗi / số sạch + hàm đã biên dịch), sẵn để đăng ký. KHÔNG đụng kho.
+  function checkDataPack(def) {
+    var errs = [], warn = [], d = {};
+    if (!isObj(def)) return { errors: [N_('gói phải là object')], warnings: [], def: null };
+    if (JSON.stringify(def).length > 1500000) return { errors: [N_('gói quá lớn (tối đa 1,5 MB)')], warnings: [], def: null };
+    knownKeys(def, PACK_KEYS, errs, 'pack');
+    if (def.format !== undefined && def.format !== 'gen-chibi.pack/1') errs.push('format: ' + N_('chỉ "gen-chibi.pack/1"'));
+    if (!/^[a-z0-9]+(\.[a-z0-9-]+)+$/.test(String(def.id || ''))) errs.push('id: ' + N_('id thư viện phải dạng chu.ten: {id}', { id: String(def.id || '').slice(0, 40) }));
+    var packId = canonPack(String(def.id || ''));
+    if (own(PACKS, packId) && PACKS[packId].group === 'frame') errs.push('id: ' + N_('không đè thư viện của khung ({id})', { id: packId }));
+    d.id = packId; d.name = lbl(def.name, packId, 60); d.owner = lbl(def.owner, '', 60); d.version = plain(def.version || '0.0.1', 20); d.description = plain(def.description || '', 300);
+    d.license = plain(def.license || '', 160);
+    if (!d.license) errs.push('license: ' + N_('bắt buộc'));
+    if (!d.owner) errs.push('owner: ' + N_('bắt buộc'));
+    var L = {};
+    Object.keys(PACK_LISTS).forEach(function (k) {
+      if (def[k] === undefined) L[k] = [];
+      else if (!Array.isArray(def[k]) || def[k].length > PACK_LISTS[k]) { errs.push(k + ': ' + N_('mảng tối đa {n} mục', { n: PACK_LISTS[k] })); L[k] = []; }
+      else L[k] = def[k];
+    });
+    d.tokens = checkTokens(def.tokens, errs, packId);
+    var save = PENDING_T;
+    PENDING_T = Object.assign({}, LIB.defaults);
+    Object.keys(d.tokens).forEach(function (k) { PENDING_T[k] = d.tokens[k].value; });
+    try {
+      var T = evalTokens(), seen = {};
+      var dup = function (kind, id, where) { var key = kind + ':' + id; if (seen[key]) errs.push(where + ': ' + N_('id "{id}" trùng trong gói', { id: String(id).slice(0, 30) })); seen[key] = 1; };
+      var each = function (k, fn) { L[k].forEach(function (x, i) { fn(x, k + '[' + i + ']', i); }); };
+      // kho chung: id của gói KHÁC không được đè
+      var clash = function (map, id, where, what) { if (foreign(map, id, packId)) errs.push(where + '.id: ' + N_('{what} "{id}" đã thuộc thư viện {pack}', { what: what, id: id, pack: map[id].pack })); };
+      d.browStyles = []; each('browStyles', function (x, w) { var r = checkBrowStyle(x, w, errs); dup('browStyle', r.id, w); clash(LIB.browStyles, r.id, w, 'kiểu mày'); d.browStyles.push(r); });
+      d.browPoses = []; each('browPoses', function (x, w) { var r = checkBrowPose(x, w, errs); dup('browPose', r.id, w); clash(LIB.browPoses, r.id, w, 'dáng mày'); d.browPoses.push(r); });
+      d.eyePoses = []; each('eyePoses', function (x, w) {
+        var r = checkEyePose(x, w, errs, T, null);
+        if (!r) return;
+        var id = String((x && x.id) || '');
+        idErr(errs, w, id);
+        if (!r.hasSvg) errs.push(w + ': ' + N_('cần svg'));
+        dup('eyePose', id, w); clash(LIB.eyePoses, id, w, 'dáng mắt');
+        r.id = id; d.eyePoses.push(r);
+      });
+      d.eyeStyles = []; each('eyeStyles', function (x, w) { var r = checkEyeStyle(x, w, errs, T); if (!r) return; dup('eyeStyle', r.id, w); clash(LIB.eyeStyles, r.id, w, 'kiểu mắt'); d.eyeStyles.push(r); });
+      var eyeIds = Object.keys(LIB.eyePoses).concat(d.eyePoses.map(function (p) { return p.id; }));
+      d.eyeStyles.forEach(function (s, i) { Object.keys(s.poses).forEach(function (k) { if (eyeIds.indexOf(k) < 0) errs.push('eyeStyles[' + i + '].poses.' + k + ': ' + N_('dáng mắt này chưa có trong kho — thêm vào eyePoses của gói để trạng thái dùng được')); }); });
+      d.mouths = []; each('mouths', function (x, w) { var r = checkMouth(x, w, errs, T); if (!r) return; dup('mouth', r.id, w); clash(LIB.mouths, r.id, w, 'miệng'); d.mouths.push(r); });
+      var ids = function (k) { var o = {}; L[k].forEach(function (x) { if (isObj(x) && typeof x.id === 'string') o[x.id] = 1; }); return o; };
+      var propIds = ids('props'), fxIds = ids('fx'), motIds = ids('motions');
+      d.props = []; each('props', function (x, w) { var r = checkProp(x, w, errs, T); if (!r) return; dup('prop', r.id, w); clash(LIB.props, r.id, w, 'đạo cụ'); d.props.push(r); });
+      d.fx = []; each('fx', function (x, w) { var r = checkFx(x, w, errs, T); if (!r) return; dup('fx', r.id, w); clash(LIB.fx, r.id, w, 'hiệu ứng'); d.fx.push(r); });
+      var hasProp = function (x) { return typeof x === 'string' && (own(LIB.props, x) || own(propIds, x)); };
+      d.motions = []; each('motions', function (x, w) { var r = checkMotion(x, w, errs, hasProp); if (!r) return; dup('motion', r.id, w); clash(LIB.motions, r.id, w, 'động tác'); d.motions.push(r); });
+      var R = {
+        motion: function (x) { return own(LIB.motions, x) || own(motIds, x); }, prop: hasProp,
+        fx: function (x) { return own(LIB.fx, x) || own(fxIds, x); }, eye: function (x) { return eyeIds.indexOf(x) >= 0; },
+        brow: function (x) { return own(LIB.browPoses, x) || d.browPoses.some(function (p) { return p.id === x; }); },
+        mouth: function (x) { return own(LIB.mouths, x) || d.mouths.some(function (p) { return p.id === x; }); }
+      };
+      d.activities = []; each('activities', function (x, w) { var r = checkActivity(x, w, errs, R); if (!r) return; dup('activity', r.id, w); clash(LIB.activities, r.id, w, 'hoạt động'); d.activities.push(r); });
+      d.parts = []; each('parts', function (x, w) {
+        var c = checkDataPart(x);
+        c.errors.forEach(function (e) { errs.push(w + (x && x.id ? '(' + String(x.id).slice(0, 30) + ')' : '') + ': ' + e); });
+        if (!c.def) return;
+        if (c.def.kind === 'scenery') { errs.push(w + ': ' + N_('gói nhân vật không chứa phông cảnh')); return; }
+        dup('part', c.def.slot + ':' + c.def.id, w); d.parts.push(c.def);
+        partAdvice(c.def).forEach(function (a) { warn.push(w + '(' + c.def.id + '): ' + a); });
+      });
+      d.assets = [];
+      each('assets', function (x, w) {
+        if (!isObj(x)) { errs.push(w + ': ' + N_('nhân vật phải là object')); return; }
+        if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(String(x.id || ''))) errs.push(w + '.id: ' + N_('chữ thường, số, gạch nối, 2–40 ký tự'));
+        if (!isObj(x.look)) errs.push(w + '.look: ' + N_('bắt buộc'));
+        dup('asset', x.id, w);
+        d.assets.push(x);
+      });
+    } finally { PENDING_T = save; }
+    return { errors: errs, warnings: warn, def: errs.length ? null : d };
+  }
+
+  // gỡ MỌI mục của một gói khỏi kho (nạp lại gói / hoàn tác đăng ký lỗi). Sửa mảng tại chỗ — các nơi khác giữ tham chiếu tới ASSET_ORDER / activityOrder
+  function unregisterPack(id) {
+    id = canonPack(id);
+    if (!PACKS[id]) return false;
+    ['eyeStyles', 'eyePoses', 'browStyles', 'browPoses', 'mouths', 'fx', 'motions', 'props', 'activities', 'derive'].forEach(function (m) {
+      Object.keys(LIB[m]).forEach(function (k) { if (LIB[m][k] && LIB[m][k].pack === id) delete LIB[m][k]; });
+    });
+    for (var i = LIB.activityOrder.length - 1; i >= 0; i--) if (!LIB.activities[LIB.activityOrder[i]]) LIB.activityOrder.splice(i, 1);
+    Object.keys(LIB.parts).forEach(function (k) { if (k.indexOf(id + '/') === 0) delete LIB.parts[k]; });
+    Object.keys(LIB.tokenOwner).forEach(function (k) { if (LIB.tokenOwner[k] === id) { delete LIB.tokenOwner[k]; delete LIB.defaults[k]; } });
+    Object.keys(ASSETS).forEach(function (k) { if (k.indexOf(id + '/') === 0) delete ASSETS[k]; });
+    for (var j = ASSET_ORDER.length - 1; j >= 0; j--) if (!ASSETS[ASSET_ORDER[j]]) ASSET_ORDER.splice(j, 1);
+    delete PACKS[id];
+    return true;
+  }
+  // Kiểm rồi đăng ký trọn gói (thay bản cũ cùng id). Lỗi ở bất kỳ bước nào → gói được gỡ sạch. Nhân vật của gói phải qua cổng gate (nháp: không chặn identity).
+  function registerDataPack(def) {
+    var c = checkDataPack(def);
+    if (c.errors.length) return { errors: c.errors, warnings: c.warnings, pack: null };
+    var d = c.def, errs = [];
+    unregisterPack(d.id);
+    try {
+      pack({ id: d.id, name: d.name, owner: d.owner, group: 'community', visibility: 'private', license: d.license, version: d.version, description: d.description }, function (D) {
+        Object.keys(d.tokens).forEach(function (k) {
+          var t = d.tokens[k];
+          LIB.defaults[k] = t.value; LIB.tokenOwner[k] = d.id;
+          if (t.rule) D.derive(k, { from: t.rule.from, to: t.rule.to, t: t.rule.t });
+        });
+        d.browStyles.forEach(function (s) { D.browStyle(s.id, { label: s.label, w: s.w, len: s.len }); });
+        d.browPoses.forEach(function (s) { var o = { label: s.label, rot: s.rot, dy: s.dy, arc: s.arc }; if (s.rotR !== undefined) o.rotR = s.rotR; if (s.dyR !== undefined) o.dyR = s.dyR; D.browPose(s.id, o); });
+        d.eyePoses.forEach(function (p) { D.eyePose(p.id, eyeFn(null, p)); });
+        d.eyeStyles.forEach(function (s) {
+          var o = { label: s.label, w: s.w, h: s.h, poses: {} };
+          if (s.lid !== undefined) o.lid = s.lid;
+          if (s.slant !== undefined) o.slant = s.slant;
+          if (s.small !== undefined) o.small = s.small;
+          Object.keys(s.poses).forEach(function (k) { var fn = eyeFn(s, s.poses[k]); fn.pack = d.id; o.poses[k] = fn; });
+          if (!Object.keys(o.poses).length) delete o.poses;
+          D.eyeStyle(s.id, o);
+        });
+        d.mouths.forEach(function (m) { D.mouth(m.id, function (C) { var ctx = { x: C.A.mouth[0], y: C.A.mouth[1] }; evalVars(m.vlist, ctx); return runParts(m.parts, ctx, C.P); }); });
+        d.props.forEach(function (p) { var o = { label: p.label, draw: propFn(p) }; if (p.anchor) o.anchor = p.anchor; D.prop(p.id, o); });
+        d.fx.forEach(function (x) {
+          D.fx(x.id, { label: x.label, layer: x.layer, face: x.face, draw: (function (ly) { return function (C) { var o = {}; for (var l in ly) o[l] = fillTokens(ly[l], C.P); return o; }; })(x.layers) });
+        });
+        d.motions.forEach(function (m) { var o = { label: m.label, dur: m.dur, still: m.still, tracks: m.tracks }; ['hide', 'hold', 'props', 'breath', 'loop'].forEach(function (k) { if (m[k] !== undefined) o[k] = m[k]; }); D.motion(m.id, o); });
+        d.activities.forEach(function (a) { var o = { label: a.label, group: a.group, hint: a.hint }; ['posture', 'move', 'action', 'state', 'face', 'fx', 'props'].forEach(function (k) { if (a[k] !== undefined) o[k] = a[k]; }); D.activity(a.id, o); });
+        d.parts.forEach(function (p) { var r = registerDataPart(d.id, p); if (r.errors.length) errs.push('part ' + p.id + ': ' + r.errors.join('; ')); });
+        d.assets.forEach(function (a) { registerAsset(d.id, JSON.parse(JSON.stringify(a))); });
+      });
+    } catch (e) { errs.push(e.message); }
+    var counts = PACKS[d.id] ? Object.assign({}, PACKS[d.id].counts) : {};
+    if (!errs.length) d.assets.forEach(function (a) {
+      var as = ASSETS[d.id + '/' + a.id];
+      blockingGates(gate(as, {}), as.status).forEach(function (g) { errs.push('assets(' + a.id + ') · ' + (g.label && typeof g.label === 'string' ? g.label : g.id) + ': ' + (g.detail || '')); });
+    });
+    if (errs.length) { unregisterPack(d.id); return { errors: errs, warnings: c.warnings, pack: null }; }
+    return { errors: [], warnings: c.warnings, pack: PACKS[d.id], counts: counts };
   }
 
   /* ------------------------------------------------- 9. CẢNH (loại asset thứ ba) */
@@ -1706,6 +2424,8 @@
     compose: compose, poseAt: poseAt, finishPose: finishPose, jointMatrices: jointMatrices, chainTransforms: chainTransforms, keyPoints: keyPoints, poseDistance: poseDistance, neutralPose: neutralPose, svgString: svgString,
     shadowOf: shadowOf, handsBusy: handsBusy, Q45: Q45, Q90: Q90, faceRemap: faceRemap, VIEW_ORDER: VIEW_ORDER, VIEW_KIND: VIEW_KIND, VIEW_KINDS: VIEW_KINDS, FILM: { cameras: FILM_CAMERAS, bubbles: FILM_BUBBLES, sfx: FILM_SFX },
     checkDataPart: checkDataPart, registerDataPart: registerDataPart, partAdvice: partAdvice, blockingGates: blockingGates,
+    checkDataPack: checkDataPack, registerDataPack: registerDataPack, unregisterPack: unregisterPack, compileExpr: compileExpr,
+    moodOf: moodOf, MOODS: MOODS, mixHex: mixHex, normalizeOutline: normalizeOutline, outlineParts: outlineParts, silhouette: silhouette, jointScales: jointScales,
     ITEM: ITEM, ITEMS: ITEMS, ITEM_ORDER: ITEM_ORDER, items: function () { return ITEM_ORDER.map(function (k) { return ITEMS[k]; }); },
     SCENE: SCENE, SCENES: SCENES, SCENE_ORDER: SCENE_ORDER, scenes: function () { return SCENE_ORDER.map(function (k) { return SCENES[k]; }); },
     getScene: getScene, getAsset: getAsset, checkScene: checkScene, registerScene: registerScene, sceneSvg: sceneSvg, sceneLayers: sceneLayers, sceneGate: sceneGate,

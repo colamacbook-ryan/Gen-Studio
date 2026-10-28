@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # © 2026 Gen Labs — All rights reserved.
 # Đồng bộ engine Gen-Chibi vào vendor/gen-chibi/ (khoá phiên bản; không sửa tay trong vendor).
-# Dùng: tools/sync-gen-chibi.sh <đường dẫn Gen-Chibi> [phiên bản mong đợi, mặc định 0.25.1]
+# Dùng: tools/sync-gen-chibi.sh <đường dẫn Gen-Chibi> [phiên bản mong đợi, mặc định 0.26.0]
 set -euo pipefail
 src="${1:?cần đường dẫn Gen-Chibi}"
-want="${2:-0.25.1}"
+want="${2:-0.26.0}"
 dst="$(cd "$(dirname "$0")/.." && pwd)/vendor/gen-chibi"
 have="$(tr -d '[:space:]' < "$src/VERSION")"
 [[ "$have" == "$want" ]] || { echo "Gen-Chibi là $have, vendor khoá $want — sửa ASSET_MANIFEST rồi truyền phiên bản mới" >&2; exit 1; }

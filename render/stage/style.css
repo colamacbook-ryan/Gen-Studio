@@ -2,7 +2,10 @@
    — render không gọi mạng. Gói F đóng phông Be Vietnam Pro / Patrick Hand vào image; chỉ cần cài vào hệ thống hoặc đặt render/stage/fonts/local.css (render.js tự nạp). */
 :root {
   --v-paper: #F6F7FC; --v-rule: #DCD8F3; --v-rule-strong: #B9B0EA; --v-margin: #F2A7B3;
-  --v-ink: #1D2A6E; --v-ink-soft: #55608F; --v-hl: #FFD84A; --v-coral: #FF6F59; --v-leaf: #23926A; --v-card: #FFFFFF; --v-en: #7A4FD6;
+  --v-ink: #1D2A6E; --v-ink-soft: #55608F; --v-hl: #FFD84A; --v-accent: #E8A33D; --v-accent2: #FF6F59; --v-coral: #FF6F59; --v-leaf: #23926A; --v-card: #FFFFFF; --v-en: #7A4FD6;
+  /* màu dẫn xuất (brand tính lại từ token, SPEC §4.5); mặc định = giao diện v0.1.x */
+  --v-track: #ECEAF8; --v-on-ink: #FFFFFF; --v-sub-bg: rgba(29,42,110,.93); --v-who0: #C9D0FF; --v-who1: #FFB3A6; --v-en-dark: #D8C6FF; --v-tape: rgba(255,216,74,.85); --v-stamp-bg: rgba(255,255,255,.92);
+  --sub-size: 37px; --sub-who-size: 36px; --sub-tr-size: 29px; --sub-maxw: 1240px; --logo-px: 0px; --chip-left: 40px;
   --f-display: "Be Vietnam Pro", "Inter", "Noto Sans", "DejaVu Sans", "Segoe UI", system-ui, sans-serif;
   --f-hand: "Patrick Hand", "Comic Neue", "Comic Sans MS", "Noto Sans", "DejaVu Sans", sans-serif;
 }
@@ -30,7 +33,7 @@ html, body { margin: 0; padding: 0; width: 1920px; height: 1080px; overflow: hid
 .b-tokens { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .b-tokens .row { display: flex; gap: 18px; align-items: center; transform-origin: 50% 50%; }
 .b-tokens .tok { font-size: 50px; font-weight: 600; padding: 12px 24px; border-radius: 16px; background: var(--v-card); border: 4px solid var(--v-ink-soft); white-space: nowrap; }
-.b-tokens .tok.q { border-style: dashed; border-color: var(--v-coral); color: var(--v-coral); font-weight: 800; min-width: 80px; text-align: center; }
+.b-tokens .tok.q { border-style: dashed; border-color: var(--v-accent2); color: var(--v-accent2); font-weight: 800; min-width: 80px; text-align: center; }
 .b-tokens .ntp { position: relative; margin-top: 26px; font-size: 54px; font-weight: 600; white-space: nowrap; min-height: 70px; }
 .b-tokens .ntp svg { position: absolute; left: 0; bottom: -20px; }
 /* prob-card */
@@ -41,20 +44,20 @@ html, body { margin: 0; padding: 0; width: 1920px; height: 1080px; overflow: hid
 .b-card .rows { position: absolute; left: 60px; top: 190px; }
 .b-card .row { position: absolute; left: -12px; width: 1092px; height: 74px; border-radius: 12px; opacity: 0; }
 .b-card .lab { position: absolute; left: 12px; top: 10px; font-size: 44px; width: 250px; white-space: nowrap; transform-origin: 50% 60%; }
-.b-card .trk { position: absolute; left: 280px; top: 20px; width: 640px; height: 38px; background: #ECEAF8; border-radius: 9px; overflow: hidden; }
+.b-card .trk { position: absolute; left: 280px; top: 20px; width: 640px; height: 38px; background: var(--v-track); border-radius: 9px; overflow: hidden; }
 .b-card .fill { height: 100%; width: 0; background: var(--v-ink-soft); border-radius: 9px; }
 .b-card .pct { position: absolute; right: 22px; top: 10px; font-size: 44px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .b-card .fly { position: absolute; left: 0; top: 0; font-weight: 800; white-space: nowrap; pointer-events: none; opacity: 0; }
-.b-card .chip-ok { position: absolute; right: 40px; top: -40px; font-family: var(--f-hand); font-size: 50px; color: var(--v-leaf); border: 5px solid currentColor; border-radius: 16px; padding: 4px 22px; background: #fff; opacity: 0; }
+.b-card .chip-ok { position: absolute; right: 40px; top: -40px; font-family: var(--f-hand); font-size: 50px; color: var(--v-leaf); border: 5px solid currentColor; border-radius: 16px; padding: 4px 22px; background: var(--v-card); opacity: 0; }
 /* stamp */
 .b-stamp { display: flex; align-items: center; justify-content: center; }
-.b-stamp .st { text-align: center; color: var(--v-coral); border: 8px solid currentColor; border-radius: 20px; padding: 10px 40px 6px; background: rgba(255,255,255,.92); max-width: 96%; box-sizing: border-box; }
+.b-stamp .st { text-align: center; color: var(--v-accent2); border: 8px solid currentColor; border-radius: 20px; padding: 10px 40px 6px; background: var(--v-stamp-bg); max-width: 96%; box-sizing: border-box; }
 .b-stamp b { display: block; font-weight: 800; letter-spacing: .04em; font-style: italic; white-space: nowrap; }
 .b-stamp span { display: block; font-family: var(--f-hand); font-size: 40px; color: var(--v-ink); }
 /* takeaway */
 .b-take { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .b-take .eq { font-weight: 800; white-space: nowrap; }
-.b-take .eq .ne { color: var(--v-coral); }
+.b-take .eq .ne { color: var(--v-accent2); }
 .b-take .eqs { font-size: 40px; margin-top: 6px; }
 .b-take .habit { width: 700px; box-sizing: border-box; background: var(--v-card); border: 5px solid var(--v-ink); border-radius: 22px; padding: 26px 30px; box-shadow: 10px 12px 0 var(--v-ink); }
 .b-take .habit .k { font-family: var(--f-hand); font-size: 36px; color: var(--v-ink-soft); }
@@ -65,22 +68,47 @@ html, body { margin: 0; padding: 0; width: 1920px; height: 1080px; overflow: hid
 .b-illu .fr { position: absolute; inset: 0; background: var(--v-card); border: 5px solid var(--v-ink); border-radius: 18px; box-shadow: 10px 12px 0 var(--v-ink); display: flex; flex-direction: column; padding: 26px 26px 14px; box-sizing: border-box; }
 .b-illu img { flex: 1 1 auto; min-height: 0; width: 100%; display: block; }
 .b-illu .cap { font-size: 42px; text-align: center; padding-top: 10px; min-height: 52px; }
-.b-illu .tape { position: absolute; left: 50%; top: -22px; width: 150px; height: 44px; margin-left: -75px; background: rgba(255,216,74,.85); transform: rotate(-3deg); }
+.b-illu .tape { position: absolute; left: 50%; top: -22px; width: 150px; height: 44px; margin-left: -75px; background: var(--v-tape); transform: rotate(-3deg); }
 /* lớp màn hình */
 .hud { position: absolute; inset: 0; pointer-events: none; }
-.chip-top { position: absolute; left: 40px; top: 34px; display: flex; gap: 12px; align-items: center; background: var(--v-ink); color: #fff; padding: 12px 24px 12px 14px; border-radius: 999px; font-size: 30px; font-weight: 600; opacity: 0; }
+.chip-top { position: absolute; left: var(--chip-left); top: 34px; display: flex; gap: 12px; align-items: center; background: var(--v-ink); color: var(--v-on-ink); padding: 12px 24px 12px 14px; border-radius: 999px; font-size: 30px; font-weight: 600; opacity: 0; }
 .chip-top b { background: var(--v-hl); color: var(--v-ink); padding: 2px 14px; border-radius: 999px; font-weight: 800; }
 .chip-top b:empty { display: none; }
 .actor { position: absolute; bottom: -34px; width: 450px; height: 540px; transform-origin: 50% 100%; }
 .actor svg { width: 100%; height: 100%; overflow: visible; }
-.sub { position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); width: max-content; max-width: 1240px; background: rgba(29,42,110,.93); color: #fff; font-size: 37px; line-height: 1.32; padding: 14px 30px; border-radius: 18px; text-align: center; opacity: 0; }
-.sub .who { font-family: var(--f-hand); font-size: 36px; margin-right: 12px; }
-.sub .who.s0 { color: #C9D0FF; } .sub .who.s1 { color: #FFB3A6; }
+.sub { position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); width: max-content; max-width: var(--sub-maxw); background: var(--v-sub-bg); color: var(--v-on-ink); font-size: var(--sub-size); line-height: 1.32; padding: 14px 30px; border-radius: 18px; text-align: center; opacity: 0; }
+.sub .who { font-family: var(--f-hand); font-size: var(--sub-who-size); margin-right: 12px; }
+.sub .who.s0 { color: var(--v-who0); } .sub .who.s1 { color: var(--v-who1); }
 .sub .c { opacity: .55; } .sub .c.on { opacity: 1; }
-.sub .c.en { color: #D8C6FF; }
-.sub .tr { display: block; font-size: 29px; font-style: italic; color: #D8C6FF; margin-top: 4px; opacity: .95; }
+.sub .c.en { color: var(--v-en-dark); }
+.sub .tr { display: block; font-size: var(--sub-tr-size); font-style: italic; color: var(--v-en-dark); margin-top: 4px; opacity: .95; }
 .end-card { position: absolute; left: 50%; top: 66%; text-align: center; background: var(--v-hl); color: var(--v-ink); padding: 38px 72px 32px; border-radius: 10px; box-shadow: 10px 12px 0 var(--v-ink); opacity: 0; white-space: nowrap; }
 .end-card b { display: block; font-weight: 800; line-height: 1; }
 .end-card span { display: block; font-family: var(--f-hand); font-size: 46px; margin-top: 12px; }
 .end-card small { display: block; font-size: 30px; margin-top: 18px; font-weight: 600; }
 .end-card span:empty, .end-card small:empty { display: none; }
+/* nhận diện kênh (gói B): chỉ có khi plan.style.brand ≠ null; GSBrand dựng phần tử, chỉ dùng transform/opacity để chuyển động */
+.brand-logo { position: absolute; display: block; width: var(--logo-px); height: var(--logo-px); object-fit: contain; z-index: 4; }
+.brand-logo.tl { left: 40px; top: 30px; } .brand-logo.tr { right: 40px; top: 30px; } .brand-logo.bl { left: 40px; bottom: 30px; } .brand-logo.br { right: 40px; bottom: 30px; }
+.lower-third { position: absolute; top: 760px; max-width: 760px; opacity: 0; z-index: 3; white-space: nowrap; font-weight: 700; font-size: 38px; line-height: 1; }
+.lower-third.l { left: 60px; } .lower-third.r { right: 60px; }
+.lower-third.chip { background: var(--v-ink); color: var(--v-on-ink); border-left: 14px solid var(--v-accent); padding: 16px 30px 16px 22px; border-radius: 14px; box-shadow: 6px 8px 0 var(--v-ink-soft); }
+.lower-third.bar { background: var(--v-card); color: var(--v-ink); border-bottom: 8px solid var(--v-accent2); padding: 14px 30px; box-shadow: 0 0 0 4px var(--v-ink); }
+.lower-third.tag { background: var(--v-hl); color: var(--v-ink); padding: 12px 26px; border: 5px solid var(--v-ink); border-radius: 10px; font-family: var(--f-hand); font-size: 44px; font-weight: 400; }
+.intro { position: absolute; inset: 0; background: var(--v-paper); z-index: 6; display: flex; align-items: center; justify-content: center; opacity: 0; }
+.intro .mark { max-width: 520px; max-height: 520px; width: 520px; height: 520px; object-fit: contain; }
+.intro .name { font-weight: 800; font-size: 120px; color: var(--v-ink); text-align: center; line-height: 1.1; max-width: 1500px; }
+.intro .wipe { position: absolute; inset: 0; background: var(--v-accent); }
+.stage.sub-top .sub { bottom: auto; top: 34px; }
+.stage.sub-plate-card .sub { background: var(--v-card); color: var(--v-ink); border: 5px solid var(--v-ink); box-shadow: 8px 10px 0 var(--v-ink); }
+.stage.sub-plate-card .sub .who.s0, .stage.sub-plate-card .sub .who.s1 { color: var(--v-ink-soft); }
+.stage.sub-plate-card .sub .c.en, .stage.sub-plate-card .sub .tr { color: var(--v-en); }
+/* khối kết: logo nhỏ + gợi ý (end-card v2) */
+.end-card .ec-logo { display: block; margin: 0 auto 14px; max-height: 96px; max-width: 220px; object-fit: contain; }
+/* ảnh bìa mẫu của xem trước nhận diện (GSStill.brand view=thumb) */
+.brand-thumb { position: absolute; inset: 0; background: var(--v-paper); overflow: hidden; }
+.brand-thumb .kick { position: absolute; left: 90px; top: 150px; font-family: var(--f-hand); font-size: 64px; color: var(--v-ink); }
+.brand-thumb .kick.plate { background: var(--v-hl); padding: 8px 30px; border: 5px solid var(--v-ink); border-radius: 14px; box-shadow: 8px 10px 0 var(--v-ink); }
+.brand-thumb .tt { position: absolute; left: 90px; top: 330px; width: 1240px; font-weight: 800; font-size: 150px; line-height: 1.08; color: var(--v-ink); }
+.brand-thumb .tt .en { font-style: italic; }
+.brand-thumb .bar { position: absolute; left: 90px; bottom: 120px; width: 700px; height: 22px; background: var(--v-accent2); border-radius: 11px; }

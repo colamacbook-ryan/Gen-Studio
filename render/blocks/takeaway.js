@@ -23,7 +23,7 @@
     mount: function (world, p, ctx) {
       var box = U.box(ctx.slot, 'b-take');
       if (p.kind === 'habit') {
-        box.innerHTML = '<div class="habit"><div class="k"></div><div class="t"><span class="bx"><svg width="58" height="58" viewBox="0 0 58 58"><path d="M12 30 L25 43 L48 14" fill="none" stroke="#23926A" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></span><span class="tx"></span></div></div>';
+        box.innerHTML = '<div class="habit"><div class="k"></div><div class="t"><span class="bx"><svg width="58" height="58" viewBox="0 0 58 58"><path d="M12 30 L25 43 L48 14" fill="none" style="stroke:var(--v-leaf)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></span><span class="tx"></span></div></div>';
         box.querySelector('.k').textContent = p.sub || 'Thói quen'; box.querySelector('.tx').textContent = p.text;
         box._r = { kind: 'habit', card: box.querySelector('.habit'), tick: box.querySelector('path') };
       } else {

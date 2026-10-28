@@ -31,13 +31,13 @@ function setup(deps, write) {
   return { t, b, mcp, mk, rpc, call };
 }
 
-test('mcp-tools: mọi tool 0.1.1 còn nguyên tên; thêm render_still; không có tool duyệt/xoá', () => {
+test('mcp-tools: mọi tool 0.1.1 còn nguyên tên; thêm render_still + propose_brand_change; không có tool duyệt/xoá', () => {
   const { t, mcp } = setup();
   try {
     for (const n of OLD_TOOLS) assert.ok(mcp.tools.includes(n), n);
-    assert.ok(mcp.tools.includes('render_still'));
+    assert.ok(mcp.tools.includes('render_still')); assert.ok(mcp.tools.includes('propose_brand_change'));   // gói B (0.2.0)
     assert.ok(mcp.tools.includes('preview_tutorial_frame'), 'gói U: xem trước khung bài hướng dẫn');
-    assert.equal(mcp.tools.length, OLD_TOOLS.length + 2);
+    assert.equal(mcp.tools.length, OLD_TOOLS.length + 3);
     assert.equal(mcp.tools.filter(n => /approve|reject|delete|^review|remove|attest|pick|publish/.test(n)).length, 0, 'lớp quyết định của owner (§10) không có tool');
   } finally { t.clean(); }
 });
