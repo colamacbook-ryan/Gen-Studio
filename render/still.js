@@ -11,6 +11,7 @@ const path = require('node:path');
 const chromium = require('./chromium');
 const cdp = require('./cdp');
 const { openStage, resolveAssets } = require('./render');
+const png = require('./png');
 
 const MODES = ['thumb', 'frame', 'brand', 'cast'];
 const QUEUE_MAX = 8, TIMEOUT_MS = 15000, WARM_MS = 60000, NICE = 10;
@@ -80,7 +81,13 @@ async function runOne(o) {
       stage = await openStage({ shared: w, width: 1920, height: 1080, errors, holder });
       const measures = await stage.ev('window.__still(' + JSON.stringify(o.mode) + ',' + JSON.stringify(payload) + ')');
       const fmt = o.format === 'png' ? 'png' : 'jpeg';
-      const buffer = await stage.shot(fmt, o.quality, { x: 0, y: 0, width: 1920, height: srcH, scale });
+      // PNG nhỏ hơn 1920: chụp 1:1 rồi thu nhỏ bằng Node (render/png.js). clip.scale của Chromium dựng lại lớp "world" ở tỉ lệ lẻ và rơi vài điểm ảnh ở đường nối ô raster tuỳ tải máy
+      // (cùng DOM, hai ảnh khác nhau ~1/10 lần) ⇒ khung không còn là hàm thuần của (plan, t). Chụp 1:1 thì ổn định 50/50.
+      let buffer;
+      if (fmt === 'png' && scale !== 1) {
+        const full = png.decode(await stage.shot('png', undefined, { x: 0, y: 0, width: 1920, height: srcH, scale: 1 }));
+        buffer = png.encode(png.resize(full, Math.round(size[0]), Math.round(size[1])));
+      } else buffer = await stage.shot(fmt, o.quality, { x: 0, y: 0, width: 1920, height: srcH, scale });
       let file = null;
       if (o.outFile) { fs.mkdirSync(path.dirname(o.outFile), { recursive: true }); fs.writeFileSync(o.outFile, buffer); file = o.outFile; }
       return { file, buffer, measures: measures === undefined ? {} : measures, errors, elapsed_ms: Date.now() - started };
