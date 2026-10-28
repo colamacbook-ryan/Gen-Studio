@@ -42,7 +42,8 @@ function tools(ctx) {
         if (payload.assetRefs !== undefined && !Array.isArray(payload.assetRefs)) throw fail('invalid', 'payload.assetRefs phải là mảng.');
         if (limited(c.agent.id)) throw fail('rate_limited', `Dựng ảnh xem trước quá nhiều (tối đa ${RATE_MAX}/phút). Thử lại sau ít phút.`);
         const body = Object.assign({}, payload, payload.assetRefs ? { assetRefs: mapRefs(payload.assetRefs) } : {});
-        delete body.assetData; delete body.fontCss;   // agent không tự nhét dữ liệu đã phân giải / CSS vào sân khấu
+        delete body.assetData; delete body.fontCss;   // agent không tự nhét dữ liệu đã phân giải / CSS vào sân khấu (kể cả trong payload.plan của mode frame)
+        if (body.plan && typeof body.plan === 'object' && !Array.isArray(body.plan)) { body.plan = Object.assign({}, body.plan); delete body.plan.assetData; delete body.plan.fontCss; }
         const still = (ctx.deps && ctx.deps.still) || require('../../render/still.js');
         let r;
         try {

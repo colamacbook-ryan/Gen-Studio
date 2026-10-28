@@ -260,3 +260,23 @@ test('state: awaiting_review_at ghi MỘT lần; outputs gộp dần trong pipel
   assert.equal(get().state, 'superseded'); assert.equal(get().awaiting_review_at, at);
   t.clean();
 });
+
+test('ma trận §10 (phần P0b) — ô ✗: trợ lý/CLI/runner/owner-http không ghi nội dung kênh, nhân vật, bài, asset; agent chỉ-đọc không tải asset', () => {
+  const t = tmpDb(); const b = basics(t.write, t.db);
+  const body = lessonBody(b);
+  const attempts = {
+    'channel.update(brand)': (a) => t.write(a, 'channel.update', { channel: b.ch.display_id, data: { brand: { x: 1 } } }),
+    'channel.create': (a) => t.write(a, 'channel.create', { name: 'Z' }),
+    'cast.save': (a) => t.write(a, 'cast.save', { channel: b.ch.display_id, name: 'N', data: { look: {} } }),
+    'lesson.submit': (a) => t.write(a, 'lesson.submit', body),
+  };
+  for (const [name, a] of [['trợ lý', { type: 'assistant', entry: 'assistant' }], ['CLI', { type: 'cli', entry: 'cli' }], ['runner', { type: 'runner', entry: 'runner' }], ['agent chỉ đọc', agent(['read'])]]) {
+    for (const [op, fn] of Object.entries(attempts)) assert.throws(() => fn(a), code('forbidden'), `${name} ✗ ${op}`);
+  }
+  for (const [name, a] of [['trợ lý', { type: 'assistant', entry: 'assistant' }], ['CLI', { type: 'cli', entry: 'cli' }], ['agent chỉ đọc', agent(['read'])], ['agent chỉ run', agent(['run'])]]) {
+    assert.throws(() => t.write(a, 'asset.put', { kind: 'image', mime: 'image/png', bytes: PNG }), code('forbidden'), `${name} ✗ tải asset raster`);
+  }
+  assert.equal(t.db.get('SELECT COUNT(*) AS n FROM assets').n, 0, 'lần bị từ chối không để lại asset');
+  assert.equal(t.db.get("SELECT COUNT(*) AS n FROM asset_rights").n, 0);
+  t.clean();
+});

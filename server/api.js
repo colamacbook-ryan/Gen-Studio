@@ -305,8 +305,9 @@ function create(ctx) {
   // ---- Nạp route từ server/routes/*.js (SPEC-0.2.0 §2.4): register(add, rctx). Thứ tự theo tên file; module tên bắt đầu `_` không nạp.
   // Mỗi (method, pattern) chỉ được đăng ký MỘT lần — trùng ⇒ ném lỗi lúc khởi động (không có hai route trùng).
   const rctx = { ctx, db, write, config, actorOf, userActor, fail, need: (table, ref, what, extra) => need(db, table, ref, what, extra), J, send, readJson, firstChannel };
-  const routesDir = path.join(__dirname, 'routes');
-  if (fs.existsSync(routesDir)) {
+  // ctx.routesDirs: thư mục route phụ (test dựng module route tạm); mặc định chỉ server/routes
+  for (const routesDir of [path.join(__dirname, 'routes'), ...(ctx.routesDirs || [])]) {
+    if (!fs.existsSync(routesDir)) continue;
     for (const f of fs.readdirSync(routesDir).filter((x) => x.endsWith('.js') && !x.startsWith('_')).sort()) {
       const m = require(path.join(routesDir, f));
       if (typeof m.register !== 'function') continue;
