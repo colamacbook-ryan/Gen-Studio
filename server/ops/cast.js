@@ -15,7 +15,7 @@ const SAVE_STATUS = ['draft', 'candidate'];
 function register(op, ctx) {
   const { db, err, need, byRef, around, ext } = ctx;
   if (!db || !around) return;   // test cũ gọi register với ctx rỗng: không có gì để đăng ký
-  const { validateRecipe } = require('../../render/cast/validate.js');
+  const { validateRecipe, isLegacyShaped } = require('../../render/cast/validate.js');
   const castLib = require('../../render/cast');
   const direct = require('../../render/engine/direct.js');
 
@@ -30,9 +30,15 @@ function register(op, ctx) {
   const siblingsOf = (chId, selfId) => db.all("SELECT * FROM cast_members WHERE channel_id=? AND deleted_at IS NULL AND status<>'retired'", chId)
     .filter((m) => m.id !== selfId)
     .map((m) => ({ ref: m.display_id, name: m.name, data: dataOf(m, m.status === 'approved' && m.approved_version ? m.approved_version : m.current_version) || {} }));
+  // so khớp cast mặc định đóng gói bằng JSON chuẩn hoá khoá (thứ tự khoá không quan trọng)
+  const canon = (v) => (Array.isArray(v) ? v.map(canon) : isObj(v) ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
+  const SHIPPED = Object.values(castLib.defaults().cast).map((r) => JSON.stringify(canon(r)));
+  // legacy do SERVER quyết: chỉ cast mặc định đóng gói, hoặc nhân vật mà bản đang lưu vốn đã là legacy — KHÔNG theo hình dạng dữ liệu khách gửi
   function check(data, chId, selfId, extra) {
-    const info = channelInfo(chId);
-    return validateRecipe(data, Object.assign({ library: castLib.library(), brand: info.brand, channelName: info.name, siblings: siblingsOf(chId, selfId) }, extra));
+    const info = channelInfo(chId), shipped = SHIPPED.includes(JSON.stringify(canon(data)));
+    const cur = selfId ? db.get('SELECT * FROM cast_members WHERE id=?', selfId) : null, stored = cur ? dataOf(cur, cur.current_version) : null;
+    const allowLegacy = shipped || isLegacyShaped(stored);
+    return validateRecipe(data, Object.assign({ shipped, allowLegacy, library: castLib.library(), brand: info.brand, channelName: info.name, siblings: siblingsOf(chId, selfId) }, extra));
   }
   function reject(v) {
     const first = v.errors.slice(0, 3).map((e) => (e.path ? `${e.path}: ` : '') + e.text_human).join(' · ');

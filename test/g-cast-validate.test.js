@@ -49,8 +49,9 @@ const codes = (v) => v.errors.map((e) => e.code);
 // ---------------------------------------------------------------- validateRecipe ----------------------------------------------------------------
 test('chấp nhận cast mặc định hiện tại (Anh Gen, Bé Hỏi — lược đồ cũ, chỉ cảnh báo) và công thức v2 đầy đủ', () => {
   for (const r of Object.values(castLib.defaults().cast)) {
-    const v = ok(r); assert.equal(v.ok, true, JSON.stringify(v.errors)); assert.equal(v.mode, 'legacy');
+    const v = ok(r, { allowLegacy: true, shipped: true }); assert.equal(v.ok, true, JSON.stringify(v.errors)); assert.equal(v.mode, 'legacy');
     assert.ok(v.warnings.some((w) => w.code === 'legacy_schema'));
+    assert.ok(codes(ok(r)).includes('persona') === false && !ok(r).ok, 'server không cho phép legacy ⇒ đọc như v2 và bị từ chối');
   }
   for (const r of [KHOA, VY]) {
     const v = ok(r); assert.equal(v.ok, true, JSON.stringify(v.errors)); assert.equal(v.mode, 'v2');
@@ -105,7 +106,7 @@ test('F1-8: ≥ 12 ca âm — từ chối kèm mã + chữ người đọc đư�
   assert.ok(codes(validateRecipe('x')).includes('bad_recipe'));
   assert.ok(codes(validateRecipe({ look: { parts: {} }, big: 'x'.repeat(70000) })).includes('too_large'));
   // cast mặc định cũng bị luật "status lạ" nếu khác draft
-  assert.ok(codes(ok(Object.assign(clone(castLib.defaults().cast['CM-0001']), { status: 'approved' }))).includes('forbidden_field'));
+  assert.ok(codes(ok(Object.assign(clone(castLib.defaults().cast['CM-0001']), { status: 'approved' }), { allowLegacy: true })).includes('forbidden_field'));
 });
 
 test('engine cắm được: nạp được checkout Gen-Chibi khác qua root (ở đây: vendor) và dùng cùng một API; catchphrase > 2 lần bị đếm', () => {
@@ -237,4 +238,57 @@ test('pipeline dùng approved_version của nhân vật đã chốt (cast.approv
     write(o, 'cast.approve', { cast: khoa.display_id });
     const r2 = await runIt('B2'); assert.equal(r2.manifest.cast[khoa.display_id].version, 2);
   } finally { db.close(); fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---------------------------------------------------------------- lỗ hổng chế độ / equip (security review) ----------------------------------------------------------------
+test('mode do server quyết: payload agent giả legacy/light để né lược đồ đều bị từ chối; legacy chỉ cho cast mặc định đóng gói hoặc bản đã lưu vốn là legacy', () => {
+  const t = tmpDb(); const b = basics(t.write, t.db), ag = agent(['read', 'compose']);
+  const save = (data, extra = {}) => t.write(ag, 'cast.save', Object.assign({ channel: b.ch.display_id, name: 'X', data }, extra));
+  const fails = (data, c) => assert.throws(() => save(data), (e) => e.code === 'invalid' && (!c || e.detail.errors.some((x) => x.code === c)), JSON.stringify(data).slice(0, 80));
+  const legacyCrafted = clone(KHOA); legacyCrafted.persona = 'ngầu'; legacyCrafted.voice = { role: 'x', ai: 'Charon' };   // né enum persona + giọng cũ của Anh Gen
+  fails(legacyCrafted);
+  const legacyKeepStatus = { persona: 'x', status: 'approved', look: { parts: { head: 'round' } } }; fails(legacyKeepStatus, 'forbidden_field');
+  // "light" kèm tính cách / màu / mắt ⇒ không còn là giữ chỗ ⇒ đọc như v2
+  fails({ look: { eyes: 'round', palette: { hat: '#ffd84a' } }, voice: { provider: 'gemini', voice: 'Charon' } });
+  fails({ look: {}, persona: undefined, identity: { must: ['mask:ab-kinh'] } });
+  assert.equal(ok({ look: { palette: { hat: '#ffd84a' } } }).mode, 'v2');
+  // giữ chỗ vô hại (agent giả) vẫn được, nhưng giọng/tên kênh vẫn bị đối chiếu mọi chế độ
+  assert.equal(save({ look: { archetype: 'mentor' }, voice: { provider: 'gemini', model: null, voice: 'Kore' } }).status, 'draft');
+  assert.ok(codes(ok({ look: { archetype: 'x' }, name: 'Khoa', voice: { provider: 'gemini', voice: 'Charon' } })).includes('voice_collision'), 'cast mặc định đối chiếu cả ở chế độ light');
+  assert.ok(!codes(ok({ look: { archetype: 'x' }, name: 'Anh Gen', voice: { provider: 'gemini', voice: 'Charon' } })).includes('voice_collision'), 'chính Anh Gen dựng lại bằng tên (agent giả) không tự va chạm');
+  assert.ok(codes(ok({ look: { archetype: 'Lớp ABC' }, name: 'K' }, { channelName: 'Lớp ABC' })).includes('channel_name'), 'tên kênh bị chặn cả ở light');
+  // strict (candidate/approve) từ chối legacy và light
+  const shipped = castLib.defaults().cast['CM-0001'];
+  assert.ok(codes(ok(shipped, { allowLegacy: true, shipped: true, strict: true })).includes('recipe_incomplete'));
+  assert.throws(() => save({ look: {} }, { status: 'candidate' }), code('invalid'));
+  // server: cast mặc định đóng gói lưu được (shipped) — kể cả qua agent; sửa nhẹ rồi gửi lại thì không còn là bản đóng gói ⇒ bị đọc như v2
+  assert.equal(save(shipped).version, 1);
+  const tweaked = clone(castLib.defaults().cast['CM-0002']); tweaked.name = 'Bé Hỏi 2';
+  fails(tweaked);
+  // bản đã lưu vốn là legacy (từ 0.1.x) ⇒ sửa tiếp vẫn ở legacy
+  const old = save({ look: {} }); t.db.insertRow('cast_versions', { entity_id: t.db.get('SELECT id FROM cast_members WHERE display_id=?', old.display_id).id, version: 2, data: { persona: 'cũ', look: { v: 1 } }, note: null, created_by: 'x' });
+  t.db.run('UPDATE cast_members SET current_version=2 WHERE display_id=?', old.display_id);
+  assert.equal(t.write(ag, 'cast.save', { id: old.display_id, data: { persona: 'cũ nữa', look: { archetype: 'x' } } }).version, 3);
+  t.clean();
+});
+
+test('look.equip được kiểm như look.parts: lược đồ đóng, tính vào va chạm (kính Anh Gen, tóc Bé Hỏi) và vào chế độ (chỉ có equip vẫn qua cổng engine)', () => {
+  const mut = (f) => { const d = clone(KHOA); f(d); return d; };
+  const glasses = mut((d) => { d.look.equip = { mask: 'ab-kinh' }; });
+  const v = ok(glasses); assert.equal(v.ok, false); assert.ok(v.errors.some((e) => e.code === 'trait_collision' && e.path === 'look.equip.mask'), JSON.stringify(v.errors));
+  const glasses2 = mut((d) => { d.look.equip = { mask: 'local.my/ab-kinh' }; d.look.parts.mask = 'none'; });
+  assert.ok(codes(ok(glasses2)).includes('trait_collision'), 'equip thắng parts: parts che đi cũng không né được');
+  const hair = mut((d) => { d.look.equip = { hair: 'ab-buoi-toc' }; });
+  assert.ok(codes(ok(hair)).includes('trait_collision'), 'tóc búi của Bé Hỏi');
+  assert.ok(codes(ok(mut((d) => { d.look.equip = { wing: 'x' }; }))).includes('unknown_part'));
+  assert.ok(codes(ok(mut((d) => { d.look.equip = { mask: '<svg>' }; }))).includes('markup'));
+  assert.ok(codes(ok(mut((d) => { d.look.equip = ['ab-kinh']; }))).includes('bad_look'));
+  assert.ok(codes(ok(mut((d) => { d.look.equip = { hat: 'khong-co-mu' }; }))).includes('unknown_part'), 'cổng engine báo trang bị lạ');
+  // công thức chỉ có equip (không parts) không còn lọt vào light
+  const onlyEquip = { look: { equip: { mask: 'ab-kinh' } } };
+  assert.notEqual(ok(onlyEquip).mode, 'light'); assert.equal(ok(onlyEquip).ok, false);
+  // qua server: agent không nhét được kính vào bằng equip
+  const t = tmpDb(); const b = basics(t.write, t.db);
+  assert.throws(() => t.write(agent(['read', 'compose']), 'cast.save', { channel: b.ch.display_id, name: 'Khoa', data: glasses }), (e) => e.code === 'invalid' && e.detail.errors.some((x) => x.code === 'trait_collision'));
+  t.clean();
 });

@@ -2,10 +2,11 @@
 // Kiểm công thức nhân vật phía SERVER (SPEC-0.2.0 §3.4, §3.5, §3.9; gói V). Thuần Node, không DOM, không phụ thuộc npm.
 //   loadEngine({root?}) → { GC, ... } : nạp engine Gen-Chibi (vendor/gen-chibi) vào `node:vm`, có cache. Cắm được: truyền root khác (vd checkout Gen-Chibi 0.26.0) —
 //     mọi API mới của engine (registerDataPack, partAdvice…) chỉ dùng khi có (feature-detect), không gắn cứng phiên bản.
-//   validateRecipe(data, { library, brand, poses, siblings, channelName, strict, root, status }) → { ok, errors:[{path, code, text_human}], warnings:[{path, code, text_human}], gates, mode }
-//     mode: 'v2' (persona là object — lược đồ §3.5 đầy đủ) · 'legacy' (persona là chuỗi / voice {role, ai} như cast mặc định 0.1.x — chấp nhận, chỉ cảnh báo)
-//           · 'light' (chưa có look.parts, vd bản giữ chỗ do agent tạo — chỉ kiểm hình dạng trường, chưa cần qua cổng engine).
-//     strict:true (cast.approve): 'light' bị từ chối — duyệt phải là công thức thật.
+//   validateRecipe(data, { library, brand, poses, siblings, channelName, strict, root, allowLegacy, shipped }) → { ok, errors:[{path, code, text_human}], warnings:[{path, code, text_human}], gates, mode }
+//     mode do SERVER quyết (không đọc từ dữ liệu khách): 'v2' (mặc định — lược đồ §3.5 đầy đủ) · 'legacy' (persona chuỗi / voice {role, ai}; CHỈ khi opts.allowLegacy: cast mặc định đóng gói hoặc bản đã lưu vốn là legacy)
+//           · 'light' (bản giữ chỗ vô hại: không linh kiện/trang bị/màu/tính cách — không dựng được, không chốt được).
+//     strict:true (candidate / cast.approve): chỉ 'v2' qua; legacy và light bị từ chối.
+//     shipped:true: công thức chính là cast mặc định đóng gói (miễn đối chiếu với chính nó và tên kênh).
 //   siblings: [{ ref, name, data }] — nhân vật KHÁC cùng kênh (luật cứng §3.4.1: không chung dấu `identity.must`, không chung giọng, không đeo cùng linh kiện nhận diện).
 //   Công thức v2 còn so với cast mặc định Anh Gen / Bé Hỏi dù kênh không có họ (F1-5).
 'use strict';
@@ -220,6 +221,13 @@ function checkSchema(d, mode, GC, add, warn) {
           else if (typeof ref !== 'string' || !REF.test(ref)) add(`look.parts.${slot}`, 'bad_look', 'Tham chiếu linh kiện không hợp lệ.');
         }
       }
+      if (look.equip !== undefined) {
+        if (!isObj(look.equip)) add('look.equip', 'bad_look', 'look.equip phải là object {slot: trang bị}.');
+        else for (const [slot, ref] of Object.entries(look.equip)) {
+          if (!own(GC.LIB.slots, slot)) add(`look.equip.${slot}`, 'unknown_part', `Slot "${slot}" không có trong engine.`);
+          else if (typeof ref !== 'string' || !REF.test(ref)) add(`look.equip.${slot}`, 'bad_look', 'Tham chiếu trang bị không hợp lệ.');
+        }
+      }
       for (const k of ['eyes', 'brows']) if (look[k] !== undefined && !(typeof look[k] === 'string' && /^[A-Za-z][A-Za-z0-9_-]{0,23}$/.test(look[k]))) add(`look.${k}`, 'bad_look', `look.${k} phải là tên kiểu (vd round, normal).`);
       if (look.params !== undefined) {
         if (!isObj(look.params)) add('look.params', 'bad_look', 'look.params phải là object.');
@@ -256,8 +264,8 @@ function checkSchema(d, mode, GC, add, warn) {
 }
 
 // ---------------------------------------------------------------- luật cứng: không trùng cast cũ (§3.4.1) ----------------------------------------------------------------
-function checkCollisions(d, mode, others, add) {
-  const myVoice = voiceOf(d), myMust = mustOf(d), myHat = hatOf(d), parts = (d.look && isObj(d.look.parts) && d.look.parts) || {};
+function checkCollisions(d, mode, others, add, eff, effEquip) {
+  const myVoice = voiceOf(d), myMust = mustOf(d), myHat = hatOf(d);
   for (const o of others) {
     const od = o.data || {}, who = `${o.name || o.ref || 'nhân vật khác'}`;
     if (myVoice && myVoice === voiceOf(od)) add('voice.voice', 'voice_collision', `Giọng "${myVoice}" đã là giọng của ${who}. Mỗi nhân vật cần một giọng riêng (không dùng chung với Anh Gen / Bé Hỏi hay nhân vật khác trong kênh).`);
@@ -266,10 +274,10 @@ function checkCollisions(d, mode, others, add) {
     // đeo đúng linh kiện nhận diện của người khác (vd kính của Anh Gen) dù không khai vào must
     for (const m of omust) {
       const i = m.indexOf(':'), slot = m.slice(0, i), id = m.slice(i + 1);
-      if (slot !== 'eyes' && parts[slot] && shortId(parts[slot]) === id) add(`look.parts.${slot}`, 'trait_collision', `Linh kiện "${id}" (${slot}) là dấu nhận diện của ${who} — nhân vật này không được đeo/dùng nó (vd KOL không đeo kính của Anh Gen).`);
+      if (slot !== 'eyes' && ((eff[slot] && eff[slot] === id) || (effEquip[slot] && effEquip[slot] === id))) add(`look.${effEquip[slot] ? 'equip' : 'parts'}.${slot}`, 'trait_collision', `Linh kiện "${id}" (${slot}) là dấu nhận diện của ${who} — nhân vật này không được đeo/dùng nó (vd KOL không đeo kính của Anh Gen).`);
     }
     const oh = hatOf(od);
-    if (myHat && oh && myHat === oh && mode !== 'light') add('look.palette.hat', 'hat_collision', `Màu mũ ${myHat} trùng với ${who} (vd Bé Hỏi đội mũ vàng). Chọn màu mũ khác.`);
+    if (myHat && oh && myHat === oh) add('look.palette.hat', 'hat_collision', `Màu mũ ${myHat} trùng với ${who} (vd Bé Hỏi đội mũ vàng). Chọn màu mũ khác.`);
   }
 }
 
@@ -286,11 +294,15 @@ function validateRecipe(data, opts) {
   for (const [p, s] of strings(data, '', 0)) if (/[<>]/.test(s)) add(p, 'markup', 'Không được chứa mã đánh dấu (ký tự < hoặc >) trong công thức nhân vật.');
   if (errors.length) return done();
 
-  const looks = isObj(data.look) && isObj(data.look.parts) && Object.keys(data.look.parts).length > 0;
-  const legacy = typeof data.persona === 'string' || (isObj(data.voice) && data.voice.provider === undefined && (data.voice.ai !== undefined || data.voice.role !== undefined));
-  const mode = isObj(data.persona) ? 'v2' : legacy ? 'legacy' : looks ? 'v2' : 'light';
+  // Chế độ do SERVER quyết, không do dữ liệu khách chọn: v2 là mặc định; legacy chỉ khi server cho phép (o.allowLegacy: cast mặc định đóng gói, hoặc bản đã lưu vốn đã là legacy);
+  // light = bản giữ chỗ VÔ HẠI (không linh kiện/trang bị/màu/tính cách ⇒ không dựng được gì, không chốt được) — mọi trường khác ⇒ v2.
+  const lookObj = isObj(data.look) ? data.look : {};
+  const hasLook = (isObj(lookObj.parts) && Object.keys(lookObj.parts).length > 0) || (isObj(lookObj.equip) && Object.keys(lookObj.equip).length > 0);
+  const legacyShaped = typeof data.persona === 'string' || (isObj(data.voice) && data.voice.provider === undefined && (data.voice.ai !== undefined || data.voice.role !== undefined));
+  const inert = !hasLook && Object.keys(data).every((k) => ['look', 'voice', 'name', 'role', 'id', 'variant'].includes(k)) && Object.keys(lookObj).every((k) => k === 'archetype' || k === 'v');
+  const mode = isObj(data.persona) ? 'v2' : legacyShaped && o.allowLegacy ? 'legacy' : inert ? 'light' : 'v2';
   if (mode === 'legacy') warn('', 'legacy_schema', 'Công thức theo lược đồ cũ (persona là chuỗi, voice {role, ai}). Vẫn dùng được; nhân vật mới nên theo lược đồ §3.5.');
-  if (o.strict && mode === 'light') add('look.parts', 'recipe_incomplete', 'Công thức chưa có linh kiện (look.parts) — chưa thể chốt dùng.');
+  if (o.strict && mode !== 'v2') add('look.parts', 'recipe_incomplete', mode === 'light' ? 'Công thức chưa có linh kiện (look.parts) — chưa thể chốt dùng.' : 'Công thức theo lược đồ cũ — cần chuyển sang lược đồ §3.5 (persona là object, voice {provider, model, voice}) mới chốt dùng được.');
 
   let eng;
   try { eng = loadEngine({ root: o.root, library: o.library }); } catch (e) { add('', 'engine_unavailable', 'Không nạp được engine Gen-Chibi để kiểm công thức: ' + e.message); return done(); }
@@ -298,25 +310,33 @@ function validateRecipe(data, opts) {
   for (const t of eng.libErrors) warn('', 'library', 'Thư viện linh kiện: ' + t);
 
   checkSchema(data, mode, GC, add, warn);
+  if (mode === 'v2' && !hasLook) add('look.parts', 'missing_field', 'Công thức cần ít nhất một linh kiện (look.parts) hoặc trang bị (look.equip).');
   // không tên kênh trong công thức (CNS-096)
   const cn = norm(o.channelName);
-  if (mode === 'v2' && cn.length >= 3) for (const [p, s] of strings(data, '', 0)) if (norm(s).includes(cn)) add(p, 'channel_name', `Công thức không được chứa tên kênh ("${o.channelName}") — nhân vật dùng được ở nhiều kênh.`);
+  if (!o.shipped && cn.length >= 3) for (const [p, s] of strings(data, '', 0)) if (norm(s).includes(cn)) add(p, 'channel_name', `Công thức không được chứa tên kênh ("${o.channelName}") — nhân vật dùng được ở nhiều kênh.`);
 
   // so với nhân vật khác cùng kênh; v2 so thêm với cast mặc định (Anh Gen, Bé Hỏi)
   const others = (o.siblings || []).filter((s) => s && isObj(s.data));
   for (const s of others) if (data.id !== undefined && s.data.id === data.id) add('id', 'duplicate_id', `id "${data.id}" đã dùng cho ${s.name || s.ref} trong cùng kênh.`);
   const pool = others.slice();
-  if (mode === 'v2') {
+  {
     let defaults = [];
     try { defaults = require('./index').defaults(); } catch (e) { add('', 'defaults_unavailable', 'Không đọc được cast mặc định để đối chiếu: ' + e.message); }
     const list = defaults && defaults.cast ? Object.values(defaults.cast) : [];
-    for (const r of list) if (r.id !== data.id && !pool.some((s) => s.data && s.data.id === r.id)) pool.push({ ref: r.id, name: r.name, data: r });
+    for (const r of list) if (!o.shipped && r.id !== data.id && !(mode !== 'v2' && norm(r.name) === norm(data.name)) && !pool.some((s) => s.data && s.data.id === r.id)) pool.push({ ref: r.id, name: r.name, data: r });
   }
-  checkCollisions(data, mode, pool, add);
+  // phần tử hiệu lực theo slot: trang bị (equip) thắng linh kiện (parts); equip trỏ item thì lấy linh kiện của item (engine ≥ 0.2x có getItem), không có thì dùng chính mã tham chiếu
+  const eff = {}, effEquip = {};
+  if (isObj(lookObj.parts)) for (const [slot, ref] of Object.entries(lookObj.parts)) if (typeof ref === 'string') eff[slot] = shortId(ref);
+  if (isObj(lookObj.equip)) for (const [slot, ref] of Object.entries(lookObj.equip)) if (typeof ref === 'string') {
+    let it = null; try { it = typeof GC.getItem === 'function' ? GC.getItem(ref, PACK_ID) : null; } catch (e) { it = null; }
+    effEquip[slot] = shortId(ref); eff[slot] = shortId(it && it.equip && it.equip.part ? it.equip.part : ref);
+  }
+  checkCollisions(data, mode, pool, add, eff, effEquip);
 
   // ---- cổng engine: chỉ khi công thức có linh kiện thật ----
   let gates = [];
-  if (mode !== 'light' && isObj(data.look)) {
+  if (hasLook && isObj(data.look)) {   // có parts hoặc equip ⇒ cổng engine chạy
     const R = resolveRecipe(data, o.brand);
     for (const m of R.missing) add(m.path, 'brand_token', `Token màu brand "${m.token}" không có trong nhận diện của kênh.`);
     if (!errors.length) {
@@ -367,4 +387,6 @@ function catchphraseUses(lines, data) {
   return { count, warn: count > 2 };
 }
 
-module.exports = { validateRecipe, resolveRecipe, loadEngine, catchphraseUses, ENUMS, PACK_ID };
+const isLegacyShaped = (d) => isObj(d) && (typeof d.persona === 'string' || (isObj(d.voice) && d.voice.provider === undefined && (d.voice.ai !== undefined || d.voice.role !== undefined)));
+
+module.exports = { isLegacyShaped, validateRecipe, resolveRecipe, loadEngine, catchphraseUses, ENUMS, PACK_ID };
