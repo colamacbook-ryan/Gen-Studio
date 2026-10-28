@@ -82,21 +82,32 @@ export function mount(container, ctx) {
     return formShell(t('setup.provider.title'), t('setup.provider.hint'), [inField(t('prov.key'), k), result],
       async (msg, row) => {
         clear(result);
-        const saved = await post('/api/providers', { vendor: 'gemini', kind: 'tts', key: k.value.trim() });
+        const key = k.value.trim();
+        const saved = await post('/api/providers', { vendor: 'gemini', kind: 'tts', key });
+        // cùng khoá Gemini làm giám khảo (chép lời, phát âm, mốc từng từ): thiếu thì bản dựng đầu tiên bị chặn no_provider
+        await post('/api/providers', { vendor: 'gemini', kind: 'judge', key });
         k.value = '';
         result.append(h('div', { class: 'muted mono' }, t('setup.provider.saved')));
         const id = saved && (saved.display_id || saved.id || (saved.provider && (saved.provider.display_id || saved.provider.id)));
-        if (id) {
-          const scan = await post('/api/providers/' + encodeURIComponent(id) + '/scan', {});
-          const models = (scan && (scan.models || (scan.result && scan.result.models))) || [];
-          if (models.length) {
-            result.append(h('div', { class: 'sub-grid' }, models.map((m) => h('div', { class: 'sub-row' },
-              h('span', { class: 'mono' }, toText(m.model)), badge(m.available ? t('prov.ready') : t('prov.unavailable'), m.available ? 'ok' : 'idle'),
-              h('span', { class: 'muted mono' }, m.quota && m.quota.value != null ? toText(m.quota.value) + ' · ' + toText(m.quota.source) : t('prov.quota_unknown'))))));
+        row.hidden = true; // khoá đã lưu: không mời "Lưu và quét" lần nữa (tránh tạo nhà cung cấp trùng)
+        const scanBox = h('div');
+        result.append(scanBox, h('button', { type: 'button', class: 'btn primary', onclick: next }, t('common.next')));
+        // quét lỗi (mạng, khoá sai) vẫn đi tiếp được; "Quét lại" quét đúng khoá vừa lưu
+        async function runScan() {
+          clear(scanBox);
+          try {
+            const scan = await post('/api/providers/' + encodeURIComponent(id) + '/scan', {});
+            const models = (scan && (scan.models || (scan.result && scan.result.models))) || [];
+            if (models.length) {
+              scanBox.append(h('div', { class: 'sub-grid' }, models.map((m) => h('div', { class: 'sub-row' },
+                h('span', { class: 'mono' }, toText(m.model)), badge(m.available ? t('prov.ready') : t('prov.unavailable'), m.available ? 'ok' : 'idle'),
+                h('span', { class: 'muted mono' }, m.quota && m.quota.value != null ? toText(m.quota.value) + ' · ' + toText(m.quota.source) : t('prov.quota_unknown'))))));
+            }
+          } catch (ex) {
+            scanBox.append(errorBanner(ex), h('button', { type: 'button', class: 'btn', onclick: runScan }, t('prov.scan')));
           }
         }
-        result.append(h('button', { type: 'button', class: 'btn primary', onclick: next }, t('common.next')));
-        row.hidden = true;
+        if (id) await runScan();
       }, t('prov.save_scan'), skipBtn());
   }
 

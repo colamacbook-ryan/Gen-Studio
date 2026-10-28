@@ -65,6 +65,8 @@ function load(opts = {}) {
     ffmpegPath: get('GS_FFMPEG_PATH') || get('FFMPEG_PATH') || 'ffmpeg',
     lang: ['vi', 'en'].includes(get('GS_LANG')) ? get('GS_LANG') : 'vi',
     publicUrl: get('GS_PUBLIC_URL') || null,
+    // cổng phía máy chủ khi chạy trong Docker (compose truyền GS_PORT của .env vào) — để link thiết lập in đúng cổng người dùng mở
+    hostPort: Number(get('GS_HOST_PORT')) || null,
     pairingSecret: get('GS_PAIRING_SECRET'),
     trustProxy: truthy(get('GS_TRUST_PROXY')),   // chỉ tin header chuyển tiếp (cf-connecting-ip / X-Forwarded-For) khi đứng sau proxy/tunnel của chính chủ xưởng ("Đưa lên mạng")
     internalHost: (get('GS_INTERNAL_HOST') || 'studio:7490').toLowerCase(),   // Host mà runner dùng trong mạng Docker (kênh vào 'internal')

@@ -101,10 +101,27 @@ function loadBundle(db, render) {
   const beats = db.all('SELECT * FROM beats WHERE lesson_version_id=? ORDER BY ord', lv.id).map(b => db.json(b));
   return { lv, lesson, channel, channelData: (cv && cv.data) || {}, lines, beats };
 }
+// Nhà cung cấp chưa chọn model: lấy mục ưu tiên đầu tiên có trong kết quả quét của cùng vendor (bất kỳ hàng nào đã quét);
+// chưa quét lần nào thì dùng mục ưu tiên đầu. Không đoán được thì chặn rõ ràng thay vì gọi model "null".
+// bảng tĩnh — không dựng đường dẫn require từ dữ liệu DB
+const PREFERRED_BY_VENDOR = { gemini: require('../media/providers/gemini.js').PREFERRED };
+function defaultModel(db, pv, kind) {
+  const byVendor = Object.hasOwn(PREFERRED_BY_VENDOR, pv.vendor) ? PREFERRED_BY_VENDOR[pv.vendor] : {};
+  const prefer = Object.hasOwn(byVendor, kind) ? byVendor[kind] : [];
+  const seen = new Set(); let scanned = false;
+  for (const r of db.all("SELECT scan FROM providers WHERE workspace_id=? AND vendor=? AND deleted_at IS NULL AND scan IS NOT NULL", db.ws, pv.vendor)) {
+    const models = (db.json(r).scan || {}).models;
+    if (Array.isArray(models)) scanned = true;
+    for (const m of models || []) if (m.kind === kind && m.available) seen.add(m.model);
+  }
+  const hit = prefer.find(m => seen.has(m)) || [...seen][0] || (scanned ? null : prefer[0]);
+  if (!hit) throw new Block('no_model', `Chưa chọn được model ${kind} cho ${pv.vendor}. Mở Nhà cung cấp, bấm Quét lại.`);
+  return hit;
+}
 function pickProvider(ctx, kind) {
   const { db, config } = ctx;
   const pv = row(db, "SELECT * FROM providers WHERE workspace_id=? AND kind=? AND enabled=1 AND deleted_at IS NULL ORDER BY CASE WHEN json_extract(scan,'$.available')=0 THEN 1 ELSE 0 END, display_id LIMIT 1", db.ws, kind);
-  if (pv) return { row: pv, id: pv.id, vendor: pv.vendor, model: pv.model || null, key: pv.secret_name ? secrets.get(db, db.ws, pv.secret_name) : null };
+  if (pv) return { row: pv, id: pv.id, vendor: pv.vendor, model: pv.model || defaultModel(db, pv, kind), key: pv.secret_name ? secrets.get(db, db.ws, pv.secret_name) : null };
   if (config.fakeProviders) return { row: null, id: null, vendor: 'fake', model: kind === 'tts' ? 'fake-tts' : 'fake-judge', key: null };
   throw new Block('no_provider', kind === 'tts' ? 'Chưa cấu hình nhà cung cấp giọng (TTS). Thêm khoá ở màn Nhà cung cấp.' : 'Chưa cấu hình nhà cung cấp giám khảo. Thêm khoá ở màn Nhà cung cấp.');
 }
@@ -554,4 +571,4 @@ async function scanProvider(ctx, pv, actor) {
   return { models: (res.models || []).map(m => ({ model: m.model, kind: m.kind, available: m.available, quota: m.quota })), voices: scan.voices, scan };
 }
 
-module.exports = { startWorkers, startHeartbeat, requeueRender, exportRender, scanProvider, extractTerms, assetFile, localParts, nextMidnightIso, wsTz, aggregateGates, SYS };
+module.exports = { startWorkers, startHeartbeat, requeueRender, exportRender, scanProvider, pickProvider, extractTerms, assetFile, localParts, nextMidnightIso, wsTz, aggregateGates, SYS };
