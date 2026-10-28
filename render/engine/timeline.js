@@ -66,8 +66,8 @@ function validateAnchors(lesson) {
   return errs;
 }
 
-function buildLines(lesson, clips, fps) {
-  let cursor = LEAD_MS;
+function buildLines(lesson, clips, fps, leadMs) {
+  let cursor = leadMs || LEAD_MS;
   return lesson.lines.map(l => {
     const c = (clips && clips[l.id]) || {}, dur = c.duration_ms > 0 ? Math.round(c.duration_ms) : estimateMs(l.say);
     const rel = Array.isArray(c.word_times) && c.word_times.length ? c.word_times : proportionalWords(l.say, dur);
@@ -144,7 +144,11 @@ function buildLessonPlan(input) {
   if (!Array.isArray(lesson.lines) || !lesson.lines.length) throw new PlanError('no_lines', 'Bài chưa có câu thoại nào.');
   const dflt = (!input.cast || !Object.keys(input.cast).length) ? require('../cast').defaults() : null;
   const castIn = dflt ? dflt.cast : input.cast, parts = input.parts || (dflt ? dflt.parts : []);
-  const lines = buildLines(lesson, input.clips, fps);
+  // nhận diện kênh (gói B, SPEC §4.5): intro bật ⇒ LEAD_MS = max(1100, intro.duration_ms + 300); khối mở đầu vào đúng lúc intro tan; outro.hold_ms thay END_HOLD_MS
+  const bi = input.brand && input.brand.intro && input.brand.intro.enabled && input.brand.intro.kind !== 'none' ? Math.min(3000, input.brand.intro.duration_ms | 0) : 0;
+  const leadMs = bi ? Math.max(LEAD_MS, bi + 300) : LEAD_MS, introMs = bi || INTRO_MS;
+  const endHoldMs = input.brand && input.brand.outro && input.brand.outro.hold_ms > 0 ? input.brand.outro.hold_ms : END_HOLD_MS;
+  const lines = buildLines(lesson, input.clips, fps, leadMs);
   const byId = {}; lines.forEach(l => { byId[l.id] = l; });
   const lastEnd = lines[lines.length - 1].b_ms;
 
@@ -171,7 +175,7 @@ function buildLessonPlan(input) {
   }).sort((p, q) => p.t_in - q.t_in || p._order - q._order);
 
   // khối mở đầu (title) hiện ngay đầu clip, không đợi giọng
-  if (beats.length && registry.get(beats[0].block).intro) beats[0].t_in = Math.min(beats[0].t_in, INTRO_MS);
+  if (beats.length && registry.get(beats[0].block).intro) beats[0].t_in = Math.min(beats[0].t_in, introMs);
   // toàn cảnh + thẻ kết: dùng beat của bài nếu có, không thì tự thêm
   let ov = beats.filter(b => b.block === 'lesson-map').pop();
   if (!ov) { ov = { id: 'AUTO-lesson-map', block: 'lesson-map', params: {}, anchor: null, line: null, t_anchor: lastEnd + OVERVIEW_LEAD_MS, t_in: lastEnd + OVERVIEW_LEAD_MS, _order: 1e6 }; beats.push(ov); }
@@ -187,7 +191,7 @@ function buildLessonPlan(input) {
   // morph: prob-card liền ngay trước (không khối nào chen giữa) → cùng một thẻ
   beats.forEach((b, i) => { const d = registry.get(b.block); const p = beats[i - 1]; if (d.morphs && p && p.block === b.block) b.morphFrom = p.id; });
   const { zones, world } = layout(beats);
-  const duration = Math.round(Math.max(lastEnd + TAIL_MS, end.t_in + END_HOLD_MS));
+  const duration = Math.round(Math.max(lastEnd + TAIL_MS, end.t_in + endHoldMs));
 
   // t_out: chuỗi morph kết thúc khi link kế tiếp vào; còn lại ở lại trang đến hết clip
   beats.forEach((b, i) => { const nx = beats[i + 1]; b.t_out = nx && nx.morphFrom === b.id ? nx.t_in : duration; });

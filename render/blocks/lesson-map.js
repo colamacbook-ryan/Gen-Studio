@@ -16,14 +16,14 @@
       pts.forEach(function (q, i) { if (!i) d = 'M' + q.x + ' ' + q.y; else { var a = pts[i - 1], mx = (a.x + q.x) / 2, my = (a.y + q.y) / 2 - 90; d += ' Q' + mx + ' ' + my + ' ' + q.x + ' ' + q.y; } });
       var defs = document.createElementNS(NS, 'defs'), mk = document.createElementNS(NS, 'mask'), reveal = document.createElementNS(NS, 'path');
       mk.setAttribute('id', 'lm-mask'); mk.setAttribute('maskUnits', 'userSpaceOnUse'); mk.setAttribute('x', 0); mk.setAttribute('y', 0); mk.setAttribute('width', ctx.slot.w); mk.setAttribute('height', ctx.slot.h);
-      [['d', d || 'M0 0'], ['fill', 'none'], ['stroke', '#fff'], ['stroke-width', '30'], ['pathLength', '1'], ['stroke-dasharray', '1'], ['stroke-dashoffset', '1']].forEach(function (kv) { reveal.setAttribute(kv[0], kv[1]); });
+      [['d', d || 'M0 0'], ['fill', 'none'], ['stroke', 'white'], ['stroke-width', '30'], ['pathLength', '1'], ['stroke-dasharray', '1'], ['stroke-dashoffset', '1']].forEach(function (kv) { reveal.setAttribute(kv[0], kv[1]); });
       mk.appendChild(reveal); defs.appendChild(mk); svg.appendChild(defs);
       var path = document.createElementNS(NS, 'path');
-      [['d', d || 'M0 0'], ['fill', 'none'], ['stroke', '#FF6F59'], ['stroke-width', '12'], ['stroke-linecap', 'round'], ['pathLength', '1'], ['stroke-dasharray', '0.012 0.016'], ['mask', 'url(#lm-mask)']].forEach(function (kv) { path.setAttribute(kv[0], kv[1]); });
+      [['d', d || 'M0 0'], ['fill', 'none'], ['style', 'stroke:var(--v-accent2)'], ['stroke-width', '12'], ['stroke-linecap', 'round'], ['pathLength', '1'], ['stroke-dasharray', '0.012 0.016'], ['mask', 'url(#lm-mask)']].forEach(function (kv) { path.setAttribute(kv[0], kv[1]); });
       svg.appendChild(path);
       var badges = pts.map(function (q, i) {
         var g = document.createElementNS(NS, 'g'); g.setAttribute('transform', 'translate(' + q.x + ' ' + q.y + ')');
-        g.innerHTML = '<circle r="44" fill="#1D2A6E" stroke="#fff" stroke-width="6"/><text y="17" text-anchor="middle" font-size="50" font-weight="800" fill="#fff" font-family="inherit">' + (i + 1) + '</text>';
+        g.innerHTML = '<circle r="44" style="fill:var(--v-ink);stroke:var(--v-card)" stroke-width="6"/><text y="17" text-anchor="middle" font-size="50" font-weight="800" style="fill:var(--v-card)" font-family="inherit">' + (i + 1) + '</text>';
         svg.appendChild(g); return g;
       });
       box.appendChild(svg); world.appendChild(box);
