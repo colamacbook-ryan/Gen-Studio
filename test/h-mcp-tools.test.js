@@ -36,7 +36,8 @@ test('mcp-tools: mọi tool 0.1.1 còn nguyên tên; thêm render_still + propos
   try {
     for (const n of OLD_TOOLS) assert.ok(mcp.tools.includes(n), n);
     assert.ok(mcp.tools.includes('render_still')); assert.ok(mcp.tools.includes('propose_brand_change'));   // gói B (0.2.0)
-    assert.equal(mcp.tools.length, OLD_TOOLS.length + 2);
+    for (const n of ['propose_thumbnail_text', 'preview_thumbnail']) assert.ok(mcp.tools.includes(n), 'gói T thêm ' + n);
+    assert.equal(mcp.tools.length, OLD_TOOLS.length + 4);   // + render_still (P0b), propose_brand_change (B), propose_thumbnail_text + preview_thumbnail (T)
     assert.equal(mcp.tools.filter(n => /approve|reject|delete|^review|remove|attest|pick|publish/.test(n)).length, 0, 'lớp quyết định của owner (§10) không có tool');
   } finally { t.clean(); }
 });
@@ -134,7 +135,7 @@ test('get_capabilities: gộp capabilities() của module; blocks_by_kind/gates_
 test('lessonExt → inputSchema của validate/submit/update_lesson; trường ext đi thẳng vào lesson.submit và update_lesson kế thừa', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-ops-'));
   fs.writeFileSync(path.join(dir, 'x.js'), `exports.register = (op, ctx) => ctx.ext.lessonExt.register({ name: 'thumbnail', columns: ['thumbnail'], schema: { properties: { thumbnail: { type: 'object' } } } });`);
-  const { t, b, mk, call, rpc } = setup(undefined, (db) => createWriter(db, { opsDirs: [dir] }));
+  const { t, b, mk, call, rpc } = setup(undefined, (db) => createWriter(db, { opsDirs: [dir], skipOps: ['thumb.js'] }));
   try {
     const c = mk(['read', 'compose', 'run']);
     const list = (await rpc(c, 'tools/list')).tools;

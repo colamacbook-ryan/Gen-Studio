@@ -24,7 +24,7 @@ function env(src = EXT_MODULE) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-grid-')), ops = path.join(dir, 'ops'); fs.mkdirSync(ops);
   fs.writeFileSync(path.join(ops, 'x.js'), src);
   const db = dbm.open(path.join(dir, 'data'), { masterKey: 'a'.repeat(64) });
-  return { dir, db, write: createWriter(db, { opsDirs: [ops] }), clean: () => { db.close(); fs.rmSync(dir, { recursive: true, force: true }); } };
+  return { dir, db, write: createWriter(db, { opsDirs: [ops], skipOps: ['thumb.js'] }), clean: () => { db.close(); fs.rmSync(dir, { recursive: true, force: true }); } };
 }
 const toAwaiting = (db, id, outputs) => {
   for (const s of ['voicing', 'judging', 'aligning', 'rendering', 'mixing']) state.transitionRender(db, id, s);

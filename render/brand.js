@@ -88,6 +88,13 @@
     return out;
   }
 
+  // nhóm thumb: lược đồ + (gói T) faces hợp lệ được giữ lại
+  function thumbOf(raw) {
+    var t = section(SPEC.thumb, raw);
+    if (isObj(raw) && Array.isArray(raw.faces)) t.faces = raw.faces.filter(function (f) { return isObj(f) && typeof f.asset === 'string' && /^AS-\d+$/.test(f.asset) && typeof f.mood === 'string' && /^[a-z]{2,16}$/.test(f.mood); }).slice(0, 10).map(function (f) { return { asset: f.asset, mood: f.mood }; });
+    return t;
+  }
+
   function stable(v) {
     if (Array.isArray(v)) return '[' + v.map(stable).join(',') + ']';
     if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map(function (k) { return JSON.stringify(k) + ':' + stable(v[k]); }).join(',') + '}';
@@ -134,7 +141,7 @@
     var ec = isObj(b.end_card) ? b.end_card : (isObj(d.end_card) ? d.end_card : {});
     return { preset: preset, tokens: tokens, fonts: { pair: pair }, logo: logo,
       lower_third: section(SPEC.lower_third, lt), subtitle: section(SPEC.subtitle, b.subtitle), intro: section(SPEC.intro, b.intro),
-      outro: section(SPEC.outro, b.outro), thumb: section(SPEC.thumb, b.thumb), end_card: section(SPEC.end_card, ec) };
+      outro: section(SPEC.outro, b.outro), thumb: thumbOf(b.thumb), end_card: section(SPEC.end_card, ec) };
   }
 
   function hash(brand) {
@@ -201,10 +208,16 @@
       if (sec === 'logo' || brand[sec] === undefined) return;
       if (!isObj(brand[sec])) return add(sec, 'Nhóm ' + SUB_LABEL[sec] + ' phải là object.');
       Object.keys(brand[sec]).forEach(function (k) {
+        if (sec === 'thumb' && k === 'faces') return;   // gói T: ảnh mặt chủ kênh, kiểm riêng bên dưới
         if (!SPEC[sec][k]) add(sec + '.' + k, 'Trường ' + sec + '.' + k + ' không có trong lược đồ.');
         else if (!typeOk(SPEC[sec][k], brand[sec][k])) add(sec + '.' + k, sec + '.' + k + ' phải là ' + describe(SPEC[sec][k]) + '.');
       });
     });
+    if (isObj(brand.thumb) && brand.thumb.faces !== undefined) {   // gói T (SPEC §5.4): thumb.faces = [{asset:"AS-…", mood}] ≤ 10 — ảnh mặt thật của chủ kênh (PNG tách nền) cho ảnh bìa
+      var fc = brand.thumb.faces;
+      if (!Array.isArray(fc) || fc.length > 10) add('thumb.faces', 'thumb.faces phải là danh sách ≤ 10 mục {asset, mood}.');
+      else fc.forEach(function (f, i) { if (!isObj(f) || typeof f.asset !== 'string' || !/^AS-\d+$/.test(f.asset) || typeof f.mood !== 'string' || !/^[a-z]{2,16}$/.test(f.mood)) add('thumb.faces[' + i + ']', 'Mỗi ảnh mặt cần {asset: "AS-…", mood: chữ thường}.'); });
+    }
     if (isObj(brand.intro) && brand.intro.enabled === true && brand.intro.kind === 'none') add('intro.kind', 'Intro đang bật nhưng kind là "none".');
     // tương phản: chỉ kiểm cặp mà cả hai màu đều hợp lệ (màu sai định dạng đã báo ở trên)
     var t = build(brand, {}).tokens;

@@ -24,7 +24,7 @@ const agent = (scopes, id = 'AG-X') => ({ type: 'agent', id, scopes, entry: 'mcp
 // Dựng kênh + 2 nhân vật; trả về display_id
 function basics(write, db) {
   const o = owner(db);
-  const ch = write(o, 'channel.create', { name: 'K', data: { schedule: { cron: '0 6 * * *' }, style: { a: 1 } } });
+  const ch = write(o, 'channel.create', { name: 'K', data: { schedule: { cron: '0 6 * * *' }, style: { a: 1 }, policy: { thumbnail_required: false } } });   // 0.2.0: kênh tạo mới mặc định BẮT BUỘC ảnh bìa (gói T); bộ test cũ không dùng ảnh bìa nên tắt rõ ở đây
   const m1 = write(o, 'cast.save', { channel: ch.display_id, name: 'A', data: { look: {} } });
   const m2 = write(o, 'cast.save', { channel: ch.display_id, name: 'B', data: { look: {} } });
   return { o, ch, m1, m2 };

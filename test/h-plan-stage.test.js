@@ -45,13 +45,13 @@ test('buildPlan: kind theo registry — tutorial đi nhánh tutorial.js (stub n�
   assert.equal(cursorPath.compileCursor({}), null); assert.deepEqual(fx.cursorSchemaErrors(cursorPath.compileCursor({})), []);
 });
 
-test('chữ ký cố định: render/brand.js (bản thật của gói B), render/thumb.js stub, cast.library()/samples()', () => {
+test('chữ ký cố định: render/brand.js (bản thật của gói B), render/thumb.js thật (gói T), cast.library()/samples()', () => {
   assert.equal(brandMod.normalize({}), null); assert.equal(brandMod.normalize({ brand: [] }), null);
   const b = brandMod.normalize({ brand: { tokens: { ink: '#000000', paper: '#ffffff' } } });
   assert.equal(b.hash, brandMod.hash(Object.assign({}, b)), 'hash không tính hash/vars');
   assert.notEqual(brandMod.normalize({ brand: { preset: 'console' } }).hash, brandMod.normalize({ brand: { preset: 'tron' } }).hash);
   assert.deepEqual(brandMod.check(b), []); assert.ok(Object.keys(brandMod.cssVars(b)).includes('--v-ink')); assert.equal(brandMod.hash(null), null);
-  assert.deepEqual(thumbMod.resolveThumbs({ variants: [] }, {}), []); assert.deepEqual(thumbMod.measure([], {}, null), { variants: [] });
+  assert.deepEqual(thumbMod.resolveThumbs({ variants: [] }, {}), []); assert.deepEqual(thumbMod.measure([], {}, null), { variants: [], passed: [] });   // gói T: measure thật
   const lib = cast.library(); assert.ok(Array.isArray(lib.parts) && lib.parts.length > 0); assert.match(lib.hash, /^[0-9a-f]{16}$/); assert.equal(cast.samples().length, 2);   // gói K thay stub: hash thật + 2 host mẫu
 });
 
@@ -139,14 +139,11 @@ test('sân khấu: khối fullbleed/track vào lớp riêng (không chịu máy 
   }
 });
 
-test('sân khấu: GSStill.thumb stub hiểu textOff (renderPlan dựng 2 lần có chữ/không chữ); GSBrand/GSThumb stub có mặt', { skip: HAS }, async () => {
+test('sân khấu: GSBrand stub + GSThumb thật (gói T) có mặt; payload ảnh bìa không phải đặc tả ⇒ lỗi rõ (textOff thật: test/g-thumb-render.test.js)', { skip: HAS }, async () => {
   await withStage(async (stage, errors) => {
     assert.equal(await stage.ev('typeof window.GSBrand.apply + typeof window.GSBrand.inkFilter + typeof window.GSThumb.render + typeof window.GSThumb.textOff'), 'functionfunctionfunctionfunction');
-    const m = await stage.ev('window.__still("thumb", {label:"x"})');
-    const withText = await stage.ev('document.querySelector(".thumb-text").textContent');
-    await stage.ev('window.__still("thumb", {label:"x", textOff:true})');
-    const noText = await stage.ev('document.querySelector(".thumb-text").textContent');
-    assert.deepEqual(m, { mode: 'thumb', stub: true }); assert.match(withText, /still:thumb/); assert.equal(noText, '');
+    assert.equal(await stage.ev('window.GSThumb.stub'), false);
+    await assert.rejects(stage.ev('window.__still("thumb", {label:"x"})'), /đặc tả ảnh bìa/);
     assert.deepEqual(errors, []);
   });
 });

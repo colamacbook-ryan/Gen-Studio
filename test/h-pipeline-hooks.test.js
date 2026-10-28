@@ -36,7 +36,7 @@ function env({ tModule = T_MODULE, config = {}, t = {} } = {}) {
   const opsDir = path.join(dir, 'ops'); fs.mkdirSync(opsDir);
   if (tModule) fs.writeFileSync(path.join(opsDir, 't.js'), tModule);
   const db = dbm.open(path.join(dir, 'data'), { masterKey: 'a'.repeat(64) });
-  const write = createWriter(db, { opsDirs: [opsDir] });
+  const write = createWriter(db, { opsDirs: [opsDir], skipOps: ['thumb.js'] });
   const calls = { renderPlan: [] };
   const deps = {
     render: { async renderPlan(o) {

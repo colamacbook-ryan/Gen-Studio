@@ -62,7 +62,16 @@ async function handleTask(client, task) {
     return 'unsupported';
   }
   const must = async (name, args) => { const r = await client.call(name, args); if (r.isError) throw new Error(name + ' lỗi: ' + r.text); return r; };
-  const spec = loadSample(process.env.GS_FAKE_SAMPLE);
+  let spec = loadSample(process.env.GS_FAKE_SAMPLE);
+  // 0.2.0 (gói T): kênh bật policy.thumbnail_required (kênh TẠO MỚI mặc định bật) mà mẫu chưa có ảnh bìa ⇒ nộp ảnh bìa của mẫu lesson-thumb, như agent thật phải làm (get_capabilities → thumbnail.required)
+  if (!(spec.extra && spec.extra.thumbnail)) {
+    const caps = await must('get_capabilities', { channel: task.channel.display_id });
+    if (caps.data.thumbnail && caps.data.thumbnail.required) {
+      const th = JSON.parse(JSON.stringify(loadSample('lesson-thumb').extra.thumbnail)), last = Math.max(0, spec.beats.length - 1);
+      th.variants.forEach(v => { if (v.visual && Number.isInteger(v.visual.beat)) v.visual.beat = Math.min(v.visual.beat, last); });
+      spec = Object.assign({}, spec, { extra: Object.assign({}, spec.extra, { thumbnail: th }) });
+    }
+  }
   let cast = (await must('list_cast', { channel: task.channel.display_id })).data.cast;
   if (!cast.length) {
     for (const m of spec.cast || SAMPLE_CAST) {

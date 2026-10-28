@@ -1,0 +1,158 @@
+{
+  "id": "lesson-thumb",
+  "_doc": "Mẫu bài CÓ ảnh bìa cho agent giả (GS_FAKE_SAMPLE=lesson-thumb): như lesson.json cộng `extra.thumbnail` (3 phương án trên 3 mẫu khác nhau, SPEC-0.2.0 §5.4). \"$cast:<Tên>\" được thay bằng mã nhân vật (CM-…) cùng tên của kênh; visual.beat là số thứ tự nhịp (0 = title, 1 = prob-card, 2 = takeaway). face.owner:true dùng ảnh mặt chủ kênh (brand.thumb.faces) — chưa có thì máy rơi về KOL host_lead.",
+  "title": "Vì sao A.I. sai mà vẫn tự tin?",
+  "cast": [
+    {
+      "name": "Anh Gen",
+      "role_label": "Người giảng",
+      "voice": "Charon",
+      "archetype": "mentor"
+    },
+    {
+      "name": "Bé Hỏi",
+      "role_label": "Người hỏi",
+      "voice": "Leda",
+      "archetype": "curious-kid"
+    }
+  ],
+  "lines": [
+    {
+      "name": "Bé Hỏi",
+      "say": "Anh Gen ơi, sao A.I. nói sai mà vẫn tự tin thế ạ?",
+      "terms": [
+        "A.I."
+      ],
+      "mood": "unsure",
+      "subtitle": {
+        "en": "Gen, why does A.I. sound so sure when it's wrong?"
+      }
+    },
+    {
+      "name": "Anh Gen",
+      "say": "Câu quen, như thủ đô Việt Nam là gì, thì Hà Nội chiếm tới chín mươi hai phần trăm.",
+      "terms": [],
+      "mood": "calm",
+      "subtitle": {
+        "en": "For a familiar question, Hanoi takes ninety-two percent."
+      }
+    },
+    {
+      "name": "Bé Hỏi",
+      "say": "À! Vậy là đoán, chứ không phải biết!",
+      "terms": [],
+      "mood": "happy",
+      "subtitle": {
+        "en": "Ah! So it guesses, it does not know!"
+      }
+    }
+  ],
+  "beats": [
+    {
+      "block": "title",
+      "anchor": {
+        "line": 0,
+        "word": "A.I."
+      },
+      "params": {
+        "text": "Vì sao A.I. sai mà vẫn tự tin?",
+        "highlight": [
+          "A.I."
+        ]
+      }
+    },
+    {
+      "block": "prob-card",
+      "anchor": {
+        "line": 1,
+        "word": "Hà Nội"
+      },
+      "params": {
+        "prompt": "Thủ đô của Việt Nam là",
+        "options": [
+          [
+            "Hà Nội",
+            92
+          ],
+          [
+            "Huế",
+            4
+          ],
+          [
+            "TP.HCM",
+            3
+          ],
+          [
+            "Hải Phòng",
+            1
+          ]
+        ],
+        "pick": 0,
+        "chip": "✓ chắc chắn"
+      }
+    },
+    {
+      "block": "takeaway",
+      "anchor": {
+        "line": 2,
+        "word": "đoán"
+      },
+      "params": {
+        "kind": "eq",
+        "text": "Đoán ≠ Biết"
+      }
+    }
+  ],
+  "extra": {
+    "thumbnail": {
+      "variants": [
+        {
+          "template": "host-shock-left",
+          "headline": "AI sai mà tự tin?",
+          "highlight": "sai",
+          "kicker": "SỰ THẬT",
+          "face": {
+            "owner": true,
+            "mood": "shock"
+          },
+          "sidekick": {
+            "cast": "$cast:Bé Hỏi",
+            "mood": "panic"
+          },
+          "visual": {
+            "beat": 1
+          }
+        },
+        {
+          "template": "duo-versus",
+          "headline": "Đoán chứ không biết",
+          "highlight": "Đoán",
+          "face": {
+            "cast": "$cast:Anh Gen",
+            "mood": "smug"
+          },
+          "sidekick": {
+            "cast": "$cast:Bé Hỏi",
+            "mood": "shock"
+          },
+          "visual": {
+            "beat": 2
+          }
+        },
+        {
+          "template": "big-visual",
+          "headline": "Hà Nội chiếm 92%",
+          "highlight": "92%",
+          "kicker": "SỐ LIỆU",
+          "face": {
+            "cast": "$cast:Bé Hỏi",
+            "mood": "excited"
+          },
+          "visual": {
+            "beat": 1
+          }
+        }
+      ]
+    }
+  }
+}

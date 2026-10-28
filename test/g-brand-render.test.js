@@ -200,7 +200,7 @@ test('route /api/preview/still: chỉ phiên chủ xưởng; GET brand đã lưu
     assert.ok([401, 403].includes((await request(t.base, 'GET', q('&view=thumb'), { token: ag.json.token })).status));
     assert.equal((await request(t.base, 'POST', '/api/preview/still', { cookie: s.cookie, origin: t.base, body: { mode: 'brand', channel: ch } })).status, 403, 'thiếu CSRF');
     // tham số sai
-    for (const [url, re] of [[q('&view=zzz'), /view phải là/], [q('&w=100'), /w phải trong/], ['/api/preview/still?mode=thumb&channel=' + ch, /chưa hỗ trợ/]]) {
+    for (const [url, re] of [[q('&view=zzz'), /view phải là/], [q('&w=100'), /w phải trong/], ['/api/preview/still?mode=frame&channel=' + ch, /chưa hỗ trợ/]]) {
       const r = await call('GET', url);
       assert.equal(r.status, 400, url); assert.match(r.json.error.text_human, re);
     }

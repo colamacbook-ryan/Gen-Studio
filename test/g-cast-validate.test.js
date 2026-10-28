@@ -219,7 +219,7 @@ test('pipeline dùng approved_version của nhân vật đã chốt (cast.approv
   const ctx = { db, write, events: events.create(), config: { dataDir: path.join(dir, 'data'), fakeProviders: true, ffmpegPath: 'ffmpeg-test', chromiumPath: null, version: 'test' }, deps, pipelineOpts: { backoffMs: 1 } };
   try {
     const o = owner(db), ag = agent(['read', 'compose']);
-    const ch = write(o, 'channel.create', { name: 'K', data: { schedule: { cron: '0 6 * * *' }, style: { a: 1 } } });
+    const ch = write(o, 'channel.create', { name: 'K', data: { schedule: { cron: '0 6 * * *' }, style: { a: 1 }, policy: { thumbnail_required: false } } });   // kênh mới mặc định bắt buộc ảnh bìa (gói T) — test này không dùng
     const khoa = write(ag, 'cast.save', { channel: ch.display_id, name: 'Khoa', data: KHOA, status: 'candidate' });
     const vy = write(ag, 'cast.save', { channel: ch.display_id, name: 'Vy', data: VY, status: 'candidate' });
     const runIt = async (title) => {
