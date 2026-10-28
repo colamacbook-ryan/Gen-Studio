@@ -1,0 +1,17 @@
+[
+  { "name": "title", "file": "title.js", "kinds": ["lesson", "tutorial"], "agent": true, "enabled": true },
+  { "name": "concept-chip", "file": "concept-chip.js", "kinds": ["lesson", "tutorial"], "agent": true, "enabled": true },
+  { "name": "token-row", "file": "token-row.js", "kinds": ["lesson"], "agent": true, "enabled": true },
+  { "name": "prob-card", "file": "prob-card.js", "kinds": ["lesson"], "agent": true, "enabled": true },
+  { "name": "stamp", "file": "stamp.js", "kinds": ["lesson", "tutorial"], "agent": true, "enabled": true },
+  { "name": "takeaway", "file": "takeaway.js", "kinds": ["lesson", "tutorial"], "agent": true, "enabled": true },
+  { "name": "lesson-map", "file": "lesson-map.js", "kinds": ["lesson"], "agent": true, "enabled": true },
+  { "name": "end-card", "file": "end-card.js", "kinds": ["lesson", "tutorial"], "agent": true, "enabled": true },
+  { "name": "illustration", "file": "illustration.js", "kinds": ["lesson", "tutorial"], "agent": true, "enabled": true },
+  { "name": "screen", "file": "screen.js", "kinds": ["tutorial"], "agent": true, "enabled": false },
+  { "name": "cursor", "file": "cursor.js", "kinds": ["tutorial"], "agent": true, "enabled": false },
+  { "name": "focus", "file": "focus.js", "kinds": ["tutorial"], "agent": true, "enabled": false },
+  { "name": "callout", "file": "callout.js", "kinds": ["tutorial"], "agent": true, "enabled": false },
+  { "name": "keystroke", "file": "keystroke.js", "kinds": ["tutorial"], "agent": true, "enabled": false },
+  { "name": "mock-ui", "file": "mock-ui.js", "kinds": ["tutorial"], "agent": false, "enabled": false }
+]

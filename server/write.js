@@ -10,7 +10,8 @@ const state = require('./state');
 const queue = require('./queue');
 const secrets = require('./secrets');
 
-const MVP_BLOCKS = ['title', 'concept-chip', 'token-row', 'prob-card', 'stamp', 'takeaway', 'lesson-map', 'end-card', 'illustration'];
+// Danh sách khối nhận trong bài: lấy từ render/blocks/index.json qua registry (SPEC-0.2.0 §2.3). P0b sẽ bỏ hằng này và lọc theo `kinds` của bài.
+const MVP_BLOCKS = require('../render/blocks/registry').names();
 // Trường chính sách kênh — chỉ owner sửa (CNS-036)
 const POLICY_FIELDS = ['schedule', 'loudness', 'subtitle_langs', 'limits', 'aspect', 'fps', 'publish', 'auto_publish'];
 const ACTOR_TYPES = ['user', 'agent', 'assistant', 'system', 'cli', 'runner', 'client'];
