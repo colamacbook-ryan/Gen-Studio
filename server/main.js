@@ -16,7 +16,7 @@ function blockValidator() {
   let reg = null;
   try { reg = require('../render/blocks/registry.js'); } catch { reg = null; }
   if (!reg) return undefined; // gói C chưa có: write() dùng kiểm mặc định
-  return (name, params) => { const r = reg.validate(name, params); const d = reg.get && reg.get(name); return { ok: r.ok, errors: r.errors, version: d ? d.version : 1 }; };
+  return (name, params, kind) => { const r = reg.validate(name, params, kind); const d = reg.get && reg.get(name); return { ok: r.ok, errors: r.errors, version: d ? d.version : 1 }; };
 }
 
 // boot({env?, config?, seed?, workers?, scheduler?, deps?, pipeline?}) → {ctx, port, close()} — dùng cho main và test.

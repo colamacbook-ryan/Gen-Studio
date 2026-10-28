@@ -129,7 +129,11 @@ function move(db, render, to, extra, internal) {
     }
     if (!render.manifest) f.manifest = extra.manifest;
   }
+  // outputs GỘP DẦN trong pipeline (`gating` thêm được outputs.thumbs mà không mất mp4/srt…; khoá cùng khoá thì ghi đè). Sau khi rời pipeline,
+  // trigger tr_render_outputs_once (0003, CNS-104/119) chặn mọi UPDATE outputs — nên chỉ đi qua đây khi bản dựng còn ở trạng thái pipeline.
   if (extra.outputs) f.outputs = { ...(render.outputs || {}), ...extra.outputs };
+  // awaiting_review_at ghi MỘT LẦN, lúc vào awaiting_review (CNS-091; M2 của Tổng quan dùng cột này). Trigger tr_render_awaiting_once chặn sửa lại.
+  if (to === 'awaiting_review' && !render.awaiting_review_at) f.awaiting_review_at = db.now();
   if (extra.duration_ms !== undefined) f.duration_ms = extra.duration_ms;
   if (extra.frames !== undefined) f.frames = extra.frames;
   db.update('renders', render.id, f);

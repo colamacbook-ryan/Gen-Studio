@@ -46,7 +46,7 @@ test('registry: names/list/validate suy ra từ index.json; khối tắt nạp �
   assert.equal(reg.validate('title', { text: 'Hi' }, 'tutorial').ok, true);
 });
 
-test('ba nơi cùng nguồn index.json: registry.js · stage.html · server/write.js MVP_BLOCKS (+ index.browser.js)', () => {
+test('ba nơi cùng nguồn index.json: registry.js · stage.html · server/write.js (+ index.browser.js)', () => {
   const enabled = INDEX.filter(e => e.enabled).map(e => e.name);
   // 1. registry
   assert.deepEqual(reg.names(), enabled);
@@ -61,10 +61,11 @@ test('ba nơi cùng nguồn index.json: registry.js · stage.html · server/writ
   assert.equal(fs.readFileSync(genStage.BROWSER_INDEX, 'utf8'), genStage.browserIndex(INDEX), 'index.browser.js khớp index.json');
   execFileSync(process.execPath, [path.join(ROOT, 'tools/gen-stage.js'), '--check']);   // lệch ⇒ thoát mã 1 ⇒ ném lỗi
   assert.ok(html.indexOf('registry.js') > html.indexOf(genStage.END), 'registry.js nạp sau các khối');
-  // 3. write.js
-  const { MVP_BLOCKS } = require('../server/write');
-  assert.deepEqual(MVP_BLOCKS, enabled);
-  assert.ok(!/MVP_BLOCKS\s*=\s*\[/.test(fs.readFileSync(path.join(ROOT, 'server/write.js'), 'utf8')), 'write.js không hardcode danh sách');
+  // 3. write.js (P0b đã bỏ MVP_BLOCKS: lọc theo registry.names(kind) của bài)
+  const wsrc = fs.readFileSync(path.join(ROOT, 'server/write.js'), 'utf8');
+  assert.ok(!/MVP_BLOCKS/.test(wsrc), 'write.js không còn MVP_BLOCKS');
+  assert.ok(/blockRegistry\.names\(kind\)/.test(wsrc), 'write.js lọc khối theo kinds của bài qua registry');
+  assert.equal(require('../server/write').MVP_BLOCKS, undefined);
   assert.ok(!/NAMES\s*=\s*\[/.test(fs.readFileSync(path.join(ROOT, 'render/blocks/registry.js'), 'utf8')), 'registry.js không hardcode danh sách');
 });
 
@@ -113,17 +114,19 @@ test('plan.cursor: lược đồ cố định (CNS-113) — fixture hợp lệ, 
   assert.equal(JSON.stringify(clone()), JSON.stringify(fx.CURSOR_FIXTURE));
 });
 
-test('MCP: tên tool duy nhất (hiện tại và mọi module server/mcp-tools/*.js về sau)', () => {
+test('MCP: tên tool duy nhất — mọi module server/mcp-tools/*.js gộp lại đúng bằng danh sách của createMcp (P0b: tool cũ đã chuyển sang module)', () => {
   const t = tmpDb();
   try {
     const mcp = createMcp({ db: t.db, write: t.write, config: { version: 't' } });
-    const names = mcp.tools.slice();
+    const names = [];
     const dir = path.join(ROOT, 'server', 'mcp-tools');
-    if (fs.existsSync(dir)) fs.readdirSync(dir).filter(f => f.endsWith('.js')).forEach(f => {
+    fs.readdirSync(dir).filter(f => f.endsWith('.js') && !f.startsWith('_')).forEach(f => {
       const m = require(path.join(dir, f));
-      if (typeof m.tools === 'function') m.tools({ db: t.db, write: t.write, config: { version: 't' } }).forEach(x => names.push(x.name));
+      if (typeof m.tools === 'function') m.tools({ db: t.db, write: t.write, config: { version: 't' } }).forEach(x => names.push(x.name));   // ctx tối thiểu: không cần máy chủ
     });
     const dup = names.filter((n, i) => names.indexOf(n) !== i);
     assert.deepEqual(dup, [], 'tool trùng tên: ' + dup.join(', '));
+    assert.deepEqual(names.slice().sort(), mcp.tools.slice().sort(), 'createMcp nạp đủ và chỉ các tool của module');
+    assert.ok(mcp.tools.includes('render_still'));
   } finally { t.clean(); }
 });
