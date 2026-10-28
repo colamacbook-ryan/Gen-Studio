@@ -87,8 +87,8 @@
         var zb = camAt(m0.t0).z, Tb = C.fittsMs(path.D * zb, W * zb, path.L * zb, k) * (slow || 1), tb = m0.t0 - 1 - Tb - settle;
         if (tb >= tStart && !overlapCam(tb, tb + Tb + settle)) return { t0: tb, T: Tb, settle: settle, path: path, over: over, seed: seed };
         for (var g = 0; g < 8; g++) { var m = overlapCam(t0, t0 + T + settle); if (!m) break; t0 = m.t1 + 1; }
-        if (tArrive !== null && t0 + T + settle > tArrive) T = Math.max(Tfloor, tArrive - t0 - settle);
       }
+      if (tArrive !== null && t0 + T + settle > tArrive) T = Math.max(Tfloor, tArrive - t0 - settle);   // bước trước bận lâu / sau đoạn lia: nén về sàn Fitts
       return { t0: t0, T: T, settle: settle, path: path, over: over, seed: seed };
     }
     (o.steps || []).forEach(function (s) {
