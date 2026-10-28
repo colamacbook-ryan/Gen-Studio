@@ -49,7 +49,8 @@ function launch(opts) {
     proc.once('exit', done); proc.kill('SIGKILL');
   });
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => { close(); reject(new Error('Chromium không báo cổng DevTools sau 20 s. stderr: ' + tail.slice(-300))); }, 20000);
+    const startMs = Number(process.env.GS_CHROMIUM_START_MS) || 20000;   // máy chậm/quá tải (Docker Desktop, CI) cần chờ lâu hơn
+    const timer = setTimeout(() => { close(); reject(new Error('Chromium không báo cổng DevTools sau ' + Math.round(startMs / 1000) + ' s. stderr: ' + tail.slice(-300))); }, startMs);
     proc.stderr.on('data', d => {
       tail = (tail + d).slice(-2000);
       const m = /DevTools listening on (ws:\/\/\S+)/.exec(tail);
