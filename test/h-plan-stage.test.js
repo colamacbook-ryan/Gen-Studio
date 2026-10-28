@@ -52,7 +52,7 @@ test('chữ ký cố định: render/brand.js (bản thật của gói B), rende
   assert.notEqual(brandMod.normalize({ brand: { preset: 'console' } }).hash, brandMod.normalize({ brand: { preset: 'tron' } }).hash);
   assert.deepEqual(brandMod.check(b), []); assert.ok(Object.keys(brandMod.cssVars(b)).includes('--v-ink')); assert.equal(brandMod.hash(null), null);
   assert.deepEqual(thumbMod.resolveThumbs({ variants: [] }, {}), []); assert.deepEqual(thumbMod.measure([], {}, null), { variants: [] });
-  const lib = cast.library(); assert.ok(Array.isArray(lib.parts) && lib.parts.length > 0); assert.equal(lib.hash, null); assert.deepEqual(cast.samples(), []);
+  const lib = cast.library(); assert.ok(Array.isArray(lib.parts) && lib.parts.length > 0); assert.match(lib.hash, /^[0-9a-f]{16}$/); assert.equal(cast.samples().length, 2);   // gói K thay stub: hash thật + 2 host mẫu
 });
 
 test('buildPlan: khối place fullbleed/track phủ cả khung, không vào vùng/máy quay', () => {

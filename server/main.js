@@ -28,6 +28,7 @@ async function boot(opts = {}) {
   const ctx = { config, db, events, write, pipeline, deps: opts.deps || {} };
   ctx.mcp = createMcp(ctx);
   if (opts.seed !== undefined ? opts.seed : config.seedDemo) require('./seed.js').seedDemo(db);
+  if (config.kolPack) require('../render/cast/kol-pack.js').bootstrap(ctx);   // GS_KOL_PACK: nạp + kiểm pack, seed `candidate` (không phụ thuộc seed demo); pack sai ⇒ máy chủ không lên
   const key = auth.ensureAdminKey(config.dataDir, db);
   const server = await httpMod.start(ctx);
   ctx.port = server.port;

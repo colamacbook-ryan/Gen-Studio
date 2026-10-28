@@ -153,7 +153,7 @@ renderStill({mode:'thumb'|'frame'|'brand'|'cast', payload, size:[w,h], format:'j
 //   Tiết chế (CNS-106): 1 still chạy một lúc, Chromium riêng `nice 10`, FIFO ≤ 8 chờ (đầy ⇒ lỗi code still_queue_full), hạn 15 s từ lúc BẮT ĐẦU dựng (still_timeout, bỏ Chromium), Chromium ấm 60 s rồi tự đóng.
 //   Mã lỗi: still_mode · still_size · still_queue_full · still_timeout. closeStill() đóng Chromium ấm (test/tắt máy chủ). Tool MCP `render_still` thuộc gói P0b (server/mcp-tools/still.js).
 ```
-`tools/sync-gen-chibi.sh <đường dẫn Gen-Chibi>` chép `engine/core.js, i18n.js, voices.js, sounds.js, audio.js, choreo.js, kinds/character/gen.core.js, kinds/khung/gen.khung.js, kinds/character/gen.choreo.js` + `VERSION` vào `vendor/gen-chibi/`. Gen-Chibi ở phiên bản 0.25.1.
+`tools/sync-gen-chibi.sh <đường dẫn Gen-Chibi>` chép `engine/core.js, i18n.js, voices.js, sounds.js, audio.js, choreo.js, kinds/character/gen.core.js, kinds/khung/gen.khung.js, kinds/character/gen.choreo.js` + `VERSION` vào `vendor/gen-chibi/`. Gen-Chibi ở phiên bản 0.26.0 (gói dữ liệu thuần JSON, viền nướng vào path, biến thể tâm trạng — xem Gen-Chibi docs/PACK-DATA.md).
 
 ## 5. Gói D — Máy chủ, MCP, pipeline, agent
 - `server/main.js`: `config.load()` → `db.open` → nếu `GS_SEED_DEMO=1` thì `seedDemo` → `http.start` → `pipeline.startWorkers` → `scheduler.start`.

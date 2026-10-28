@@ -126,6 +126,7 @@ function v2Fields(input, lesson) {
     thumbs: Array.isArray(input.thumbs) ? input.thumbs : [],
     assetRefs: Array.isArray(input.assetRefs) ? input.assetRefs : [],
     persona: input.persona && typeof input.persona === 'object' ? input.persona : {},
+    packs: Array.isArray(input.packs) ? input.packs : [],   // gói dữ liệu Gen-Chibi [{json, outline}] — sân khấu đăng ký trước khi nạp công thức (render/cast library().packs)
   };
 }
 // Bố cục mặc định của chỗ đứng: trái x=-40, phải x=1500 (như sân khấu v0.1.x); mode: stage | pip | hidden

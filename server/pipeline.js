@@ -307,7 +307,7 @@ async function execute(ctx, run, renderId) {
       // plan v2 (SPEC §2.1): kind/variant/brand/assetRefs đi vào buildPlan; hook plan.input cho gói U/V/B sửa input (screens, cursor, actorLayout, persona…)
       const input = { lesson: { title: B.lesson.title, lines: planLines, beats: planBeats, camera_hints: B.lv.camera_hints || null, kind, variant: B.lv.variant || undefined, host: B.lv.host || null, screens: B.lv.screens || null, music: B.lv.music || null, thumbnail: B.lv.thumbnail || null }, clips,
         channel: Object.assign({ id: B.channel.display_id, name: B.channel.name }, B.channelData),
-        cast: haveRecipes ? castRecipes : undefined, parts: haveRecipes ? lib.parts : undefined, aspect: '16:9', fps: FPS,
+        cast: haveRecipes ? castRecipes : undefined, parts: haveRecipes ? lib.parts : undefined, packs: haveRecipes ? lib.packs : undefined, aspect: '16:9', fps: FPS,
         kind, variant: B.lv.variant || undefined, brand, assetRefs: illusRefs.slice() };
       if (ext) ext.hooks.run('plan.input', { B, input, ctx });
       plan = D('timeline').buildPlan(input);
