@@ -87,7 +87,7 @@
         if (R.lab.textContent !== lab) R.lab.textContent = lab;
         R.r.style.opacity = op; R.lab.style.transform = 'rotateX(' + ang + 'deg)';
         R.fill.style.width = v + '%'; R.pct.textContent = Math.round(v) + '%';
-        var hl = hlOf(j); R.r.style.background = 'rgba(255,216,74,' + (hl * 0.9) + ')'; R.fill.style.background = hl > 0.5 ? 'var(--v-ink)' : '';
+        var hl = hlOf(j); R.r.style.background = 'color-mix(in srgb, var(--v-hl) ' + (hl * 90).toFixed(3) + '%, transparent)'; R.fill.style.background = hl > 0.5 ? 'var(--v-ink)' : '';
       });
       // chữ trả lời bay từ nhãn lên ô trống
       var pk = cur.peak, fp = U.seg(tau, pk + 0.5, pk + 1.05), pickLab = P.options[P.pick][0];

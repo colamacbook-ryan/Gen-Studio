@@ -29,7 +29,12 @@ for f in install.sh cli/genstudio tools/*.sh; do
 done
 # test Node (bỏ qua êm nếu chưa có thư mục test)
 if [[ -d test ]] && ls test/*.test.js >/dev/null 2>&1; then
-  node --test test/*.test.js >/dev/null && ok "node --test test/*.test.js" || { node --test test/*.test.js 2>&1 | tail -30; bad "node --test đỏ"; }
+  # in đúng lần chạy đỏ (chạy lại để in sẽ che test chập chờn)
+  out="$(mktemp)"
+  # nhiều file test mở Chromium thật: giới hạn song song + chờ khởi động lâu hơn để máy 4 nhân không quá tải
+  if GS_CHROMIUM_START_MS="${GS_CHROMIUM_START_MS:-60000}" node --test --test-concurrency="${GS_TEST_CONCURRENCY:-2}" test/*.test.js >"$out" 2>&1; then ok "node --test test/*.test.js"
+  else grep -E -A30 '^not ok' "$out" | head -120; tail -12 "$out"; bad "node --test đỏ"; fi
+  rm -f "$out"
 else
   ok "chưa có test/ — bỏ qua node --test"
 fi

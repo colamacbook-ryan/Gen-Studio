@@ -4,7 +4,7 @@ Mọi thứ không do Gen-Studio tự viết phải có một dòng ở đây tr
 
 | Thành phần | Nguồn | Phiên bản | License | Dùng ở | Trạng thái |
 |---|---|---|---|---|---|
-| Engine Gen-Chibi (core, choreo, kinds, sounds, audio) | colamacbook-ryan/Gen-Chibi | 0.25.1 (khoá khi vendor) | © 2026 Gen Labs — All rights reserved (cùng chủ sở hữu) | `vendor/gen-chibi/` | Đã vendor 0.25.1 (tools/sync-gen-chibi.sh kiểm phiên bản) |
+| Engine Gen-Chibi (core, choreo, kinds, sounds, audio) | colamacbook-ryan/Gen-Chibi | 0.26.0 (khoá khi vendor) | © 2026 Gen Labs — All rights reserved (cùng chủ sở hữu) | `vendor/gen-chibi/` | Đã vendor 0.26.0 (tools/sync-gen-chibi.sh kiểm phiên bản) |
 | Chromium | chromium.org | theo image | BSD-3-Clause | image Docker (renderer) | Dự kiến |
 | FFmpeg | ffmpeg.org | theo image | LGPL-2.1+ (build không bật GPL) | image Docker (trộn, mã hoá) | Dự kiến — kiểm build |
 | Google Gemini API (TTS, chép lời) | Google | quét lúc chạy (STD-10) | Điều khoản Gemini API | provider giọng/giám khảo | Dịch vụ, không phân phối |
