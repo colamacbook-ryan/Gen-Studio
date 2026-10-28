@@ -39,7 +39,7 @@ function writerWith(src) {
   const ops = tmpOps(src);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-a-'));
   const db = dbm.open(dir, { masterKey: 'a'.repeat(64) });
-  const write = createWriter(db, { opsDirs: [ops.dir] });
+  const write = createWriter(db, { opsDirs: [ops.dir], skipOps: ['thumb.js'] });
   return { db, write, dir, clean: () => { db.close(); fs.rmSync(dir, { recursive: true, force: true }); ops.clean(); } };
 }
 
@@ -68,12 +68,13 @@ test('server/ops/*: 6 module stub là no-op (không đăng ký op nào) và có 
   for (const f of files) {
     const m = require(path.join(dir, f));
     assert.equal(typeof m.register, 'function', f); assert.ok(m.OWNER, f + ' ghi rõ gói sở hữu');
+    if (f === 'thumb.js') continue;   // gói T đã thay stub bằng bản thật (test/g-thumb.test.js kiểm op thumbnail.pick, lessonExt, channelDefaults)
     const calls = [];
     m.register((...a) => calls.push(a), {});
     assert.deepEqual(calls, [], f + ' stub không được đăng ký op');
   }
   const t = tmpDb();   // writer thật: tập op = tập op lõi (không op nào đến từ stub)
-  assert.ok(t.write.ops.includes('lesson.submit') && !t.write.ops.some(n => /^(cast\.approve|cast\.retire|thumbnail\.|asset\.attest|render\.mark)/.test(n)));
+  assert.ok(t.write.ops.includes('lesson.submit') && !t.write.ops.some(n => /^(cast\.approve|cast\.retire|asset\.attest|render\.mark)/.test(n)));
   t.clean();
 });
 
@@ -125,8 +126,11 @@ test('channelDefaults: kênh MỚI nhận mặc định server (kể cả trư�
     const upd = w.write(o, 'channel.update', { channel: ch.display_id, data: { glossary: ['B'] } });   // update: không áp lại mặc định
     assert.equal(w.db.json(w.db.get('SELECT data FROM channel_versions WHERE entity_id=? AND version=?', ch.id, upd.version)).data.policy.thumbnail_required, true, 'giữ từ version trước');
   } finally { w.clean(); }
-  const t = tmpDb(); const ch = t.write(owner(t.db), 'channel.create', { name: 'Cũ' });   // không hook ⇒ không đổi hành vi 0.1.1
-  assert.deepEqual(t.db.json(t.db.get('SELECT data FROM channel_versions WHERE entity_id=?', ch.id)).data, {});
+  // writer mặc định đã có hook của gói T (CNS-123): kênh tạo mới ⇒ thumbnail_required = true; người gọi (owner) gửi false thì thắng; kênh sẵn có (channel.update) không bị áp lại
+  const t = tmpDb(); const ch = t.write(owner(t.db), 'channel.create', { name: 'Mới' });
+  assert.deepEqual(t.db.json(t.db.get('SELECT data FROM channel_versions WHERE entity_id=?', ch.id)).data, { policy: { thumbnail_required: true } });
+  const ch2 = t.write(owner(t.db), 'channel.create', { name: 'Cũ', data: { policy: { thumbnail_required: false } } });
+  assert.equal(t.db.json(t.db.get('SELECT data FROM channel_versions WHERE entity_id=?', ch2.id)).data.policy.thumbnail_required, false);
   t.clean();
 });
 
@@ -135,7 +139,7 @@ test('lessonExt: kind/cột ext — chưa đăng ký ⇒ từ chối rõ; đăng
   const t = tmpDb(); const b = basics(t.write, t.db);
   const r0 = t.write(b.o, 'lesson.submit', lessonBody(b));
   assert.equal(t.db.get('SELECT kind, thumbnail FROM lesson_versions WHERE version=1').kind, 'lesson');
-  assert.throws(() => t.write(b.o, 'lesson.submit', lessonBody(b, { thumbnail: { variants: [] } })), /chưa được bật/);
+  assert.throws(() => t.write(b.o, 'lesson.submit', lessonBody(b, { thumbnail: { variants: [] } })), /2–3 phương án/);   // gói T đã bật cột thumbnail (kiểm khô T3–T6)
   assert.throws(() => t.write(b.o, 'lesson.submit', lessonBody(b, { kind: 'tutorial' })), /chưa được hỗ trợ/);
   assert.ok(r0.render);
   t.clean();

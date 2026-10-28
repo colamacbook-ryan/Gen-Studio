@@ -1,11 +1,109 @@
 // © 2026 Gen Labs — All rights reserved.
-// STUB do gói P0b tạo (SPEC-0.2.0 §2.4, §13.2): gói T sở hữu file này và thay bằng bản thật. Hiện là no-op (có test "no-op" trong test/h-hooks.test.js).
-// Sẽ có: ctx.ext.lessonExt.register({name:'thumbnail', columns:['thumbnail'], validate}) + bật luật policy.thumbnail_required; ctx.ext.channelDefaults.register(() => ({policy:{thumbnail_required:true}, brand:preset})) cho kênh mới (CNS-123); ctx.ext.hooks.on('plan.after', …) đặt plan.thumbs; ctx.ext.gates.register('G-THUMB', …); op thumbnail.pick (chỉ owner + UI).
-// register(op, ctx): ctx = { db, ws, err, byRef, need, allow, isOwner, agentHas, nonEmpty, newVersion, getSetting, putSetting, checkPolicy, ext, rights, op, around, validateBlock }
-//   • op(name, who, run) — who: khoá trong ctx.allow (owner | ownerUi | compose | run | suggest | system …) hoặc hàm (actor) → boolean; run(c) → {result, entity:[kiểu,id], before, after}; c = {a (actor), p (payload), by, actor, entry}
-//   • ctx.around(opName, wrap) — bọc op đã có · ctx.ext.{lessonExt, channelDefaults, suggestionApply, gates, hooks} — xem server/hooks.js
+// Gói T — ảnh bìa (SPEC-0.2.0 §5, §10, CNS-086/123). Đăng ký qua ctx.ext (không sửa lõi):
+//   • lessonExt 'thumbnail'  — cột lesson_versions.thumbnail + kiểm khô T3–T6 (+ T11 sớm) + luật `policy.thumbnail_required` (kênh bật, hoặc bài `tutorial`)
+//   • channelDefaults        — kênh TẠO MỚI (wizard hoặc channel.create) có mặc định policy.thumbnail_required = true (kênh cũ giữ nguyên; người gọi gửi gì thì thắng; agent vẫn không tự đặt được trường chính sách)
+//   • hooks 'plan.after'     — plan.thumbs = resolveThumbs(...) + đẩy asset (ảnh mặt chủ kênh, logo, hình chủ đạo) vào plan.assetRefs để pipeline kiểm quyền + nạp
+//   • gates 'G-THUMB'        — media/gates/thumb.js; measure.variants=[{index, pass, score,…}] quyết định phương án nào thành asset (outputs.thumbs), cả bộ trượt ⇒ blocked thumb_fail
+//   • op thumbnail.pick      — CHỈ owner trên phiên UI (ownerUi, ma trận §10): chọn ảnh bìa của một Render (đổi được tới khi gói đã xuất)
 'use strict';
+const T = require('../../render/thumb.js');
+const { gateThumb } = require('../../media/gates/thumb.js');
 
-function register(op, ctx) { /* no-op: gói T viết phần thật */ }
+const EXAMPLE = '{"variants":[{"template":"host-shock-left","headline":"AI bịa chuyện thế nào?","highlight":"bịa","kicker":"SỰ THẬT","face":{"owner":true,"mood":"shock"},"visual":{"beat":0}},' +
+  '{"template":"big-visual","headline":"Máy đoán chữ kế tiếp","face":{"cast":"CM-…","mood":"excited"},"visual":{"beat":1}}]}';
+const J = (v) => { if (typeof v !== 'string') return v; try { return JSON.parse(v); } catch { return v; } };
 
-module.exports = { register, OWNER: 'T' };
+// lược đồ JSON của thumbnail cho inputSchema validate/submit/update_lesson (lessonExt.schema)
+const MOOD_ENUM = { type: 'string', enum: T.MOODS };
+const SCHEMA = {
+  thumbnail: {
+    type: ['object', 'null'],
+    description: `Ảnh bìa: ${T.RULES.variants_min}–${T.RULES.variants_max} phương án {template, headline (≤ ${T.RULES.words_max} từ, ≤ ${T.RULES.chars_max} ký tự), highlight? (1 từ), kicker? (≤ ${T.RULES.kicker_words_max} từ), face:{owner:true|cast:"CM-…", mood}, sidekick?:{cast, mood}, visual:{beat: số thứ tự nhịp | BT-… } hoặc {asset:"AS-…"}}. Gọi propose_thumbnail_text để lấy khung chữ; get_capabilities → thumbnail.templates để biết mẫu. null = bỏ ảnh bìa (kênh bắt buộc thì bị từ chối).`,
+    properties: {
+      variants: { type: 'array', minItems: T.RULES.variants_min, maxItems: T.RULES.variants_max, items: { type: 'object', required: ['template', 'headline', 'face', 'visual'], properties: {
+        template: { type: 'string', enum: T.templates().map((t) => t.id) }, headline: { type: 'string' }, highlight: { type: 'string' }, kicker: { type: 'string' },
+        face: { type: 'object', properties: { owner: { type: 'boolean' }, cast: { type: 'string' }, mood: MOOD_ENUM } },
+        sidekick: { type: 'object', properties: { cast: { type: 'string' }, mood: MOOD_ENUM } },
+        visual: { type: 'object', properties: { beat: { type: ['integer', 'string'] }, asset: { type: 'string' } } } } } },
+    },
+  },
+};
+
+function register(op, ctx) {
+  const { db, ext, err, byRef, need } = ctx;
+
+  // ---- asset → đường dẫn tương đối trong kho (media/xx/<sha>.<ext>) mà resolveAssets đọc; không còn tệp ⇒ null ----
+  const assetRow = (ref) => (typeof ref === 'string' && /^AS-\d+$/.test(ref) ? db.get('SELECT path, mime, kind, media_present FROM assets WHERE workspace_id=? AND display_id=?', db.ws, ref) : null);
+  const assetPath = (ref) => { const a = assetRow(ref); return a && a.media_present ? a.path : null; };
+
+  // ---- lessonExt: cột `thumbnail` + kiểm khô + luật bắt buộc theo kênh ----
+  ext.lessonExt.register({
+    name: 'thumbnail', columns: ['thumbnail'], schema: { properties: SCHEMA },
+    validate(lv, c) {
+      const th = lv.values.thumbnail;
+      const pol = (lv.channelData && lv.channelData.policy) || {};
+      const required = pol.thumbnail_required === true || lv.kind === 'tutorial';
+      if (th === null || th === undefined) {
+        return required ? [{ path: 'thumbnail', text: `thumbnail_required: ${lv.kind === 'tutorial' ? 'Bài hướng dẫn' : 'Kênh này'} bắt buộc có ảnh bìa (policy.thumbnail_required). Thêm thumbnail, ví dụ ${EXAMPLE} — gọi propose_thumbnail_text để lấy khung chữ.` }] : [];
+      }
+      const ids = new Set((lv.beats || []).map((b) => b && b.id).filter(Boolean));
+      const castOk = (ref) => { const m = c.byRef('cast_members', ref); return !!m && m.channel_id === lv.channel.id; };
+      const assetOk = (ref) => {
+        const a = assetRow(ref);
+        if (!a) return { ok: false, text: `Asset ${ref} không có trong xưởng.` };
+        if (!a.media_present) return { ok: false, text: `Asset ${ref} đã bị dọn tệp.` };
+        if (!/^image\//.test(a.mime || '')) return { ok: false, text: `Asset ${ref} không phải ảnh (mime ${a.mime || '?'}).` };
+        return { ok: true };
+      };
+      return T.validateThumbnail(th, { beatIds: ids, beatCount: (lv.beats || []).length, castOk, assetOk });
+    },
+  });
+
+  // ---- channelDefaults: kênh mới ⇒ ảnh bìa bắt buộc (CNS-123). Chỉ policy.thumbnail_required; preset brand do gói B đặt ----
+  ext.channelDefaults.register(() => ({ policy: { thumbnail_required: true } }));
+
+  // ---- plan.after: đặc tả bài → plan.thumbs ----
+  ext.hooks.on('plan.after', ({ B, plan, ctx: pc }) => {
+    const th = B && B.lv && J(B.lv.thumbnail);
+    if (!th || !Array.isArray(th.variants)) return;
+    const pdb = (pc && pc.db) || db;
+    const rawBrand = (B.channelData && B.channelData.brand) || {};
+    const rawThumb = rawBrand.thumb || {};
+    const pathOf = (ref) => { const a = typeof ref === 'string' && /^AS-\d+$/.test(ref) ? pdb.get('SELECT path, media_present FROM assets WHERE workspace_id=? AND display_id=?', pdb.ws, ref) : null; return a && a.media_present ? a.path : null; };
+    // ảnh mặt chủ kênh (brand.thumb.faces, chính sách chỉ owner): bỏ mục không còn tệp
+    const faces = (Array.isArray(rawThumb.faces) ? rawThumb.faces : []).map((f) => ({ asset: pathOf(f && f.asset), mood: f && f.mood })).filter((f) => f.asset);
+    const lg = rawBrand.logo, logo = lg && lg.asset && (!Array.isArray(lg.show) || lg.show.includes('thumb')) ? pathOf(lg.asset) : null;   // logo chỉ lên ảnh bìa khi brand.logo.show có "thumb" (mặc định có)
+    const castRecipe = (ref) => {   // nhân vật chưa lên sân khấu trong lời thoại: bản đã chốt, không có thì bản hiện hành (cùng luật pipeline)
+      const cm = pdb.json(pdb.get('SELECT * FROM cast_members WHERE workspace_id=? AND display_id=? AND deleted_at IS NULL', pdb.ws, ref));
+      if (!cm || cm.channel_id !== B.channel.id) return null;
+      const ver = cm.status === 'approved' && cm.approved_version ? cm.approved_version : cm.current_version;
+      const v = pdb.json(pdb.get('SELECT data FROM cast_versions WHERE entity_id=? AND version=?', cm.id, ver));
+      return (v && v.data) || null;
+    };
+    const specs = T.resolveThumbs(th, plan, { beatOrder: (B.beats || []).map((b) => b.display_id), faces, assetPath: pathOf, castRecipe, channelName: B.channel && B.channel.name, logoPath: logo });
+    plan.thumbs = specs;
+    // ảnh mặt/logo/hình chủ đạo đi cùng danh sách asset của plan (quyền dùng + nạp một chỗ); hạ cỡ ảnh lớn (CNS-114)
+    plan.assetRefs = (Array.isArray(plan.assetRefs) ? plan.assetRefs : []).concat(T.assetRefsOf(specs).map((r) => Object.assign({ maxPx: [1600, 1600] }, r)));
+  });
+
+  // ---- G-THUMB ----
+  ext.gates.register('G-THUMB', async ({ rendered, ffmpegPath }) => gateThumb({ variants: (rendered && rendered.thumbs) || [], ffmpegPath }));
+
+  // ---- thumbnail.pick: chỉ owner + phiên UI (ma trận §10). Chọn phương án đã ĐẠT của Render; đổi được tới khi gói đã xuất (exported_at). ----
+  op('thumbnail.pick', 'ownerUi', (c) => {
+    const r = need('renders', c.p.render, 'bản dựng');
+    const outs = J(r.outputs) || {};
+    const thumbs = Array.isArray(outs.thumbs) ? outs.thumbs : [];
+    if (!thumbs.length) throw err('invalid', 'Bản dựng này không có ảnh bìa theo phương án.', { render: r.display_id });
+    if (!['awaiting_review', 'approved'].includes(r.state)) throw err('conflict', `Bản dựng đang ở trạng thái "${r.state}", chưa/không còn chọn ảnh bìa được.`, { render: r.display_id, state: r.state });
+    if (r.exported_at) throw err('conflict', 'Gói đã xuất nên không đổi ảnh bìa được nữa.', { render: r.display_id });
+    const ref = c.p.asset;
+    const t = thumbs.find((x) => x && x.pass !== false && (x.w1280 === ref || x.w1920 === ref || x.variant === c.p.variant));
+    if (!t) throw err('invalid', 'Ảnh bìa phải là một phương án đạt G-THUMB của chính bản dựng này.', { render: r.display_id, asset: ref || null, variant: c.p.variant === undefined ? null : c.p.variant });
+    const before = { thumbnail_pick: r.thumbnail_pick || null };
+    db.update('renders', r.id, { thumbnail_pick: t.w1280, thumbnail_picked_by: c.by, thumbnail_picked_at: db.now() });
+    return { result: byRef('renders', r.id), entity: ['render', r.display_id], before, after: { thumbnail_pick: t.w1280, variant: t.variant } };
+  });
+}
+
+module.exports = { register, OWNER: 'T', EXAMPLE, SCHEMA };

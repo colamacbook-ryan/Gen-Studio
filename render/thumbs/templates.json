@@ -1,0 +1,56 @@
+{
+  "_doc": "Mẫu ảnh bìa = DỮ LIỆU (SPEC-0.2.0 §5.4). Toạ độ theo khung 1280×720; bản 1920 nhân 1,5. Bộ kiểm T9 chạy ngay lúc nạp (render/thumb.js checkTemplate, CNS-101): chữ/kicker/logo/hình chủ đạo trong lề 48, chỉ hộp mặt khai bleed mới được tràn mép, KHÔNG hộp nào chạm góc phải dưới 260×110 (dấu thời lượng YouTube), hộp chữ không giao hộp mặt/sidekick/hình chủ đạo. face.frame = khung bo (rounded) hoặc tròn (circle) dán nhãn dán khi mặt không neo đáy mép.",
+  "templates": [
+    {
+      "id": "host-shock-left", "version": 1, "label": "Host kinh ngạc bên trái",
+      "boxes": {
+        "face":     { "x": 0,   "y": 130, "w": 520, "h": 590, "anchor": "bottom", "bleed": ["bottom", "left"], "head_min_h": 160 },
+        "sidekick": { "x": 880, "y": 392, "w": 300, "h": 218, "anchor": "bottom", "frame": "circle", "optional": true },
+        "headline": { "x": 540, "y": 108, "w": 692, "h": 250, "lines_max": 2, "font_px_min": 100, "font_px_max": 156, "align": "left" },
+        "kicker":   { "x": 540, "y": 48,  "w": 320, "h": 52 },
+        "visual":   { "x": 560, "y": 384, "w": 300, "h": 226 },
+        "brand":    { "corner": "tl", "x": 48, "y": 48, "w": 150, "h": 56 }
+      },
+      "safe": { "margin": 48, "no_go": [{ "x": 1020, "y": 610, "w": 260, "h": 110, "why": "yt_duration" }] },
+      "bg": { "fill": "ink", "pattern": "dots", "burst": "hl", "burst_box": { "x": 0, "y": 0, "w": 560, "h": 720 } }
+    },
+    {
+      "id": "host-shock-right", "version": 1, "label": "Host kinh ngạc bên phải (khung bo)",
+      "boxes": {
+        "face":     { "x": 772, "y": 100, "w": 460, "h": 500, "anchor": "bottom", "frame": "rounded", "head_min_h": 160 },
+        "sidekick": { "x": 380, "y": 392, "w": 300, "h": 218, "anchor": "bottom", "frame": "circle", "optional": true },
+        "headline": { "x": 48,  "y": 108, "w": 700, "h": 250, "lines_max": 2, "font_px_min": 100, "font_px_max": 156, "align": "left" },
+        "kicker":   { "x": 48,  "y": 48,  "w": 320, "h": 52 },
+        "visual":   { "x": 48,  "y": 384, "w": 300, "h": 226 },
+        "brand":    { "corner": "bl", "x": 48, "y": 616, "w": 150, "h": 56 }
+      },
+      "safe": { "margin": 48, "no_go": [{ "x": 1020, "y": 610, "w": 260, "h": 110, "why": "yt_duration" }] },
+      "bg": { "fill": "hl", "pattern": "rule", "burst": "accent", "burst_box": { "x": 700, "y": 0, "w": 580, "h": 720 } }
+    },
+    {
+      "id": "duo-versus", "version": 1, "label": "Hai nhân vật đối đầu",
+      "boxes": {
+        "face":     { "x": 0,   "y": 340, "w": 420, "h": 380, "anchor": "bottom", "bleed": ["bottom", "left"], "head_min_h": 160 },
+        "sidekick": { "x": 760, "y": 360, "w": 260, "h": 250, "anchor": "bottom", "frame": "circle", "optional": true },
+        "headline": { "x": 48,  "y": 108, "w": 1184, "h": 230, "lines_max": 2, "font_px_min": 100, "font_px_max": 150, "align": "center" },
+        "kicker":   { "x": 48,  "y": 48,  "w": 320, "h": 52 },
+        "visual":   { "x": 470, "y": 372, "w": 260, "h": 238 },
+        "brand":    { "corner": "tr", "x": 1082, "y": 48, "w": 150, "h": 56 }
+      },
+      "safe": { "margin": 48, "no_go": [{ "x": 1020, "y": 610, "w": 260, "h": 110, "why": "yt_duration" }] },
+      "bg": { "fill": "ink", "pattern": "rule", "burst": "accent2", "burst_box": { "x": 0, "y": 330, "w": 1280, "h": 390 } }
+    },
+    {
+      "id": "big-visual", "version": 1, "label": "Hình chủ đạo cỡ lớn",
+      "boxes": {
+        "face":     { "x": 850, "y": 116, "w": 382, "h": 340, "anchor": "bottom", "frame": "circle", "head_min_h": 160 },
+        "headline": { "x": 48,  "y": 468, "w": 960, "h": 204, "lines_max": 2, "font_px_min": 100, "font_px_max": 130, "align": "left" },
+        "kicker":   { "x": 48,  "y": 48,  "w": 320, "h": 52 },
+        "visual":   { "x": 48,  "y": 116, "w": 760, "h": 330 },
+        "brand":    { "corner": "tr", "x": 1082, "y": 48, "w": 150, "h": 56 }
+      },
+      "safe": { "margin": 48, "no_go": [{ "x": 1020, "y": 610, "w": 260, "h": 110, "why": "yt_duration" }] },
+      "bg": { "fill": "ink", "pattern": "dots", "burst": "hl", "burst_box": { "x": 760, "y": 0, "w": 520, "h": 470 } }
+    }
+  ]
+}

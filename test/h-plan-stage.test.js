@@ -51,7 +51,7 @@ test('stub W1: render/brand.js (normalize/hash ổn định), render/thumb.js, c
   assert.equal(b.hash, brandMod.hash({ z: 1, tokens: { paper: '#fff', ink: '#000' } }), 'hash không phụ thuộc thứ tự khoá');
   assert.notEqual(brandMod.normalize({ brand: { z: 2 } }).hash, brandMod.normalize({ brand: { z: 1 } }).hash);
   assert.deepEqual(brandMod.check(b), []); assert.deepEqual(brandMod.cssVars(b), {}); assert.equal(brandMod.hash(null), null);
-  assert.deepEqual(thumbMod.resolveThumbs({ variants: [] }, {}), []); assert.deepEqual(thumbMod.measure([], {}, null), { variants: [] });
+  assert.deepEqual(thumbMod.resolveThumbs({ variants: [] }, {}), []); assert.deepEqual(thumbMod.measure([], {}, null), { variants: [], passed: [] });
   const lib = cast.library(); assert.ok(Array.isArray(lib.parts) && lib.parts.length > 0); assert.equal(lib.hash, null); assert.deepEqual(cast.samples(), []);
 });
 
@@ -139,14 +139,11 @@ test('sân khấu: khối fullbleed/track vào lớp riêng (không chịu máy 
   }
 });
 
-test('sân khấu: GSStill.thumb stub hiểu textOff (renderPlan dựng 2 lần có chữ/không chữ); GSBrand/GSThumb stub có mặt', { skip: HAS }, async () => {
+test('sân khấu: GSBrand stub + GSThumb thật (gói T) có mặt; payload ảnh bìa không phải đặc tả ⇒ lỗi rõ (textOff thật: test/g-thumb-render.test.js)', { skip: HAS }, async () => {
   await withStage(async (stage, errors) => {
     assert.equal(await stage.ev('typeof window.GSBrand.apply + typeof window.GSBrand.inkFilter + typeof window.GSThumb.render + typeof window.GSThumb.textOff'), 'functionfunctionfunctionfunction');
-    const m = await stage.ev('window.__still("thumb", {label:"x"})');
-    const withText = await stage.ev('document.querySelector(".thumb-text").textContent');
-    await stage.ev('window.__still("thumb", {label:"x", textOff:true})');
-    const noText = await stage.ev('document.querySelector(".thumb-text").textContent');
-    assert.deepEqual(m, { mode: 'thumb', stub: true }); assert.match(withText, /still:thumb/); assert.equal(noText, '');
+    assert.equal(await stage.ev('window.GSThumb.stub'), false);
+    await assert.rejects(stage.ev('window.__still("thumb", {label:"x"})'), /đặc tả ảnh bìa/);
     assert.deepEqual(errors, []);
   });
 });

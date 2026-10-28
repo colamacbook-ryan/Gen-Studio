@@ -22,7 +22,7 @@ test.after(() => still.closeStill());
 
 test('renderStill: mỗi chế độ (thumb/frame/brand/cast) dựng ra PNG thật, đúng cỡ, 0 lỗi console', { skip: HAS }, async () => {
   const dir = tmp();
-  for (const mode of still.MODES) {
+  for (const mode of still.MODES.filter(m => m !== 'thumb')) {   // thumb: gói T đã thay stub bằng bản thật (cần đặc tả đã phân giải) — test/g-thumb-render.test.js
     const out = path.join(dir, mode + '.png');
     const r = await still.renderStill({ mode, payload: { label: 'thử' }, size: [960, 540], format: 'png', outFile: out });
     assert.deepEqual(r.errors, [], mode);
@@ -30,6 +30,7 @@ test('renderStill: mỗi chế độ (thumb/frame/brand/cast) dựng ra PNG th�
     assert.deepEqual(pngSize(r.buffer), [960, 540], mode);
     assert.equal(r.measures.mode, mode); assert.equal(r.measures.stub, true, mode + ' là stub ở P0a');
   }
+  await assert.rejects(still.renderStill({ mode: 'thumb', payload: { label: 'thử' }, size: [960, 540] }), /đặc tả ảnh bìa/, 'thumb thật: payload không phải đặc tả ⇒ lỗi rõ, không vẽ khung giả');
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
@@ -99,12 +100,12 @@ test('renderPlan: plan.thumbs ⇒ __still("thumb") trong CÙNG phiên Chromium, 
   plan.duration_ms = 600;
   const r0 = await renderPlan({ plan, outDir: path.join(dir, 'a'), assetRoot: dir });
   assert.deepEqual(r0.errors, []); assert.deepEqual(r0.thumbs, []);
-  plan.thumbs = [{ template: 'x', headline: 'Chào' }];
+  plan.thumbs = require('../render/thumb.js').resolveThumbs({ variants: [{ template: 'big-visual', headline: 'Chào bạn', face: { cast: 'CM-0001', mood: 'shock' }, visual: { beat: 'B1' } }] }, plan, {});
   const r = await renderPlan({ plan, outDir: path.join(dir, 'b'), assetRoot: dir, ffmpegPath: FFMPEG });
   assert.deepEqual(r.errors, []);
   assert.equal(r.thumbs.length, 1);
   const t = r.thumbs[0];
-  assert.deepEqual(t.measures, { mode: 'thumb', stub: true });
+  assert.equal(t.measures.mode, 'thumb'); assert.equal(t.measures.stub, false); assert.equal(t.measures.headline.text, 'Chào bạn');
   assert.ok(isPng(fs.readFileSync(t.png)) && isPng(fs.readFileSync(t.png_notext)));
   assert.ok(fs.statSync(t.jpg1280).size > 500 && fs.statSync(t.jpg1920).size > 500);
   assert.ok(fs.statSync(r.cover).size > 1000, 'cover.jpg kiểu cũ vẫn có');

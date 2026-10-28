@@ -1,0 +1,5 @@
+Ảnh bìa (thumbnail): nếu kênh bật chính sách bắt buộc ảnh bìa (get_capabilities → thumbnail.required) hoặc bài là hướng dẫn, bài nộp phải có `thumbnail` {variants:[2–3 phương án]}. Bạn chỉ soạn chữ và chọn mẫu; máy dựng và kiểm (cổng G-THUMB), chủ xưởng chọn ảnh trong Phòng chiếu.
+
+Cách làm: gọi propose_thumbnail_text (khung chữ tất định từ bài, không tốn LLM) → chọn hoặc viết lại → đưa vào `thumbnail` của validate_lesson/submit_lesson. Dùng render_still {mode:'thumb'} để xem thử một phương án trước khi nộp (giới hạn tần suất).
+
+Luật cứng của mỗi phương án (vi phạm là bị chặn): tiêu đề ≤ 6 từ (tách theo khoảng trắng) và ≤ 32 ký tự, tối đa 2 dòng; nhấn tối đa 1 từ (highlight là một từ có trong tiêu đề); kicker ≤ 2 từ, ≤ 14 ký tự; đúng 1 hình chủ đạo `visual` ({beat: số thứ tự nhịp bắt đầu từ 0} hoặc {asset: "AS-…"}); một mặt chính `face` ({owner:true, mood} dùng ảnh mặt thật của chủ kênh, hoặc {cast:"CM-…", mood}); sidekick tuỳ chọn, tối đa 1; mood ∈ shock | smug | greedy | angry | panic | sad | proud | vow | excited | think. Các phương án phải khác nhau thật (mẫu, chữ, mặt hoặc hình chủ đạo), không nộp bản trùng. Mẫu có hộp chữ hẹp cần tiêu đề ngắn.
