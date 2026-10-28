@@ -1,0 +1,739 @@
+{
+ "id": "tutorial-trailer",
+ "_doc": "Trailer mẫu (variant trailer, 30–60 s, nhịp nhanh, thẻ kết CTA: title = lời kêu gọi, sub = url_label dạng chữ) cùng chủ đề \"Tạo kênh đầu tiên\"; màn DSL giả lập của Gen-Studio. Nhạc nền tuỳ chọn (asset owner xác nhận quyền) nên mẫu không kèm. GS_FAKE_SAMPLE=tutorial-trailer.",
+ "title": "Trailer: kênh video tự chạy với Gen-Studio",
+ "cast": [
+  {
+   "name": "Vy",
+   "role_label": "Người dẫn",
+   "voice": "Zephyr",
+   "archetype": "curious-kid"
+  }
+ ],
+ "lines": [
+  {
+   "name": "Vy",
+   "say": "Bạn muốn có một kênh video tự chạy mỗi sáng mà không phải tự làm?",
+   "terms": [],
+   "mood": "happy"
+  },
+  {
+   "name": "Vy",
+   "say": "Mở Gen-Studio, vào mục Kênh rồi bấm nút Kênh mới.",
+   "terms": [],
+   "mood": "happy"
+  },
+  {
+   "name": "Vy",
+   "say": "Gõ tên kênh, ví dụ Lớp AI Bình Dân.",
+   "terms": [],
+   "mood": "happy"
+  },
+  {
+   "name": "Vy",
+   "say": "Chọn giờ sản xuất, sáu giờ sáng là đẹp.",
+   "terms": [],
+   "mood": "happy"
+  },
+  {
+   "name": "Vy",
+   "say": "Cuộn xuống dưới một chút, rồi kéo chủ đề bạn thích lên đầu.",
+   "terms": [],
+   "mood": "happy"
+  },
+  {
+   "name": "Vy",
+   "say": "Giờ thì bật lịch sản xuất, rồi bấm Lưu kênh.",
+   "terms": [],
+   "mood": "happy"
+  },
+  {
+   "name": "Vy",
+   "say": "Xong! Kênh mới đã chạy theo lịch.",
+   "terms": [],
+   "mood": "happy"
+  },
+  {
+   "name": "Vy",
+   "say": "Mỗi sáng agent tự soạn bài, bạn chỉ việc duyệt.",
+   "terms": [],
+   "mood": "happy"
+  },
+  {
+   "name": "Vy",
+   "say": "Dùng thử Gen-Studio ngay hôm nay nhé!",
+   "terms": [],
+   "mood": "happy"
+  }
+ ],
+ "beats": [
+  {
+   "block": "screen",
+   "anchor": {
+    "line": 0,
+    "word": "Bạn"
+   },
+   "params": {
+    "screen": "SC-2"
+   }
+  },
+  {
+   "block": "callout",
+   "anchor": {
+    "line": 0,
+    "word": "video"
+   },
+   "params": {
+    "target": "tbl_channels",
+    "text": "Kênh tự chạy mỗi sáng"
+   }
+  },
+  {
+   "block": "cursor",
+   "anchor": {
+    "line": 0,
+    "word": "mỗi"
+   },
+   "params": {
+    "action": "move",
+    "target": "card_empty"
+   }
+  },
+  {
+   "block": "callout",
+   "anchor": {
+    "line": 0,
+    "word": "không"
+   },
+   "params": {
+    "target": "card_empty",
+    "text": "Bắt đầu từ đây"
+   }
+  },
+  {
+   "block": "focus",
+   "anchor": {
+    "line": 1,
+    "word": "vào"
+   },
+   "params": {
+    "target": "btn_new",
+    "zoom": 1.8,
+    "callout": "Kênh mới",
+    "hold_ms": 1800
+   }
+  },
+  {
+   "block": "cursor",
+   "anchor": {
+    "line": 1,
+    "word": "bấm"
+   },
+   "params": {
+    "action": "click",
+    "target": "btn_new"
+   }
+  },
+  {
+   "block": "screen",
+   "anchor": {
+    "line": 2,
+    "word": "Gõ"
+   },
+   "params": {
+    "screen": "SC-3",
+    "transition": "slide"
+   }
+  },
+  {
+   "block": "cursor",
+   "anchor": {
+    "line": 2,
+    "word": "tên"
+   },
+   "params": {
+    "action": "type",
+    "target": "in_name",
+    "text": "Lớp AI Bình Dân",
+    "cps": 16
+   }
+  },
+  {
+   "block": "callout",
+   "anchor": {
+    "line": 2,
+    "word": "Bình"
+   },
+   "params": {
+    "target": "in_name",
+    "text": "Tên kênh của bạn"
+   }
+  },
+  {
+   "block": "focus",
+   "anchor": {
+    "line": 3,
+    "word": "giờ"
+   },
+   "params": {
+    "target": "in_time",
+    "callout": "Agent soạn lúc 06:00",
+    "hold_ms": 1800
+   }
+  },
+  {
+   "block": "cursor",
+   "anchor": {
+    "line": 3,
+    "word": "sáu"
+   },
+   "params": {
+    "action": "move",
+    "target": "in_time"
+   }
+  },
+  {
+   "block": "cursor",
+   "anchor": {
+    "line": 4,
+    "word": "Cuộn"
+   },
+   "params": {
+    "action": "scroll",
+    "target": "card_schedule",
+    "dy": 320
+   }
+  },
+  {
+   "block": "cursor",
+   "anchor": {
+    "line": 4,
+    "word": "kéo"
+   },
+   "params": {
+    "action": "drag",
+    "target": "topic_3",
+    "to": "topic_1"
+   }
+  },
+  {
+   "block": "cursor",
+   "anchor": {
+    "line": 5,
+    "word": "bật"
+   },
+   "params": {
+    "action": "click",
+    "target": "tg_schedule"
+   }
+  },
+  {
+   "block": "cursor",
+   "anchor": {
+    "line": 5,
+    "word": "Lưu"
+   },
+   "params": {
+    "action": "click",
+    "target": "btn_save"
+   }
+  },
+  {
+   "block": "screen",
+   "anchor": {
+    "line": 6,
+    "word": "Xong"
+   },
+   "params": {
+    "screen": "SC-4"
+   }
+  },
+  {
+   "block": "callout",
+   "anchor": {
+    "line": 6,
+    "word": "Kênh"
+   },
+   "params": {
+    "target": "row_new",
+    "text": "Đang chạy theo lịch"
+   }
+  },
+  {
+   "block": "cursor",
+   "anchor": {
+    "line": 6,
+    "word": "chạy"
+   },
+   "params": {
+    "action": "hover",
+    "target": "row_new"
+   }
+  },
+  {
+   "block": "cursor",
+   "anchor": {
+    "line": 7,
+    "word": "agent"
+   },
+   "params": {
+    "action": "move",
+    "target": "card_next"
+   }
+  },
+  {
+   "block": "callout",
+   "anchor": {
+    "line": 7,
+    "word": "soạn"
+   },
+   "params": {
+    "target": "card_next",
+    "text": "Bài mới mỗi sáng"
+   }
+  },
+  {
+   "block": "focus",
+   "anchor": {
+    "line": 7,
+    "word": "duyệt"
+   },
+   "params": {
+    "target": "nav_review",
+    "callout": "Bạn chỉ việc duyệt",
+    "hold_ms": 1500
+   }
+  },
+  {
+   "block": "end-card",
+   "anchor": {
+    "line": 8,
+    "word": "Dùng"
+   },
+   "params": {
+    "title": "Dùng thử Gen-Studio",
+    "sub": "localhost:7490"
+   }
+  }
+ ],
+ "extra": {
+  "kind": "tutorial",
+  "variant": "trailer",
+  "host": {
+   "cast": "$cast:Vy",
+   "mode": "pip"
+  },
+  "screens": [
+   {
+    "id": "SC-2",
+    "source": {
+     "mock": {
+      "w": 1280,
+      "h": 800,
+      "theme": "console-dark",
+      "root": {
+       "type": "window",
+       "children": [
+        {
+         "type": "sidebar",
+         "title": "Gen-Studio",
+         "items": [
+          {
+           "id": "nav_overview",
+           "label": "Tổng quan"
+          },
+          {
+           "id": "nav_review",
+           "label": "Duyệt"
+          },
+          {
+           "id": "nav_lessons",
+           "label": "Bài học"
+          },
+          {
+           "id": "nav_curriculum",
+           "label": "Giáo trình"
+          },
+          {
+           "id": "nav_channels",
+           "label": "Kênh"
+          },
+          {
+           "id": "nav_assets",
+           "label": "Asset"
+          },
+          {
+           "id": "nav_agents",
+           "label": "Agent & MCP"
+          },
+          {
+           "id": "nav_audit",
+           "label": "Nhật ký"
+          }
+         ],
+         "active": 4
+        },
+        {
+         "type": "col",
+         "gap": 20,
+         "children": [
+          {
+           "type": "topbar",
+           "title": "Kênh",
+           "children": [
+            {
+             "type": "button",
+             "id": "btn_new",
+             "label": "+ Kênh mới",
+             "variant": "primary"
+            }
+           ]
+          },
+          {
+           "type": "text",
+           "text": "Mỗi kênh có lịch sản xuất, giáo trình và nhân vật riêng.",
+           "tone": "muted"
+          },
+          {
+           "type": "table",
+           "id": "tbl_channels",
+           "columns": [
+            "Kênh",
+            "Ngôn ngữ",
+            "Lịch",
+            "Trạng thái"
+           ],
+           "rows": []
+          },
+          {
+           "type": "card",
+           "id": "card_empty",
+           "title": "Chưa có kênh nào",
+           "children": [
+            {
+             "type": "text",
+             "text": "Bấm “+ Kênh mới” để tạo kênh đầu tiên của xưởng.",
+             "tone": "muted"
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     }
+    },
+    "chrome": "browser",
+    "url_label": "localhost:7490 / Kênh"
+   },
+   {
+    "id": "SC-3",
+    "source": {
+     "mock": {
+      "w": 1280,
+      "h": 800,
+      "theme": "console-dark",
+      "root": {
+       "type": "window",
+       "children": [
+        {
+         "type": "sidebar",
+         "title": "Gen-Studio",
+         "items": [
+          {
+           "id": "nav_overview",
+           "label": "Tổng quan"
+          },
+          {
+           "id": "nav_review",
+           "label": "Duyệt"
+          },
+          {
+           "id": "nav_lessons",
+           "label": "Bài học"
+          },
+          {
+           "id": "nav_curriculum",
+           "label": "Giáo trình"
+          },
+          {
+           "id": "nav_channels",
+           "label": "Kênh"
+          },
+          {
+           "id": "nav_assets",
+           "label": "Asset"
+          },
+          {
+           "id": "nav_agents",
+           "label": "Agent & MCP"
+          },
+          {
+           "id": "nav_audit",
+           "label": "Nhật ký"
+          }
+         ],
+         "active": 4
+        },
+        {
+         "type": "col",
+         "gap": 18,
+         "children": [
+          {
+           "type": "topbar",
+           "title": "Kênh mới",
+           "children": [
+            {
+             "type": "badge",
+             "text": "Bản nháp",
+             "tone": "warn"
+            }
+           ]
+          },
+          {
+           "type": "card",
+           "id": "card_info",
+           "title": "Thông tin kênh",
+           "children": [
+            {
+             "type": "input",
+             "id": "in_name",
+             "label": "Tên kênh",
+             "placeholder": "VD: Lớp AI Bình Dân"
+            },
+            {
+             "type": "row",
+             "gap": 16,
+             "children": [
+              {
+               "type": "input",
+               "id": "in_lang",
+               "label": "Ngôn ngữ",
+               "value": "Tiếng Việt"
+              },
+              {
+               "type": "input",
+               "id": "in_term",
+               "label": "Ngôn ngữ thuật ngữ",
+               "value": "English"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "type": "card",
+           "id": "card_schedule",
+           "title": "Lịch sản xuất",
+           "children": [
+            {
+             "type": "row",
+             "gap": 16,
+             "children": [
+              {
+               "type": "input",
+               "id": "in_time",
+               "label": "Giờ sản xuất",
+               "value": "06:00"
+              },
+              {
+               "type": "input",
+               "id": "in_per_run",
+               "label": "Số bài mỗi lần",
+               "value": "1"
+              }
+             ]
+            },
+            {
+             "type": "toggle",
+             "id": "tg_schedule",
+             "label": "Bật lịch sản xuất",
+             "on": false
+            }
+           ]
+          },
+          {
+           "type": "card",
+           "id": "card_topics",
+           "title": "Thứ tự giáo trình",
+           "children": [
+            {
+             "type": "list",
+             "id": "list_topics",
+             "items": [
+              {
+               "id": "topic_1",
+               "label": "1. A.I. là gì?",
+               "sub": "Bài mở đầu · 3 phút",
+               "draggable": true
+              },
+              {
+               "id": "topic_2",
+               "label": "2. Vì sao A.I. hay đoán?",
+               "sub": "Xác suất · 4 phút",
+               "draggable": true
+              },
+              {
+               "id": "topic_3",
+               "label": "3. Viết câu lệnh rõ ràng",
+               "sub": "Thực hành · 5 phút",
+               "draggable": true
+              },
+              {
+               "id": "topic_4",
+               "label": "4. Kiểm tra câu trả lời",
+               "sub": "Thói quen tốt · 4 phút",
+               "draggable": true
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "type": "row",
+           "gap": 12,
+           "align": "end",
+           "children": [
+            {
+             "type": "button",
+             "id": "btn_cancel",
+             "label": "Huỷ",
+             "variant": "ghost"
+            },
+            {
+             "type": "button",
+             "id": "btn_save",
+             "label": "Lưu kênh",
+             "variant": "primary"
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     }
+    },
+    "chrome": "browser",
+    "url_label": "localhost:7490 / Kênh / Kênh mới"
+   },
+   {
+    "id": "SC-4",
+    "source": {
+     "mock": {
+      "w": 1280,
+      "h": 800,
+      "theme": "console-dark",
+      "root": {
+       "type": "window",
+       "children": [
+        {
+         "type": "sidebar",
+         "title": "Gen-Studio",
+         "items": [
+          {
+           "id": "nav_overview",
+           "label": "Tổng quan"
+          },
+          {
+           "id": "nav_review",
+           "label": "Duyệt"
+          },
+          {
+           "id": "nav_lessons",
+           "label": "Bài học"
+          },
+          {
+           "id": "nav_curriculum",
+           "label": "Giáo trình"
+          },
+          {
+           "id": "nav_channels",
+           "label": "Kênh"
+          },
+          {
+           "id": "nav_assets",
+           "label": "Asset"
+          },
+          {
+           "id": "nav_agents",
+           "label": "Agent & MCP"
+          },
+          {
+           "id": "nav_audit",
+           "label": "Nhật ký"
+          }
+         ],
+         "active": 4
+        },
+        {
+         "type": "col",
+         "gap": 20,
+         "children": [
+          {
+           "type": "topbar",
+           "title": "Kênh",
+           "children": [
+            {
+             "type": "button",
+             "id": "btn_new",
+             "label": "+ Kênh mới",
+             "variant": "primary"
+            }
+           ]
+          },
+          {
+           "type": "text",
+           "text": "Mỗi kênh có lịch sản xuất, giáo trình và nhân vật riêng.",
+           "tone": "muted"
+          },
+          {
+           "type": "table",
+           "id": "tbl_channels",
+           "columns": [
+            "Kênh",
+            "Ngôn ngữ",
+            "Lịch",
+            "Trạng thái"
+           ],
+           "rows": [
+            [
+             "Lớp AI Bình Dân",
+             "Tiếng Việt",
+             "06:00 hằng ngày",
+             "Đang chạy"
+            ]
+           ],
+           "row_ids": [
+            "row_new"
+           ]
+          },
+          {
+           "type": "card",
+           "id": "card_next",
+           "title": "Việc kế tiếp",
+           "children": [
+            {
+             "type": "text",
+             "text": "Agent sẽ soạn bài đầu tiên lúc 06:00 sáng mai rồi gửi vào hàng chờ Duyệt.",
+             "tone": "muted"
+            },
+            {
+             "type": "badge",
+             "text": "Lịch đã bật",
+             "tone": "ok"
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     }
+    },
+    "chrome": "browser",
+    "url_label": "localhost:7490 / Kênh"
+   }
+  ]
+ }
+}

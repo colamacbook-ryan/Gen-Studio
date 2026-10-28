@@ -19,9 +19,9 @@ const INDEX = JSON.parse(fs.readFileSync(path.join(ROOT, 'render/blocks/index.js
 const NINE = ['title', 'concept-chip', 'token-row', 'prob-card', 'stamp', 'takeaway', 'lesson-map', 'end-card', 'illustration'];
 const SIX_TUT = ['screen', 'cursor', 'focus', 'callout', 'keystroke', 'mock-ui'];
 
-test('index.json: 9 khối MVP bật + 6 khối tutorial tắt, mỗi mục có file tồn tại', () => {
-  assert.deepEqual(INDEX.filter(e => e.enabled).map(e => e.name), NINE);
-  assert.deepEqual(INDEX.filter(e => !e.enabled).map(e => e.name), SIX_TUT);
+test('index.json: 9 khối MVP + 6 khối tutorial (gói U đã bật — cắt F4 = tắt lại), mỗi mục có file tồn tại', () => {
+  assert.deepEqual(INDEX.filter(e => e.enabled).map(e => e.name), NINE.concat(SIX_TUT));
+  assert.deepEqual(INDEX.filter(e => SIX_TUT.includes(e.name)).map(e => e.name), SIX_TUT);
   INDEX.forEach(e => {
     assert.ok(fs.existsSync(path.join(ROOT, 'render/blocks', e.file)), e.file);
     assert.ok(Array.isArray(e.kinds) && e.kinds.length && typeof e.agent === 'boolean', e.name);
@@ -30,15 +30,20 @@ test('index.json: 9 khối MVP bật + 6 khối tutorial tắt, mỗi mục có 
   SIX_TUT.forEach(n => assert.deepEqual(INDEX.find(e => e.name === n).kinds, ['tutorial']));
 });
 
-test('registry: names/list/validate suy ra từ index.json; khối tắt nạp được nhưng không nhận trong bài', () => {
+test('registry: names/list/validate suy ra từ index.json; không truyền kind = bài thường (API 0.1.x); khối tutorial chỉ nhận ở bài tutorial', () => {
   assert.deepEqual(reg.names(), NINE);
   assert.deepEqual(reg.list().map(b => b.name), NINE);
   assert.equal(reg.all().length, 15);
   SIX_TUT.forEach(n => {
-    assert.ok(reg.get(n), n + ' vẫn nạp được');
-    assert.equal(reg.isEnabled(n), false);
-    const v = reg.validate(n, {}); assert.equal(v.ok, false); assert.match(v.errors[0], /chưa được bật/);
+    assert.ok(reg.get(n), n + ' nạp được');
+    assert.equal(reg.isEnabled(n), true); assert.equal(reg.isEnabled(n, 'lesson'), false); assert.equal(reg.isEnabled(n, 'tutorial'), true);
+    const v = reg.validate(n, {}, 'lesson'); assert.equal(v.ok, false); assert.match(v.errors[0], /không dùng được cho bài loại "lesson"/);
   });
+  assert.deepEqual(reg.names('tutorial').filter(n => SIX_TUT.includes(n)), SIX_TUT);
+  assert.match(reg.validate('mock-ui', {}, 'tutorial').errors[0], /không dùng làm nhịp/, 'mock-ui là bộ dựng nội bộ, không phải nhịp');
+  // khối tắt (điều kiện cắt F4) vẫn nạp nhưng không nhận trong bài
+  const e = require('../render/blocks/index.json').find(x => x.name === 'screen'); e.enabled = false;   // cùng đối tượng registry đọc
+  try { assert.equal(reg.isEnabled('screen'), false); assert.match(reg.validate('screen', { screen: 'SC-1' }).errors[0], /chưa được bật/); } finally { e.enabled = true; }
   // kinds: token-row chỉ cho lesson
   assert.ok(reg.names('lesson').includes('token-row'));
   assert.ok(!reg.names('tutorial').includes('token-row'));
@@ -48,8 +53,8 @@ test('registry: names/list/validate suy ra từ index.json; khối tắt nạp �
 
 test('ba nơi cùng nguồn index.json: registry.js · stage.html · server/write.js (+ index.browser.js)', () => {
   const enabled = INDEX.filter(e => e.enabled).map(e => e.name);
-  // 1. registry
-  assert.deepEqual(reg.names(), enabled);
+  // 1. registry (names() không kind = bài thường; names('tutorial') ∪ names('lesson') = mọi khối bật)
+  assert.deepEqual([...new Set(reg.names().concat(reg.names('tutorial')))].sort(), enabled.slice().sort());
   // 2. stage.html: thẻ <script> của khối đúng thứ tự index.json, không còn tên khối hardcode ngoài vùng sinh
   const html = fs.readFileSync(path.join(ROOT, 'render/stage/stage.html'), 'utf8');
   const region = html.slice(html.indexOf(genStage.BEGIN), html.indexOf(genStage.END));
@@ -83,7 +88,8 @@ test('GATES (§2.5): 8 cổng cũ luôn áp; G-THUMB theo dữ liệu; G-CURSOR 
   assert.deepEqual(gates.gatesFor('lesson', {}), OLD8, 'bài cũ không có thumbnail ⇒ 8 cổng, hành vi không đổi');
   assert.deepEqual(gates.gatesFor('lesson', { thumbnail: null }), OLD8);
   assert.deepEqual(gates.gatesFor('lesson', { thumbnail: '{"variants":[]}' }), OLD8.concat('G-THUMB'));
-  assert.deepEqual(gates.gatesFor('tutorial', {}), OLD8.concat('G-THUMB', 'G-CURSOR'));
+  assert.deepEqual(gates.gatesFor('tutorial', {}), OLD8.concat('G-CURSOR'), 'G-THUMB theo dữ liệu (gói U: tutorial có thumbnail khi gói T bật)');
+  assert.deepEqual(gates.gatesFor('tutorial', { thumbnail: '{"variants":[]}' }), OLD8.concat('G-THUMB', 'G-CURSOR'));
   assert.deepEqual(gates.gatesFor(undefined, undefined), OLD8);
 });
 

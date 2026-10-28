@@ -66,7 +66,7 @@ test('Phòng chiếu: không còn GATE_ORDER hardcode (đọc danh sách cổng 
 test('agent/samples + agent/prompt: mẫu bài đọc từ JSON (đúng nội dung cũ), prompt ghép từ *.md (đúng khung cũ), thêm file là nối tiếp', () => {
   const fake = require('../agent/fake-agent.js');
   const { buildPrompt } = require('../agent/runner.js');
-  assert.deepEqual(fake.listSamples(), ['lesson']);
+  assert.deepEqual(fake.listSamples(), ['lesson', 'tutorial', 'tutorial-trailer'], 'gói U thêm mẫu tutorial + trailer');
   const spec = fake.loadSample('lesson');
   assert.equal(spec.lines.length, 3); assert.equal(spec.cast.length, 2); assert.deepEqual(fake.LINES, spec.lines);
   const cast = [{ display_id: 'CM-0001', name: 'Anh Gen' }, { display_id: 'CM-0002', name: 'Bé Hỏi' }];

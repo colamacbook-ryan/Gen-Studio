@@ -37,9 +37,9 @@ test('buildPlan v2: bài cũ ra đủ trường v2 với mặc định; actors c
   assert.deepEqual(p2.actors.find(a => a.id === 'CM-0002').layout, { mode: 'pip', x: 10, y: 0, scale: 0.9 });
 });
 
-test('buildPlan: kind theo registry — tutorial đi nhánh tutorial.js (stub ném PlanError), kind lạ bị từ chối; cursor-path stub = null hợp lệ', () => {
-  assert.throws(() => buildPlan(base({ kind: 'tutorial' })), (e) => e instanceof PlanError && e.code === 'tutorial_unsupported');
-  assert.throws(() => buildPlan(base({ lesson: Object.assign({ kind: 'tutorial' }, base().lesson) })), (e) => e.code === 'tutorial_unsupported', 'kind đọc cả từ lesson.kind');
+test('buildPlan: kind theo registry — tutorial đi nhánh tutorial.js (gói U: thiếu màn ⇒ PlanError có mã), kind lạ bị từ chối; compileCursor không bước = null hợp lệ', () => {
+  assert.throws(() => buildPlan(base({ kind: 'tutorial' })), (e) => e instanceof PlanError && e.code === 'tutorial_screens');
+  assert.throws(() => buildPlan(base({ lesson: Object.assign({ kind: 'tutorial' }, base().lesson) })), (e) => e.code === 'tutorial_screens', 'kind đọc cả từ lesson.kind');
   assert.throws(() => buildPlan(base({ kind: 'podcast' })), (e) => e.name === 'PlanError' && e.code === 'kind_unsupported');
   assert.throws(() => tutorial.buildTutorialPlan({}), (e) => e instanceof PlanError);
   assert.equal(cursorPath.compileCursor({}), null); assert.deepEqual(fx.cursorSchemaErrors(cursorPath.compileCursor({})), []);
@@ -63,11 +63,11 @@ test('buildPlan: khối place fullbleed/track phủ cả khung, không vào vùn
   try {
     const plan = buildPlan(base({ kind: 'lesson', lesson: { title: 'T', lines: base().lesson.lines, beats: [
       { id: 'B1', block: 'title', anchor: { line: 'LN-1', word: 'Anh' }, params: { text: 'Vì sao?' } },
-      { id: 'B2', block: 'screen', anchor: { line: 'LN-1', word: 'sao' }, params: {} }, { id: 'B3', block: 'cursor', anchor: { line: 'LN-1', word: 'nói' }, params: {} }] } }));
+      { id: 'B2', block: 'screen', anchor: { line: 'LN-1', word: 'sao' }, params: { screen: 'SC-1' } }, { id: 'B3', block: 'cursor', anchor: { line: 'LN-1', word: 'nói' }, params: { action: 'click', target: 'btn_ok' } }] } }));
     for (const id of ['B2', 'B3']) { const b = plan.beats.find(x => x.id === id); assert.deepEqual(b.slot, { x: 0, y: 0, w: 1920, h: 1080 }, id); assert.equal(b.zone, null, id); }
     assert.ok(plan.style.zones.every(z => !z.beats.includes('B2') && !z.beats.includes('B3')), 'không thuộc vùng nào');
   } finally { INDEX.filter(e => ['screen', 'cursor'].includes(e.name)).forEach((e, i) => { e.enabled = saved[i]; }); [screen.place, cursor.place] = pl; }
-  assert.equal(reg.isEnabled('screen'), false, 'đã khôi phục: khối tutorial vẫn tắt');
+  assert.equal(reg.isEnabled('screen'), true, 'gói U đã bật khối tutorial'); assert.equal(reg.isEnabled('screen', 'lesson'), false, 'khối tutorial không dùng cho bài thường');
 });
 
 async function withStage(fn) {
@@ -111,15 +111,16 @@ test('sân khấu: khối fullbleed/track vào lớp riêng (không chịu máy 
   INDEX.forEach(e => { if (['screen', 'cursor'].includes(e.name)) e.enabled = true; });
   screen.place = 'fullbleed'; cursor.place = 'track';
   try {
-    const plan = buildPlan(base({ brand: { hash: 'abc' }, lesson: { title: 'T', lines: base().lesson.lines, beats: [
+    // plan tutorial thật (gói U): màn DSL + một bước bấm; host 'none' vì bài có 2 người nói
+    const plan = buildPlan(base({ kind: 'tutorial', brand: { hash: 'abc' }, lesson: { title: 'T', lines: base().lesson.lines, kind: 'tutorial', host: { mode: 'none' }, screens: require('./g-tutorial-fixtures').MINI_SCREENS, beats: [
       { id: 'B1', block: 'title', anchor: { line: 'LN-1', word: 'Anh' }, params: { text: 'Vì sao?' } },
-      { id: 'B2', block: 'screen', anchor: { line: 'LN-1', word: 'sao' }, params: {} }, { id: 'B3', block: 'cursor', anchor: { line: 'LN-1', word: 'nói' }, params: {} }] } }));
+      { id: 'B2', block: 'screen', anchor: { line: 'LN-1', word: 'sao' }, params: { screen: 'SC-1' } }, { id: 'B3', block: 'cursor', anchor: { line: 'LN-1', word: 'tin' }, params: { action: 'click', target: 'btn_ok' } }] } }));
     await withStage(async (stage, errors) => {
       await stage.ev('window.GSBlockDefs.screen.place="fullbleed"; window.GSBlockDefs.cursor.place="track"; window.__applied=0; window.__ink=0;' +
         'window.GSBrand={apply:function(el,b){window.__applied++; window.__brand=b.hash;},inkFilter:function(s,b){window.__ink++; return s;}}');
       await load(stage, plan);
       assert.equal(await stage.ev('document.querySelectorAll("#layerFull > .b-screen").length'), 1, 'screen ở lớp fullbleed');
-      assert.equal(await stage.ev('document.getElementById("layerTrack").children.length'), 1, 'cursor ở lớp track');
+      assert.equal(await stage.ev('document.querySelectorAll("#layerTrack > .b-cursor").length'), 2, 'cursor (bước + AUTO-cursor vẽ con trỏ) ở lớp track');
       assert.equal(await stage.ev('document.querySelectorAll("#world > .b-screen").length'), 0, 'không nằm trong trang vở (không theo máy quay)');
       assert.equal(await stage.ev('window.__applied'), 1); assert.equal(await stage.ev('window.__brand'), 'abc');
       const ink0 = await stage.ev('window.__ink'), redraws0 = await stage.ev('window.__stats().svgRedraws');
