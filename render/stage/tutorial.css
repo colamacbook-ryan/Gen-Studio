@@ -1,0 +1,6 @@
+/* © 2026 Gen Labs — All rights reserved.
+   STUB do gói P0b tạo (SPEC-0.2.0 §6.11, §13.2): gói U sở hữu file này (kiểu cho 6 khối tutorial: .b-screen, .b-cursor, .b-focus, .b-callout, .b-keystroke, .b-mock-ui, khung PiP).
+   P0b chỉ cấp các lớp nền mà stage.js dựng: .layer-full (màn hình, phủ khung, không theo máy quay), .layer-track (con trỏ/focus, phủ khung), .pip (host góc trái dưới, cao 26% khung). */
+.layer-full, .layer-track { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; }
+.pip { position: absolute; left: 24px; bottom: 24px; height: 281px; width: 281px; border-radius: 50%; overflow: hidden; background: var(--v-paper, #F6F7FC); }
+.pip .actor { left: -85px; bottom: -4px; }

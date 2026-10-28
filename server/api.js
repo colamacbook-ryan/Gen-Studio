@@ -225,7 +225,7 @@ function create(ctx) {
   });
   add('POST', '/api/renders/:id/export', { sess: true }, async c => {
     const r = need(db, 'renders', c.params.id, 'bản dựng');
-    const ex = ctx.pipeline.exportRender(ctx, r);
+    const ex = ctx.pipeline.exportRender(ctx, r, { actor: actorOf(c), entry: 'ui' });
     return Object.assign({ path: ex.dir }, ex);
   });
   add('POST', '/api/renders/:id/retry', { sess: true }, async c => {

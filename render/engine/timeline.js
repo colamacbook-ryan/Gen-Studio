@@ -1,14 +1,14 @@
 // © 2026 Gen Labs — All rights reserved.
 // Dòng thời gian + bố cục + máy quay tự sinh (thuần, không DOM, chạy Node): từ bài học + clip giọng → plan để trang sân khấu dựng khung.
 // buildPlan({lesson:{title?, lines, beats, camera_hints?}, clips:{[lineId]:{duration_ms, word_times:[{w,t0,t1}] (ms, tương đối đầu clip) | null, envelope:[0..1]@30fps}},
-//            channel?, cast?, parts?, aspect:'16:9', fps:30}) → plan (xem docs/ARCHITECTURE.md §4; phần mở rộng ghi ở đầu mỗi trường bên dưới).
+//            channel?, cast?, parts?, aspect:'16:9', fps:30, kind?, variant?, brand?, thumbs?, assetRefs?, persona?, cursor?, screens?}) → plan (xem docs/ARCHITECTURE.md §4; phần mở rộng ghi ở đầu mỗi trường bên dưới).
+// PLAN v2 (SPEC-0.2.0 §2.1): mọi trường mới có mặc định ⇒ bài cũ dựng lại đúng như trước. kind = input.kind | lesson.kind | 'lesson'; kind 'tutorial' đi nhánh
+// render/engine/tutorial.js buildTutorialPlan (gói U) và PHẢI trả cùng một cấu trúc plan. Các trường v2 do pipeline/hook cấp qua input (brand đã chuẩn hoá, thumbs đã phân giải, assetRefs…).
 'use strict';
 const registry = require('../blocks/registry');
 const camera = require('./camera');
 
-class PlanError extends Error {
-  constructor(code, text_human, detail) { super(text_human); this.name = 'PlanError'; this.code = code; this.text_human = text_human; this.detail = detail || null; }
-}
+const { PlanError } = require('./plan-error');
 
 const LEAD_MS = 1100, GAP_MS = 500, TAIL_MS = 3600, END_HOLD_MS = 2100, INTRO_MS = 150, OVERVIEW_LEAD_MS = 200, END_AFTER_OVERVIEW_MS = 1300;
 const PITCH_X = 1700, PITCH_Y = 1050, COLS = 3, ORIGIN_X = 1000, ORIGIN_Y = 600, STACK_GAP = 40, ZONE_MAX_H = 900;
@@ -87,7 +87,7 @@ function layout(beats) {
   beats.forEach(b => {
     const def = registry.get(b.block), fp = def.footprint('16:9', b.params);
     b._fp = fp; b._place = def.place;
-    if (def.place === 'hud') { b.slot = { x: 0, y: 0, w: 1920, h: 1080 }; b.zone = null; return; }
+    if (FRAME_PLACES.indexOf(def.place) >= 0) { b.slot = Object.assign({}, FULL_SLOT); b.zone = null; return; }
     if (def.place === 'overview') { b.zone = null; return; }
     const cur = zones[zones.length - 1];
     if (prev && b.morphFrom && prev.id === b.morphFrom) { b.zone = prev.zone; b._same = prev; lay.push(b); prev = b; return; }
@@ -112,7 +112,34 @@ function layout(beats) {
   return { zones, world };
 }
 
+// Khối không nằm trong vùng/trang vở: phủ cả khung 1920×1080 (hud · fullbleed (màn hình) · track (con trỏ/focus bám đích sau máy quay))
+const FRAME_PLACES = ['hud', 'fullbleed', 'track'];
+const FULL_SLOT = { x: 0, y: 0, w: 1920, h: 1080 };
+const KINDS = ['lesson', 'tutorial'];
+// Các trường v2 của plan (§2.1) — mặc định khi input không cấp
+function v2Fields(input, lesson) {
+  return {
+    kind: input.kind || lesson.kind || 'lesson',
+    variant: input.variant || lesson.variant || 'full',
+    cursor: input.cursor === undefined ? null : input.cursor,
+    screens: input.screens === undefined ? null : input.screens,
+    thumbs: Array.isArray(input.thumbs) ? input.thumbs : [],
+    assetRefs: Array.isArray(input.assetRefs) ? input.assetRefs : [],
+    persona: input.persona && typeof input.persona === 'object' ? input.persona : {},
+  };
+}
+// Bố cục mặc định của chỗ đứng: trái x=-40, phải x=1500 (như sân khấu v0.1.x); mode: stage | pip | hidden
+function actorLayout(side, over) { return Object.assign({ mode: 'stage', x: side === 'left' ? -40 : 1500, y: 0, scale: 1 }, over || {}); }
+
 function buildPlan(input) {
+  const lesson0 = input.lesson || {};
+  const kind = input.kind || lesson0.kind || 'lesson';
+  if (!KINDS.includes(kind)) throw new PlanError('kind_unsupported', 'Loại bài "' + kind + '" chưa được hỗ trợ khi dựng (có: ' + KINDS.join(', ') + ').', { kind });
+  if (kind === 'tutorial') return require('./tutorial').buildTutorialPlan(input);   // nhánh tutorial (gói U); stub P0b ném PlanError tutorial_unsupported
+  return buildLessonPlan(input);
+}
+
+function buildLessonPlan(input) {
   const lesson = input.lesson || {}, fps = input.fps || 30;
   if (!Array.isArray(lesson.lines) || !lesson.lines.length) throw new PlanError('no_lines', 'Bài chưa có câu thoại nào.');
   const dflt = (!input.cast || !Object.keys(input.cast).length) ? require('../cast').defaults() : null;
@@ -186,7 +213,8 @@ function buildPlan(input) {
   cam.moves.forEach(m => { if (!m.overview && m.dist > 500) cues.push({ t_ms: Math.round(m.t + 50), name: 'whoosh', vol: 0.35 }); });
   cues.sort((a, b) => a.t_ms - b.t_ms);
 
-  const actors = Object.keys(cast).map((id, i) => ({ id, side: i === 0 ? 'left' : 'right', name: cast[id].name || id }));
+  const lay = (input.actorLayout && typeof input.actorLayout === 'object') ? input.actorLayout : {};   // {[id]: {mode,x,y,scale}} do hook plan.input cấp (tutorial: pip)
+  const actors = Object.keys(cast).map((id, i) => { const side = i === 0 ? 'left' : 'right'; return { id, side, name: cast[id].name || id, layout: actorLayout(side, lay[id]) }; });
   const clean = beats.map(b => {
     const o = { id: b.id, block: b.block, params: b.params, anchor: b.anchor, line: b.line, t_in: b.t_in, t_anchor: b.t_anchor, t_out: b.t_out, peak_ms: b.peak_ms, slot: b.slot, zone: b.zone };
     if (b.t_peak !== undefined) o.t_peak = b.t_peak;
@@ -195,11 +223,11 @@ function buildPlan(input) {
   });
   return {
     fps, size: [1920, 1080], aspect: input.aspect || '16:9', duration_ms: duration,
-    lines, beats: clean, camera: cam.keys, cues, cast, parts, actors,
+    lines, beats: clean, camera: cam.keys, cues, cast, parts, actors, ...v2Fields(input, lesson),
     // style: world = kích thước trang vở; zones = các vùng nội dung (cho lesson-map + máy quay); meta = tiêu đề cho chip góc trái
     style: { world, zones: zones.map(z => ({ id: z.id, x: z.x, y: z.y, w: z.w, h: z.h, cx: z.cx, cy: z.cy, beats: z.beats })),
-      meta: { title: lesson.title || '', tag: lesson.tag || '' } }
+      meta: { title: lesson.title || '', tag: lesson.tag || '' }, brand: input.brand || null }   // brand: nhận diện kênh đã chuẩn hoá + hash (gói B; null ⇒ giao diện mặc định v0.1.x)
   };
 }
 
-module.exports = { buildPlan, validateAnchors, anchorTime, PlanError, LEAD_MS };
+module.exports = { buildPlan, validateAnchors, anchorTime, PlanError, LEAD_MS, KINDS, FRAME_PLACES };

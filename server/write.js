@@ -852,8 +852,9 @@ function createWriter(db, opts = {}) {
     OPS[name] = { who: OPS[name].who, run: wrap(OPS[name].run) };
   };
   const opsCtx = { db, ws, err, byRef, need, allow, isOwner, agentHas, nonEmpty, newVersion, getSetting, putSetting, checkPolicy, ext, rights, op, around, validateBlock };
-  const opsDir = path.join(__dirname, 'ops');
-  if (fs.existsSync(opsDir)) {
+  // opts.opsDirs: thư mục op phụ (test dựng module op tạm); mặc định chỉ server/ops
+  for (const opsDir of [path.join(__dirname, 'ops'), ...(opts.opsDirs || [])]) {
+    if (!fs.existsSync(opsDir)) continue;
     for (const f of fs.readdirSync(opsDir).filter((x) => x.endsWith('.js') && !x.startsWith('_')).sort()) {
       const m = require(path.join(opsDir, f));
       if (typeof m.register === 'function') m.register(op, opsCtx);

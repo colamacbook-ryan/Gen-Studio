@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const { tmpDb, basics } = require('./a-helpers.js');
 const { createMcp } = require('../server/mcp.js');
 const auth = require('../server/auth.js');
+const { gatesFor } = require('../media/gates/index.js');   // danh sách cổng đọc từ registry GATES (SPEC-0.2.0 §2.5), không hardcode số 8
 
 function setup() {
   const t = tmpDb();
@@ -50,7 +51,7 @@ test('d-mcp: vòng get_next_task → validate khô → submit → complete_task'
     const done = await call(c, 'complete_task', { work_order: task.work_order, summary: 'xong' });
     assert.ok(!done.isError); assert.equal(done.structuredContent.already, true);
     const gr = await call(c, 'get_render', { lesson: sub.structuredContent.lesson });
-    assert.equal(gr.structuredContent.render.state, 'queued'); assert.equal(gr.structuredContent.gates.length, 8);
+    assert.equal(gr.structuredContent.render.state, 'queued'); assert.equal(gr.structuredContent.gates.length, gatesFor('lesson', {}).length);
     const gl = await call(c, 'get_lesson', { lesson: sub.structuredContent.lesson });
     assert.equal(gl.structuredContent.doc.lines.length, 2);
     // update_lesson chỉ đổi tiêu đề → version 2, giữ câu

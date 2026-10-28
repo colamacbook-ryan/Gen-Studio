@@ -1,6 +1,9 @@
 // © 2026 Gen Labs — All rights reserved.
 // Trang sân khấu: dựng plan thành khung hình theo thời gian. API cho render.js: __load(plan) → Promise · __seek(t_ms) · __sfx(names) → {tên: base64 WAV} · __stats().
 // Ngân sách hiệu năng (L-42): ≤ 8 nhân vật (MVP vẽ 2); SVG nhân vật chỉ thay khi chuỗi đổi; khối đã "lắng" (settle) không vẽ lại; khối chưa tới giờ bị ẩn.
+// 0.2.0 (SPEC §2.1/§6.5, P0b): khối theo `place` — 'fullbleed' (màn hình) vào lớp E.full, 'track' (con trỏ/focus bám đích) vào lớp E.track: cả hai phủ khung 1920×1080,
+// KHÔNG chịu máy quay; chỗ đứng nhân vật theo plan.actors[].layout {mode: stage|pip|hidden, x, y, scale} (mặc định = v0.1.x); mode 'pip' = host góc trái dưới (lớp HUD, máy quay không kéo theo);
+// plan.style.brand ≠ null ⇒ GSBrand.apply lúc __load và GSBrand.inkFilter mỗi khi SVG nhân vật đổi chuỗi (không mỗi khung). Khối ở tầng 'layers' nhận ctx.layers {full, track, hud, pip}.
 (function () {
   'use strict';
   var GC = window.GenChibi, B = window.GSBlocks, Cam = window.GSCamera, Dir = window.GSDirect, U = window.GSUtil;
@@ -30,8 +33,10 @@
     if (plan.fontCss) { var st = document.createElement('style'); st.textContent = plan.fontCss; document.head.appendChild(st); }
     var world = plan.style.world;
     root.innerHTML = '<div class="shake" id="shake"><div class="world" id="world" style="width:' + world.w + 'px;height:' + world.h + 'px"></div>' +
-      '<div class="hud" id="hud"><div class="chip-top" id="chipTop"><b></b><span></span></div><div class="sub" id="sub"></div></div></div>';
-    var E = { world: $('world'), shake: $('shake'), hud: $('hud'), chip: $('chipTop'), sub: $('sub') };
+      '<div class="layer-full" id="layerFull"></div><div class="layer-track" id="layerTrack"></div>' +
+      '<div class="hud" id="hud"><div class="chip-top" id="chipTop"><b></b><span></span></div><div class="pip" id="pip" style="display:none"></div><div class="sub" id="sub"></div></div></div>';
+    var E = { world: $('world'), shake: $('shake'), hud: $('hud'), chip: $('chipTop'), sub: $('sub'), full: $('layerFull'), track: $('layerTrack'), pip: $('pip') };
+    if (plan.style.brand && window.GSBrand) window.GSBrand.apply(root, plan.style.brand);   // nhận diện kênh (gói B): biến CSS, logo, lower-third, intro
     var assets = registerCast(plan), dir = Dir.makeDirector(plan);
 
     // chip góc trái: tiêu đề bài, hiện khi máy quay rời vùng đầu
@@ -40,11 +45,17 @@
     var ov = plan.beats.filter(function (b) { return b.block === 'lesson-map'; }).pop();
 
     // actors
+    var inkFilter = plan.style.brand && window.GSBrand && window.GSBrand.inkFilter ? function (svg) { return window.GSBrand.inkFilter(svg, plan.style.brand); } : null;
     var actors = plan.actors.map(function (a, i) {
-      var el = U.el('div', 'actor'); el.style.left = (i === 0 ? -40 : 1500) + 'px'; E.hud.insertBefore(el, E.sub);
-      return { id: a.id, name: a.name, side: i, el: el, last: '' };
+      var L = a.layout || { mode: 'stage', x: i === 0 ? -40 : 1500, y: 0, scale: 1 };   // plan cũ (không có layout) vẫn dựng đúng như v0.1.x
+      var act = { id: a.id, name: a.name, side: i, el: null, last: '', lastRaw: '', mode: L.mode || 'stage', ox: L.x, oy: L.y || 0, sc: L.scale || 1 };
+      if (act.mode === 'hidden') return act;
+      act.el = U.el('div', 'actor');
+      if (act.mode === 'pip') { E.pip.style.display = ''; E.pip.appendChild(act.el); }
+      else { act.el.style.left = (typeof L.x === 'number' ? L.x : (i === 0 ? -40 : 1500)) + 'px'; E.hud.insertBefore(act.el, E.pip); }
+      return act;
     });
-    stats.actors = actors.length;
+    stats.actors = actors.filter(function (a) { return a.el; }).length;
 
     // terms
     var terms = []; plan.lines.forEach(function (l) { (l.terms || []).forEach(function (t) { t.split(/\s+/).forEach(function (w) { var n = norm(w); if (n && terms.indexOf(n) < 0) terms.push(n); }); }); });
@@ -62,8 +73,10 @@
     Object.keys(chains).forEach(function (hid) {
       var head = byId[hid], def = B.get(head.block), list = chains[hid];
       var chain = list.map(function (b) { return { beat: b, params: b.params, t: (b.t_in - head.t_in) / 1000, peak: b.peak_ms / 1000 }; });
-      var ctx = { beat: head, slot: head.slot, plan: plan, chain: chain, peak: chain[0].peak, terms: terms, zones: plan.style.zones, world: world, hud: E.hud, assetUrl: assetUrl };
-      var el = def.mount(E.world, head.params, ctx);
+      var ctx = { beat: head, slot: head.slot, plan: plan, chain: chain, peak: chain[0].peak, terms: terms, zones: plan.style.zones, world: world, hud: E.hud, assetUrl: assetUrl,
+        layers: { full: E.full, track: E.track, hud: E.hud, pip: E.pip } };
+      var parent = def.place === 'fullbleed' ? E.full : def.place === 'track' ? E.track : E.world;   // fullbleed/track không chịu máy quay
+      var el = def.mount(parent, head.params, ctx);
       var last = chain[chain.length - 1];
       recs.push({ head: head, def: def, el: el, ctx: ctx, settleAt: def.settle === undefined ? Infinity : last.t + def.settle, drawnSettled: false, shown: null });
     });
@@ -75,7 +88,7 @@
       var html = U.esc(l.say); (l.terms || []).forEach(function (t) { html = html.split(U.esc(t)).join('\u0001' + U.esc(t) + '\u0002'); });
       return { line: l, html: html };
     });
-    S = { plan: plan, E: E, recs: recs, dir: dir, actors: actors, assets: assets, subs: subs, curSub: null, subC: [], subOn: -1, chipT: chipT, ov: ov, impacts: impacts, firstSeek: true };
+    S = { plan: plan, E: E, ink: inkFilter, recs: recs, dir: dir, actors: actors, assets: assets, subs: subs, curSub: null, subC: [], subOn: -1, chipT: chipT, ov: ov, impacts: impacts, firstSeek: true };
     var fonts = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
     var imgs = [].slice.call(E.world.querySelectorAll('img')).map(function (i) { return i.decode ? i.decode().catch(function () { console.error('illustration: ảnh không giải mã được'); }) : Promise.resolve(); });
     return Promise.all([fonts].concat(imgs)).then(function () { window.__seek(0); return { beats: plan.beats.length, actors: actors.length }; });
@@ -105,12 +118,14 @@
   }
 
   function drawActor(a, t) {
+    if (!a.el) return;   // layout.mode 'hidden'
     var r = S.dir.act(a.id, t), asset = S.assets[a.id], d = r.director;
-    var svg = GC.svgString(asset, r.state, { t: t / 1000, director: d });
-    if (svg !== a.last) { a.el.innerHTML = svg; a.last = svg; stats.svgRedraws++; }
+    var raw = GC.svgString(asset, r.state, { t: t / 1000, director: d });
+    if (raw !== a.lastRaw) { a.lastRaw = raw; a.last = S.ink ? S.ink(raw) : raw; a.el.innerHTML = a.last; stats.svgRedraws++; }   // inkFilter chỉ chạy khi chuỗi SVG đổi (CNS-088)
+    if (a.mode === 'pip') { a.el.style.transform = 'scale(' + (0.52 * a.sc * (r.talking ? 1.04 : 1)) + ')'; return; }   // PiP: không chạy vào/ra theo máy quay
     var ts = t / 1000, outP = S.ov ? U.eio(U.seg(ts, S.ov.t_in / 1000, S.ov.t_in / 1000 + 1.5)) : 0, zoom = r.talking ? 1.05 : 1, tx = 0, ty = outP * 30;
     if (a.side === 0) ty += (1 - U.eb(U.seg(ts, 0.5, 1.1))) * 300; else tx = U.lerp(520, 0, U.eo(U.seg(ts, 0, 0.95)));
-    a.el.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + (zoom * U.lerp(1, 0.82, outP)) + ')';
+    a.el.style.transform = 'translate(' + tx + 'px,' + (ty + a.oy) + 'px) scale(' + (a.sc * zoom * U.lerp(1, 0.82, outP)) + ')';
   }
 
   window.__seek = function (tMs) {
