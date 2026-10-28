@@ -176,11 +176,29 @@ test('pipeline: brand → plan.style.brand + manifest.brand_hash (đổi brand �
   } finally { e.clean(); }
 });
 
-test('pipeline: kind tutorial chưa cài ⇒ PlanError tutorial_unsupported ⇒ blocked có chữ người đọc được (F4 bị cắt không làm sập)', async () => {
-  const e = env({ tModule: `exports.register = (op, ctx) => { ctx.ext.lessonExt.register({ name: 'tutorial', columns: ['kind'], kinds: ['tutorial'] }); };` });
+test('pipeline: kind tutorial ⇒ nhánh tutorial.js (gói U thật): plan v2 tutorial vào renderPlan; G-CURSOR áp và không đo được thì chặn (INT-08); PlanError của nhánh ⇒ blocked có chữ người đọc được', async () => {
+  const { tutorialBody } = require('./g-tutorial-fixtures');
+  let e = env({ tModule: null });   // không có gói T giả ⇒ tutorial không cần thumbnail
   try {
-    const r = await run(e, lessonBody(basics(e.write, e.db), { kind: 'tutorial' }));
-    assert.equal(r.state, 'blocked'); assert.equal(r.blocked_reason.code, 'tutorial_unsupported');
-    assert.deepEqual(realGates.gatesFor('tutorial', {}).slice(-2), ['G-THUMB', 'G-CURSOR']);
+    const body0 = tutorialBody(basics(e.write, e.db)); delete body0.thumbnail;   // env tắt gói T ⇒ cột thumbnail chưa bật
+    const r = await run(e, body0);
+    const p = e.calls.renderPlan[0];
+    assert.equal(p.kind, 'tutorial');
+    assert.deepEqual(gateRows(e, r).map(g => g.gate), realGates.gatesFor('tutorial', {}), '8 cổng R3 + G-CURSOR (không thumbnail ⇒ không G-THUMB)');
+    assert.equal(r.state, 'blocked'); assert.equal(r.blocked_reason.code, 'gate_unknown'); assert.match(r.blocked_reason.text_human, /G-CURSOR/, 'MP4 giả ⇒ C10 không đo được ⇒ unknown ⇒ chặn');
+    assert.deepEqual(realGates.gatesFor('tutorial', {}).slice(-1), ['G-CURSOR']); assert.deepEqual(realGates.gatesFor('tutorial', { thumbnail: 'x' }).slice(-2), ['G-THUMB', 'G-CURSOR']);
+  } finally { e.clean(); }
+  e = env({ tModule: null });
+  try {
+    const b = basics(e.write, e.db), o = owner(e.db);
+    const a = e.write(o, 'asset.put', { kind: 'svg', bytes: SVG, mime: 'image/svg+xml' });
+    const body = tutorialBody(b, { screens: [{ id: 'SC-1', source: { asset: a.display_id }, size: [1280, 800], targets: { btn_ok: { x: 1100, y: 40, w: 120, h: 44 } } }] });
+    delete body.thumbnail;   // env này tắt gói T (tModule: null) ⇒ cột thumbnail chưa bật
+    const sub = e.write(o, 'lesson.submit', body);
+    e.db.run('UPDATE assets SET media_present=0 WHERE id=?', a.id);   // tệp bị dọn sau khi nộp ⇒ hook plan.input ném PlanError
+    const w = pipeline.startWorkers(e.ctx, { pollMs: 20 });
+    try { await w.idle(60000); } finally { w.stop(); }
+    const r = e.db.json(e.db.get('SELECT * FROM renders WHERE display_id=?', sub.render.display_id));
+    assert.equal(r.state, 'blocked'); assert.equal(r.blocked_reason.code, 'asset_invalid'); assert.match(r.blocked_reason.text_human, /SC-1/);
   } finally { e.clean(); }
 });

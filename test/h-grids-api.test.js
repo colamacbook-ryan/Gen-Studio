@@ -14,12 +14,12 @@ const grids = require('../server/grids.js');
 const gatesMod = require('../media/gates/index.js');
 const { createWriter } = require('../server/write');
 const { basics, lessonBody, owner } = require('./a-helpers');
+const { tutorialBody } = require('./g-tutorial-fixtures');
 
 const ROOT = path.join(__dirname, '..');
 const EXT_MODULE = `exports.register = (op, ctx) => {
   ctx.ext.lessonExt.register({ name: 'thumbnail', columns: ['thumbnail'] });
-  ctx.ext.lessonExt.register({ name: 'tutorial', columns: ['kind', 'variant'], kinds: ['tutorial'] });
-};`;
+};`;   // tutorial: module thật của gói U (server/ops/tutorial.js)
 function env(src = EXT_MODULE) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-grid-')), ops = path.join(dir, 'ops'); fs.mkdirSync(ops);
   fs.writeFileSync(path.join(ops, 'x.js'), src);
@@ -65,9 +65,9 @@ test('grids/*: mỗi lưới một file, tên khớp, không trùng; cột mới
     const b = basics(e.write, e.db);
     const l1 = e.write(b.o, 'lesson.submit', lessonBody(b));
     const l2 = e.write(b.o, 'lesson.submit', lessonBody(b, { title: 'Có bìa', thumbnail: { variants: [] } }));
-    const l3 = e.write(b.o, 'lesson.submit', lessonBody(b, { title: 'Hướng dẫn', kind: 'tutorial' }));
+    const l3 = e.write(b.o, 'lesson.submit', tutorialBody(b, { title: 'Hướng dẫn', thumbnail: { variants: [] } }));   // tutorial luôn có ảnh bìa khi tính năng ảnh bìa bật (gói U)
     const L = (q) => grids.runGrid(e.db, 'lessons', { q }).rows.map((r) => r.title).sort();
-    assert.deepEqual(L('kind:tutorial'), ['Hướng dẫn']); assert.deepEqual(L('kind:lesson'), ['Bài thử', 'Có bìa']); assert.deepEqual(L('thumbnail:true'), ['Có bìa']); assert.deepEqual(L('thumbnail:false'), ['Bài thử', 'Hướng dẫn']);
+    assert.deepEqual(L('kind:tutorial'), ['Hướng dẫn']); assert.deepEqual(L('kind:lesson'), ['Bài thử', 'Có bìa']); assert.deepEqual(L('thumbnail:true'), ['Có bìa', 'Hướng dẫn']); assert.deepEqual(L('thumbnail:false'), ['Bài thử']);
     // review_queue: loại, có ảnh bìa, nhân vật chưa chốt
     toAwaiting(e.db, l2.render.id, { thumbs: [{ variant: 0, w1280: 'AS-1', w1920: 'AS-2', pass: true, score: 1 }] });
     toAwaiting(e.db, l1.render.id, undefined);
@@ -91,7 +91,7 @@ test('API: danh sách cổng của Render theo loại bài + dữ liệu bài (8
   try {
     const b = basics(e.write, e.db);
     const view = (body) => api.renderView(e.db, e.db.json(e.db.get('SELECT * FROM renders WHERE display_id=?', e.write(b.o, 'lesson.submit', body).render.display_id)));
-    const v8 = view(lessonBody(b, { title: 'A' })), v9 = view(lessonBody(b, { title: 'B', thumbnail: { variants: [] } })), v10 = view(lessonBody(b, { title: 'C', kind: 'tutorial' }));
+    const v8 = view(lessonBody(b, { title: 'A' })), v9 = view(lessonBody(b, { title: 'B', thumbnail: { variants: [] } })), v10 = view(tutorialBody(b, { title: 'C', thumbnail: { variants: [] } }));
     assert.deepEqual(v8.gates.map((g) => g.gate), gatesMod.gatesFor('lesson', {})); assert.equal(v8.gates.length, 8);
     assert.deepEqual(v9.gates.map((g) => g.gate), gatesMod.gatesFor('lesson', { thumbnail: 'x' })); assert.equal(v9.gates.length, 9);
     assert.equal(v10.gates.length, 10); assert.deepEqual(v10.gates.slice(-2).map((g) => g.gate), ['G-THUMB', 'G-CURSOR']);

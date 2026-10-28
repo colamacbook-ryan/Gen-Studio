@@ -238,6 +238,8 @@ function resolveThumbs(thumbnail, plan, ctx) {
       if (!b) throw new PlanError('thumb_visual_missing', `Ảnh bìa phương án ${index + 1}: nhịp ${vis.beat} không có trong bản dựng.`, { variant: index, beat: vis.beat });
       visual = { kind: 'block', block: b.block, params: b.params, beat: b.id, w: (b.slot && b.slot.w) || 1000, h: (b.slot && b.slot.h) || 600 };
       if (b.block === 'illustration' && b.params && b.params.asset) visual.asset = b.params.asset;
+      // nhịp màn hình của bài hướng dẫn (gói U): khối screen tra plan.screens ⇒ mang theo đúng màn đó sang sân khấu ảnh bìa
+      if (b.block === 'screen' && b.params && Array.isArray(plan && plan.screens)) visual.screens = plan.screens.filter((sc) => sc.id === b.params.screen);
     } else if (vis.asset !== undefined) {
       const p = ctx.assetPath ? ctx.assetPath(vis.asset) : null;
       if (!p) throw new PlanError('thumb_asset_missing', `Ảnh bìa phương án ${index + 1}: asset ${vis.asset} không dùng được (thiếu tệp).`, { variant: index, asset: vis.asset });
@@ -275,6 +277,7 @@ function assetRefsOf(specs) {
   (specs || []).forEach((s) => {
     if (s.face && s.face.asset) add(s.face.asset, 'ảnh bìa: mặt chủ kênh');
     if (s.visual && s.visual.asset) add(s.visual.asset, 'ảnh bìa: hình chủ đạo');
+    if (s.visual && Array.isArray(s.visual.screens)) s.visual.screens.forEach((sc) => add(sc.asset, 'ảnh bìa: màn hướng dẫn'));
     if (s.brand && s.brand.logo) add(s.brand.logo, 'ảnh bìa: logo');
   });
   return [...seen.values()];

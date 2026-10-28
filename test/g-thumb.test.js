@@ -362,3 +362,15 @@ test('agent giả: kênh bắt buộc ảnh bìa ⇒ nộp mẫu có thumbnail h
   assert.deepEqual(T.validateThumbnail(les.thumbnail, { beatCount: les.beats.length, castOk: (r) => /^CM-000[12]$/.test(r) }), []);
   assert.equal(les.thumbnail.variants[0].sidekick.cast, 'CM-0002');
 });
+
+// hợp đồng T × U: ảnh bìa lấy hình từ nhịp màn hình (khối screen) ⇒ spec mang đúng màn đó (sân khấu ảnh bìa tra plan.screens) + asset của màn vào assetRefs
+test('resolveThumbs: visual là nhịp screen ⇒ visual.screens = đúng màn của nhịp; assetRefsOf gồm ảnh màn', () => {
+  const p2 = JSON.parse(JSON.stringify(plan));
+  const sb = { id: 'BT-0009', block: 'screen', params: { screen: 'SC-2' }, slot: { x: 0, y: 0, w: 1920, h: 1080 } };
+  p2.beats = p2.beats.concat([sb]);
+  p2.screens = [{ id: 'SC-1', asset: 'media/aa/1.png' }, { id: 'SC-2', asset: 'media/bb/2.png' }];
+  const v = H.fourVariants().variants.slice(0, 1).map(x => Object.assign({}, x, { visual: { beat: 'BT-0009' } }));
+  const [s] = T.resolveThumbs({ variants: v }, p2, { beatOrder: H.BEAT_ORDER.concat(['BT-0009']) });
+  assert.equal(s.visual.block, 'screen'); assert.deepEqual(s.visual.screens, [{ id: 'SC-2', asset: 'media/bb/2.png' }]);
+  assert.ok(T.assetRefsOf([s]).some(r => r.asset === 'media/bb/2.png'));
+});

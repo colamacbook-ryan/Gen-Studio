@@ -203,7 +203,7 @@
       clip.appendChild(world); card.appendChild(clip);
       var peak = def.peak || 0, tSettle = def.settle !== undefined ? def.settle + 0.2 : peak + 1.5;
       var beat = { id: v.beat, block: v.block, params: v.params, slot: { x: pad, y: pad, w: v.w, h: v.h }, t_in: 0, peak_ms: peak * 1000 };
-      var ctx = { beat: beat, slot: beat.slot, plan: { beats: [beat], style: { zones: [], world: { w: ww, h: wh }, brand: null } }, chain: [{ beat: beat, params: v.params, t: 0, peak: peak }], peak: peak,
+      var ctx = { beat: beat, slot: beat.slot, plan: { beats: [beat], screens: v.screens || [], style: { zones: [], world: { w: ww, h: wh }, brand: null } }, chain: [{ beat: beat, params: v.params, t: 0, peak: peak }], peak: peak,
         terms: [], zones: [], world: world, hud: clip, assetUrl: function (a) { return assetUrl(spec, a); }, layers: { full: clip, track: clip, hud: clip, pip: clip } };
       var node = def.mount(world, v.params, ctx);
       if (def.draw) def.draw(node, tSettle, ctx);

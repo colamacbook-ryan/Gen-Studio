@@ -66,6 +66,57 @@
     if (o.durationMs > keys[keys.length - 1].t) push(o.durationMs, { x: cur.x, y: cur.y, z: cur.z });
     return { keys: keys, moves: moves };
   };
+
+  // ---------- máy quay theo vùng (tutorial, SPEC-0.2.0 §6.5) — KHÔNG đổi C.build ở trên ----------
+  // Thế giới = màn hiện hành đã đặt vào khung (máy quay {960,540,1} = toàn màn). Mỗi `focus` ⇒ khung nhìn ôm đích với đệm 1,6×:
+  // z = clamp(min(1920/(w·1,6), 1080/(h·1,6)), 1, zmax); đích đặt ở điểm neo khung A (mặc định 1000,470 — tránh PiP góc trái dưới và dải phụ đề);
+  // khung nhìn được kẹp trong thiết bị (không lộ nền) trừ khi kẹp làm đích rơi khỏi khung an toàn / chạm PiP. Chuyển cảnh easeInOutCubic 600–900 ms (trailer 450–700).
+  var FULL = { x: 960, y: 540, z: 1 }, MIN_CTX = { w: 900, h: 506 }, EDGE = 72;
+  C.FULL = FULL;
+  C.toFrame = function (cam, p) { return { x: (p.x - cam.x) * cam.z + 960, y: (p.y - cam.y) * cam.z + 540 }; };
+  C.boxToFrame = function (cam, b) { var a = C.toFrame(cam, { x: b.x, y: b.y }); return { x: a.x, y: a.y, w: b.w * cam.z, h: b.h * cam.z }; };
+  var inside = function (b, s) { return b.x >= s.x0 && b.y >= s.y0 && b.x + b.w <= s.x1 && b.y + b.h <= s.y1; };
+  var hits = function (a, b) { return !!b && a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; };
+  C.regionFrame = function (o) {
+    var b = o.box, A = o.anchor || { x: 1000, y: 470 }, safe = o.safe || { x0: 48, y0: 48, x1: 1872, y1: 880 }, d = o.device;
+    // vùng ngữ cảnh tối thiểu MIN_CTX (khung px) quanh đích: đích nhỏ không bị phóng tới mức mất ngữ cảnh (z mặc định ≤ ~2,1; `zoom` khai rõ thì theo khai, ≤ zmax)
+    var z0 = typeof o.zoom === 'number' ? o.zoom : clamp(Math.min(VIEW.w / Math.max(b.w * 1.6, MIN_CTX.w), VIEW.h / Math.max(b.h * 1.6, MIN_CTX.h)), 1, 2.5);
+    z0 = clamp(z0, 1, Math.max(1, o.zmax || 2.5));
+    var cx = b.x + b.w / 2, cy = b.y + b.h / 2, at = function (z) { return { x: cx - (A.x - 960) / z, y: cy - (A.y - 540) / z, z: z }; }, f = at(z0);
+    if (d) {
+      // kẹp khung nhìn trong thiết bị (không lộ nền); không được thì hạ zoom dần (tối đa −30 %), vẫn không được thì giữ đích ở điểm neo
+      for (var z = z0; z >= Math.max(1, z0 * 0.7) - 1e-9; z -= 0.1) {
+        var g = at(z), hw = 960 / z, hh = 540 / z, m = EDGE / z, dx0 = d.x - m, dx1 = d.x + d.w + m, dy0 = d.y - m, dy1 = d.y + d.h + m;   // lộ nền tối đa EDGE px khung
+        g.x = (dx1 - dx0) * z >= VIEW.w ? clamp(g.x, dx0 + hw, dx1 - hw) : (dx0 + dx1) / 2;
+        g.y = (dy1 - dy0) * z >= VIEW.h ? clamp(g.y, dy0 + hh, dy1 - hh) : (dy0 + dy1) / 2;
+        var fb = C.boxToFrame(g, b), cb = o.reserve ? { x: fb.x, y: fb.y, w: fb.w + o.reserve.w, h: fb.h } : fb;
+        if (inside(fb, safe) && inside(cb, safe) && !hits(fb, o.pip)) { f = g; break; }
+      }
+    }
+    return { x: +f.x.toFixed(2), y: +f.y.toFixed(2), z: Math.floor(f.z * 1e4) / 1e4 };   // z làm tròn xuống: không vượt zmax
+  };
+  C.transitionMs = function (a, b, pace) {
+    var lo = pace === 'trailer' ? 450 : 600, hi = pace === 'trailer' ? 700 : 900;
+    var dist = Math.hypot(b.x - a.x, b.y - a.y) * Math.max(a.z, b.z) + 320 * Math.abs(Math.log(b.z / a.z));
+    return Math.round(clamp(lo + dist * 0.25, lo, hi));
+  };
+  // buildRegions({ regions:[{t, tEnd, frame:{x,y,z}}] (đã sắp, không chồng: tutorial.js tính tEnd), durationMs, pace }) → { keys, moves:[{t0,t1}], regions:[{t, arrive, tEnd, out}] }
+  //   Mỗi vùng: lia từ khung hiện tại tại t → tới khung vùng; giữ tới tEnd; rồi lùi về toàn màn (trừ khi vùng kế bắt đầu ngay tEnd: đi thẳng vùng → vùng).
+  C.buildRegions = function (o) {
+    var keys = [], moves = [], out = [], cur = FULL, R = o.regions || [];
+    var push = function (t, f) { var last = keys[keys.length - 1]; t = Math.round(t); if (last && t <= last.t) t = last.t + 1; keys.push({ t: t, x: +f.x.toFixed(2), y: +f.y.toFixed(2), z: +f.z.toFixed(4) }); return t; };
+    push(0, FULL);
+    R.forEach(function (r, i) {
+      var nx = R[i + 1], F = r.frame, dur = C.transitionMs(cur, F, o.pace);
+      var t0 = push(r.t, cur), t1 = push(t0 + dur, F); moves.push({ t0: t0, t1: t1 });
+      var tEnd = Math.max(r.tEnd, t1 + 200), rec = { t: t0, arrive: t1, tEnd: tEnd, out: null };
+      if (nx && nx.t <= tEnd + 1) { push(Math.max(tEnd, nx.t) - 1, F); cur = F; }
+      else { var dOut = C.transitionMs(F, FULL, o.pace), e0 = push(tEnd, F), e1 = push(e0 + dOut, FULL); moves.push({ t0: e0, t1: e1 }); rec.out = e1; cur = FULL; }
+      out.push(rec);
+    });
+    if (o.durationMs > keys[keys.length - 1].t) push(o.durationMs, cur);
+    return { keys: keys, moves: moves, regions: out };
+  };
   C.VIEW = VIEW;
   if (typeof module === 'object' && module.exports) module.exports = C; else root.GSCamera = C;
 })(typeof self !== 'undefined' ? self : this);

@@ -14,6 +14,7 @@ const policy = require('../server/policy');
 const { createWriter } = require('../server/write');
 const { createExt } = require('../server/hooks');
 const { tmpDb, basics, lessonBody, owner, agent } = require('./a-helpers');
+const { tutorialBody } = require('./g-tutorial-fixtures');
 
 const code = (c) => (e) => e.name === 'WriteError' && e.code === c;
 const ROOT = path.join(__dirname, '..');
@@ -61,11 +62,11 @@ test('Sửa brand/policy của kênh: owner ✓, agent ✗ (policy_field) — c�
   t.clean();
 });
 
-test('server/ops/*: module stub là no-op (không đăng ký op nào) và có chủ; gói đã làm thật (B, O, V) bị loại khỏi kiểm no-op', () => {
+test('server/ops/*: module stub là no-op (không đăng ký op nào) và có chủ; gói đã làm thật (B, O, V, U) bị loại khỏi kiểm no-op; U chỉ thêm asset.attest/revoke_attest (ownerUi)', () => {
   const dir = path.join(ROOT, 'server/ops');
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.js') && !f.startsWith('_'));   // `_*.js` = tiện ích (vd _thumb-data.js của gói T), bộ nạp bỏ qua
   assert.deepEqual(files.sort(), ['brand.js', 'cast.js', 'overview.js', 'publish.js', 'thumb.js', 'tutorial.js']);
-  const DONE = ['brand.js', 'publish.js', 'cast.js'];   // gói B, O, V đã thay stub bằng bản thật (g-brand / g-overview)
+  const DONE = ['brand.js', 'publish.js', 'cast.js', 'tutorial.js'];   // gói B, O, V, U đã thay stub bằng bản thật
   for (const f of files.filter(x => !DONE.includes(x))) {
     const m = require(path.join(dir, f));
     assert.equal(typeof m.register, 'function', f); assert.ok(m.OWNER, f + ' ghi rõ gói sở hữu');
@@ -74,8 +75,12 @@ test('server/ops/*: module stub là no-op (không đăng ký op nào) và có ch
     m.register((...a) => calls.push(a), {});
     assert.deepEqual(calls, [], f + ' stub không được đăng ký op');
   }
-  const t = tmpDb();   // writer thật: tập op = tập op lõi (không op nào đến từ stub)
-  assert.ok(t.write.ops.includes('lesson.submit') && t.write.ops.includes('thumbnail.pick'));   // cast.approve/retire (V), render.mark_* (O), thumbnail.pick (T) là op thật
+  const u = require(path.join(dir, 'tutorial.js')), calls = [];
+  u.register((...a) => calls.push(a), { ext: require('../server/hooks.js').createExt(), db: null, err: () => new Error('x'), rights: require('../server/rights.js'), need: () => null });
+  assert.deepEqual(calls.map(c => [c[0], c[1]]), [['asset.attest', 'ownerUi'], ['asset.revoke_attest', 'ownerUi']], 'gói U: chỉ hai op quyền asset, chỉ owner trên UI');
+  const t = tmpDb();   // writer thật: tập op = tập op lõi + op của gói đã làm thật
+  assert.ok(t.write.ops.includes('lesson.submit') && t.write.ops.includes('thumbnail.pick'));   // cast.approve/retire (V), render.mark_* (O), thumbnail.pick (T), asset.attest (U) là op thật
+  assert.ok(t.write.ops.includes('asset.attest') && t.write.ops.includes('asset.revoke_attest'));
   t.clean();
 });
 
@@ -144,7 +149,7 @@ test('lessonExt: kind/cột ext — chưa đăng ký ⇒ từ chối rõ; đăng
   const r0 = t.write(b.o, 'lesson.submit', lessonBody(b));
   assert.equal(t.db.get('SELECT kind, thumbnail FROM lesson_versions WHERE version=1').kind, 'lesson');
   assert.throws(() => t.write(b.o, 'lesson.submit', lessonBody(b, { thumbnail: { variants: [] } })), /2–3 phương án/);   // gói T đã bật cột thumbnail (kiểm khô T3–T6)
-  assert.throws(() => t.write(b.o, 'lesson.submit', lessonBody(b, { kind: 'tutorial' })), /chưa được hỗ trợ/);
+  assert.throws(() => t.write(b.o, 'lesson.submit', lessonBody(b, { kind: 'podcast' })), /chưa được hỗ trợ/);   // tutorial: gói U đã bật
   assert.ok(r0.render);
   t.clean();
 
@@ -157,14 +162,13 @@ test('lessonExt: kind/cột ext — chưa đăng ký ⇒ từ chối rõ; đăng
           if (lv.values.thumbnail && !Array.isArray(lv.values.thumbnail.variants)) return ['variants phải là mảng'];
           return [];
         } });
-      ctx.ext.lessonExt.register({ name: 'tutorial', columns: ['kind', 'variant'], kinds: ['tutorial'] });
-    };`);
+    };`);   // tutorial: module thật của gói U (server/ops/tutorial.js) — kind + variant/screens/host/music
   try {
     const bb = basics(w.write, w.db);
     const ext = w.write.ext.lessonExt;
-    assert.deepEqual(ext.kinds(), ['lesson', 'tutorial']); assert.deepEqual(ext.columns(), ['thumbnail', 'variant']);
-    assert.deepEqual(ext.schemaProps(), { thumbnail: { type: 'object' } });
-    assert.deepEqual(ext.unowned(), ['screens', 'host', 'music'], 'cột chưa ai nhận ⇒ vẫn "chưa bật"');
+    assert.deepEqual(ext.kinds(), ['lesson', 'tutorial']); assert.deepEqual(ext.columns().sort(), ['host', 'music', 'screens', 'thumbnail', 'variant']);
+    assert.deepEqual(ext.schemaProps().thumbnail, { type: 'object' });
+    assert.deepEqual(ext.unowned(), [], 'mọi cột 0003 đã có chủ (T giả + U thật)');
     // lưu + validate
     assert.throws(() => w.write(bb.o, 'lesson.submit', lessonBody(bb, { thumbnail: { variants: 5 } })), /variants phải là mảng/);
     const v1 = w.write(bb.o, 'lesson.submit', lessonBody(bb, { thumbnail: { variants: [{ template: 't' }] } }));
@@ -180,9 +184,9 @@ test('lessonExt: kind/cột ext — chưa đăng ký ⇒ từ chối rõ; đăng
     assert.throws(() => w.write(bb.o, 'lesson.submit', lessonBody(bb)), /thumbnail_required/);
     // loại bài do ext khai báo: tutorial nhận; khối chỉ-lesson (token-row) bị từ chối ở bài tutorial
     w.write(bb.o, 'channel.update', { channel: bb.ch.display_id, data: { policy: { thumbnail_required: false } } });
-    const tut = w.write(bb.o, 'lesson.submit', lessonBody(bb, { kind: 'tutorial', variant: 'full' }));
+    const tut = w.write(bb.o, 'lesson.submit', tutorialBody(bb, { variant: 'full', thumbnail: { variants: [] } }));
     assert.equal(w.db.get('SELECT kind, variant FROM lesson_versions WHERE lesson_id=(SELECT id FROM lessons WHERE display_id=?)', tut.lesson.display_id).kind, 'tutorial');
-    assert.throws(() => w.write(bb.o, 'lesson.submit', lessonBody(bb, { kind: 'tutorial', beats: [{ block: 'token-row', anchor: { line: 0, word: 'chào' }, params: { tokens: ['a'], next: 'b' } }] })), /token-row/);
+    assert.throws(() => w.write(bb.o, 'lesson.submit', tutorialBody(bb, { thumbnail: { variants: [] }, beats: [{ block: 'token-row', anchor: { line: 0, word: 'chào' }, params: { tokens: ['a'], next: 'b' } }] })), /token-row/);
     assert.equal(w.db.get("SELECT COUNT(*) AS n FROM lessons").n, 2, 'lần bị từ chối không để lại bài');
   } finally { w.clean(); }
 });

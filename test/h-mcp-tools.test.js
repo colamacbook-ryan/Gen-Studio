@@ -37,7 +37,8 @@ test('mcp-tools: mọi tool 0.1.1 còn nguyên tên; thêm render_still + propos
     for (const n of OLD_TOOLS) assert.ok(mcp.tools.includes(n), n);
     assert.ok(mcp.tools.includes('render_still')); assert.ok(mcp.tools.includes('propose_brand_change'));   // gói B (0.2.0)
     for (const n of ['propose_thumbnail_text', 'preview_thumbnail']) assert.ok(mcp.tools.includes(n), 'gói T thêm ' + n);
-    assert.equal(mcp.tools.length, OLD_TOOLS.length + 4);   // + render_still (P0b), propose_brand_change (B), propose_thumbnail_text + preview_thumbnail (T)
+    assert.ok(mcp.tools.includes('preview_tutorial_frame'), 'gói U: xem trước khung bài hướng dẫn');
+    assert.equal(mcp.tools.length, OLD_TOOLS.length + 5);   // + render_still (P0b), propose_brand_change (B), propose_thumbnail_text + preview_thumbnail (T), preview_tutorial_frame (U)
     assert.equal(mcp.tools.filter(n => /approve|reject|delete|^review|remove|attest|pick|publish/.test(n)).length, 0, 'lớp quyết định của owner (§10) không có tool');
   } finally { t.clean(); }
 });
@@ -111,10 +112,12 @@ test('get_capabilities: gộp capabilities() của module; blocks_by_kind/gates_
   try {
     const r = await call(mk(['read']), 'get_capabilities', {});
     const d = r.structuredContent;
-    assert.deepEqual(d.kinds, ['lesson'], 'chưa có ext khai kind ⇒ chỉ lesson');
+    assert.deepEqual(d.kinds, ['lesson', 'tutorial'], 'gói U khai kind tutorial');
     assert.deepEqual(d.blocks_by_kind.lesson.map(x => x.name), d.blocks.map(x => x.name));
-    assert.ok(!d.blocks_by_kind.lesson.some(x => ['screen', 'cursor', 'focus', 'callout', 'keystroke', 'mock-ui'].includes(x.name)), 'khối tutorial đang tắt');
-    assert.equal(d.gates_by_kind.lesson.length, 8);
+    assert.ok(!d.blocks_by_kind.lesson.some(x => ['screen', 'cursor', 'focus', 'callout', 'keystroke', 'mock-ui'].includes(x.name)), 'khối tutorial không dùng cho bài thường');
+    assert.ok(['screen', 'cursor', 'focus', 'callout', 'keystroke'].every(n => d.blocks_by_kind.tutorial.some(x => x.name === n)));
+    assert.equal(d.gates_by_kind.lesson.length, 8); assert.equal(d.gates_by_kind.tutorial.at(-1), 'G-CURSOR');
+    assert.ok(d.tutorial && d.tutorial.dsl.types.length === 16 && d.tutorial.keys.includes('Ctrl'), 'capabilities() của mcp-tools/tutorial.js');
     assert.ok(d.policy_fields_owner_only.includes('brand') && d.policy_fields_owner_only.includes('policy'));
   } finally { t.clean(); }
   // module capabilities tuỳ ý (qua cấu trúc mcp-tools) — kiểm bằng ctx.caps trực tiếp

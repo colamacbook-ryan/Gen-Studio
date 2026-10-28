@@ -341,7 +341,9 @@ async function execute(ctx, run, renderId) {
     const mixPath = path.join(tmp, 'mix.wav'), mp4Path = path.join(tmp, 'out.mp4');
     const voices = plan.lines.map(pl => ({ path: assetFile(db, clips[pl.id] && items.find(i => i.l.display_id === pl.id).clip.asset_id).file, at_ms: pl.a_ms }));
     const sfx = (plan.cues || []).filter(c => r.sfx && r.sfx[c.name]).map(c => ({ path: r.sfx[c.name], at_ms: c.t_ms, vol: c.vol == null ? 1 : c.vol }));
-    await M.mix({ voices, sfx, duration_ms: plan.duration_ms, out: mixPath, ffmpegPath: config.ffmpegPath });
+    // nhạc nền trailer (gói U): plan.music.asset = đường dẫn tương đối trong dataDir do hook plan.input của tutorial đổi từ AS-… (đã qua kiểm quyền ở plan.after)
+    const music = plan.music && plan.music.asset && voices.length ? { path: path.isAbsolute(plan.music.asset) ? plan.music.asset : path.join(config.dataDir, plan.music.asset), gain_db: plan.music.gain_db, duck_db: plan.music.duck_db } : null;
+    await M.mix({ voices, sfx, duration_ms: plan.duration_ms, out: mixPath, ffmpegPath: config.ffmpegPath, music });
     // G-WAV(b) đo xung quanh mốc ghép CÂU: đo trên nền giọng (không sfx) vì sfx có chủ ý có thể có đỉnh gần mốc câu (vd whoosh) và làm cổng báo nhầm.
     const stemPath = path.join(tmp, 'voices.wav');
     await M.mix({ voices, sfx: [], duration_ms: plan.duration_ms, out: stemPath, ffmpegPath: config.ffmpegPath, targetLufs: null });
