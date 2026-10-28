@@ -61,6 +61,7 @@ test('Sửa brand/policy của kênh: owner ✓, agent ✗ (policy_field) — c�
   t.clean();
 });
 
+// gói V đã thay cast.js bằng bản thật (cast.approve/retire + bọc cast.save) — test riêng ở test/g-cast-validate.test.js; cast.js vẫn phải gọi được với ctx rỗng mà không đăng ký op
 test('server/ops/*: 6 module stub là no-op (không đăng ký op nào) và có chủ', () => {
   const dir = path.join(ROOT, 'server/ops');
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.js'));
@@ -73,7 +74,7 @@ test('server/ops/*: 6 module stub là no-op (không đăng ký op nào) và có 
     assert.deepEqual(calls, [], f + ' stub không được đăng ký op');
   }
   const t = tmpDb();   // writer thật: tập op = tập op lõi (không op nào đến từ stub)
-  assert.ok(t.write.ops.includes('lesson.submit') && !t.write.ops.some(n => /^(cast\.approve|cast\.retire|thumbnail\.|asset\.attest|render\.mark)/.test(n)));
+  assert.ok(t.write.ops.includes('lesson.submit') && !t.write.ops.some(n => /^(thumbnail\.|asset\.attest|render\.mark)/.test(n)));   // cast.approve/retire do gói V đăng ký thật
   t.clean();
 });
 
