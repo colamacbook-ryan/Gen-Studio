@@ -61,11 +61,11 @@ test('Sửa brand/policy của kênh: owner ✓, agent ✗ (policy_field) — c�
   t.clean();
 });
 
-test('server/ops/*: module stub là no-op (không đăng ký op nào) và có chủ; gói đã làm thật (B) bị loại khỏi kiểm no-op', () => {
+test('server/ops/*: module stub là no-op (không đăng ký op nào) và có chủ; gói đã làm thật (B, O, V) bị loại khỏi kiểm no-op', () => {
   const dir = path.join(ROOT, 'server/ops');
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.js'));
   assert.deepEqual(files.sort(), ['brand.js', 'cast.js', 'overview.js', 'publish.js', 'thumb.js', 'tutorial.js']);
-  const DONE = ['brand.js', 'publish.js'];   // gói B, O đã thay stub bằng bản thật (g-brand / g-overview)
+  const DONE = ['brand.js', 'publish.js', 'cast.js'];   // gói B, O, V đã thay stub bằng bản thật (g-brand / g-overview)
   for (const f of files.filter(x => !DONE.includes(x))) {
     const m = require(path.join(dir, f));
     assert.equal(typeof m.register, 'function', f); assert.ok(m.OWNER, f + ' ghi rõ gói sở hữu');
@@ -74,7 +74,7 @@ test('server/ops/*: module stub là no-op (không đăng ký op nào) và có ch
     assert.deepEqual(calls, [], f + ' stub không được đăng ký op');
   }
   const t = tmpDb();   // writer thật: tập op = tập op lõi (không op nào đến từ stub)
-  assert.ok(t.write.ops.includes('lesson.submit') && !t.write.ops.some(n => /^(cast\.approve|cast\.retire|thumbnail\.|asset\.attest)/.test(n)));
+  assert.ok(t.write.ops.includes('lesson.submit') && !t.write.ops.some(n => /^(thumbnail\.|asset\.attest)/.test(n)));   // cast.approve/retire (V), render.mark_* (O) là op thật
   t.clean();
 });
 

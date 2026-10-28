@@ -234,7 +234,7 @@ test('hook plan.after: logo AS-… → plan.style.brand.logo.ref + assetRefs (ha
     t.write.ext.hooks.run('plan.after', { B: {}, plan, ctx: {} });
     assert.equal(plan.style.brand.logo.ref, apath); assert.equal(plan.style.brand.hash, n.hash); assert.equal(n.logo.ref, undefined, 'không sửa đối tượng gốc');
     assert.deepEqual(plan.assetRefs.map((x) => x.asset), ['x.svg', apath]); assert.deepEqual(plan.cues.map((c) => c.name), ['pop', 'chime', 'rimshot'], 'cue intro chen đúng thứ tự thời gian');
-    const none = { style: { brand: null }, cues: [], assetRefs: [] }; t.write.ext.hooks.run('plan.after', { B: {}, plan: none, ctx: {} }); assert.deepEqual(none, { style: { brand: null }, cues: [], assetRefs: [] });
+    const none = { style: { brand: null }, cues: [], assetRefs: [] }; t.write.ext.hooks.run('plan.after', { B: {}, plan: none, ctx: {} }); delete none.moods;   /* moods: bảng tâm trạng của gói V, không thuộc brand */ assert.deepEqual(none, { style: { brand: null }, cues: [], assetRefs: [] });
     t.db.run("UPDATE assets SET media_present=0 WHERE display_id=?", id);
     assert.throws(() => t.write.ext.hooks.run('plan.after', { B: {}, plan: { style: { brand: n }, cues: [] }, ctx: {} }), (e) => e.name === 'PlanError' && e.code === 'brand_logo_missing');
   } finally { t.clean(); }
