@@ -401,7 +401,7 @@ function fixtureSubject() {   // pack thử thuần dữ liệu (không cần GS
   const pack = fixturePack(), res = kol.checkPack(pack); assert.equal(res.ok, true);
   return { label: 'pack thử', recipes: res.recipes, packs: cast.library().packs.concat([{ json: pack, outline: kol.OUTLINE }]), outline: kol.OUTLINE, parts: cast.library().parts };
 }
-test('sân khấu: nhân vật của pack được viền nướng vào path + mực brand; cast cũ trong cùng plan KHÔNG viền (render không đổi)', { skip: HAS }, async () => {
+test('sân khấu: nhân vật của pack được viền nướng vào path + mực brand; cast cũ trong cùng plan KHÔNG viền nướng, mực theo brand (F2-8)', { skip: HAS }, async () => {
   const S = fixtureSubject(), recipes = { 'CM-0001': S.recipes[0], 'CM-0002': OLD_CAST[1] };
   const say = 'Xin chào các bạn nhỏ', toks = say.split(' ');
   const clips = { 'LN-1': { duration_ms: 1700, word_times: toks.map((w, i) => ({ w, t0: i * 300, t1: i * 300 + 280 })), envelope: new Array(60).fill(0.5) } };
@@ -413,6 +413,21 @@ test('sân khấu: nhân vật của pack được viền nướng vào path + m
     assert.equal(svgs.length, 2); assert.deepEqual(errors, []);
     assert.ok(svgs[0].includes('#14121A') && !/#2b211d/i.test(svgs[0]) && !/<filter/.test(svgs[0]), 'pack: mực brand, không filter');
     assert.ok(svgs[0].length > 30000, 'pack: có viền nướng');
-    assert.ok(svgs[1].length < 30000 && !svgs[1].includes('#14121A'), 'cast cũ: không viền, không đổi mực');
+    // cast cũ: không viền nướng (render 0.1.x giữ dáng); mực theo brand vì kênh có brand (F2-8, gói B) — không brand thì giữ mực cũ (g-brand-render)
+    assert.ok(svgs[1].length < 30000, 'cast cũ: không viền nướng'); assert.ok(svgs[1].includes('#14121A') && !/#2b211d/i.test(svgs[1]), 'cast cũ: mực brand (F2-8)');
   });
+});
+
+// hợp đồng K × V: library() trả packs [{json}] — cổng kiểm công thức của V (cast.save strict) phải nạp đủ các gói đó, không chỉ lib.pack
+test('validateRecipe strict nhận library.packs (dạng render/cast library()): nhân vật trong pack qua; thiếu pack ⇒ unknown_part', () => {
+  const { validateRecipe } = require('../render/cast/validate');
+  const pack = fixturePack(), base = cast.library();
+  const withPack = { parts: base.parts, packs: base.packs.concat([{ json: pack, outline: null }]), hash: base.hash + ':test.kol' };
+  const rs = kol.recipesOf(pack);
+  rs.forEach((r, i) => { r.dynamic.with = rs[1 - i].id; });   // fixture khai with:'x' (K chỉ kiểm hình dạng); V đòi slug id thật
+  for (const r of rs) {
+    const ok = validateRecipe(r, { strict: true, library: withPack });
+    assert.deepEqual(ok.errors.map(e => e.code), [], r.id);
+    assert.ok(codes(validateRecipe(r, { strict: true, library: base })).includes('unknown_part'), r.id + ' không có pack ⇒ phải bị chặn');
+  }
 });

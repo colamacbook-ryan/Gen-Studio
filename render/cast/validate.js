@@ -77,10 +77,10 @@ function registerLibrary(GC, lib) {
     if (r && r.errors && r.errors.length) errs.push(`linh kiện ${p && p.id}: ${r.errors.join('; ')}`);
   }
   // Gen-Chibi ≥ 0.26: gói dữ liệu đầy đủ (đầu, mắt, động tác, đạo cụ, hoạt động…) — chỉ khi engine có hàm, thiếu hàm mà thư viện đòi ⇒ báo rõ
-  if (lib && lib.pack) {
-    if (typeof GC.registerDataPack !== 'function') errs.push('thư viện có gói dữ liệu (pack) nhưng engine hiện tại chưa hỗ trợ registerDataPack (cần Gen-Chibi ≥ 0.26).');
-    else { const r = GC.registerDataPack(lib.pack); if (r.errors && r.errors.length) errs.push('gói dữ liệu: ' + r.errors.join('; ')); }
-  }
+  // lib.pack (một gói) hoặc lib.packs [{ json, outline }] — dạng render/cast/index.js library() trả (props.json + pack KOL của GS_KOL_PACK)
+  const packs = ((lib && lib.packs) || []).map(x => x && x.json).concat(lib && lib.pack ? [lib.pack] : []).filter(Boolean);
+  if (packs.length && typeof GC.registerDataPack !== 'function') errs.push('thư viện có gói dữ liệu (pack) nhưng engine hiện tại chưa hỗ trợ registerDataPack (cần Gen-Chibi ≥ 0.26).');
+  else for (const pk of packs) { const r = GC.registerDataPack(pk); if (r.errors && r.errors.length) errs.push(`gói dữ liệu ${pk.id || ''}: ` + r.errors.join('; ')); }
   return errs;
 }
 function loadEngine(opts) {
