@@ -868,8 +868,8 @@ function createWriter(db, opts = {}) {
       throw err('invalid', 'Thiếu hoặc sai thông tin người thực hiện (actor).', null);
     }
     const out = db.tx(() => {
-      if (!allow[h.who](actor)) {
-        throw err('forbidden', 'Bạn không có quyền thực hiện thao tác này.', { op: opName, actor: actor.type, entry: actor.entry, need: h.who });
+      if (!(typeof h.who === 'function' ? h.who(actor) : allow[h.who](actor))) {
+        throw err('forbidden', 'Bạn không có quyền thực hiện thao tác này.', { op: opName, actor: actor.type, entry: actor.entry, need: typeof h.who === 'function' ? 'custom' : h.who });
       }
       const c = { a: actor, p: payload || {}, by: actorString(actor), actor, entry: auditEntry(actor) };
       const r = h.run(c);

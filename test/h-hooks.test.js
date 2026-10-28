@@ -65,7 +65,7 @@ test('server/ops/*: module stub là no-op (không đăng ký op nào) và có ch
   const dir = path.join(ROOT, 'server/ops');
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.js'));
   assert.deepEqual(files.sort(), ['brand.js', 'cast.js', 'overview.js', 'publish.js', 'thumb.js', 'tutorial.js']);
-  const DONE = ['brand.js'];   // gói B đã thay stub bằng bản thật (test riêng: g-brand.test.js)
+  const DONE = ['brand.js', 'publish.js'];   // gói B, O đã thay stub bằng bản thật (g-brand / g-overview)
   for (const f of files.filter(x => !DONE.includes(x))) {
     const m = require(path.join(dir, f));
     assert.equal(typeof m.register, 'function', f); assert.ok(m.OWNER, f + ' ghi rõ gói sở hữu');
@@ -74,7 +74,7 @@ test('server/ops/*: module stub là no-op (không đăng ký op nào) và có ch
     assert.deepEqual(calls, [], f + ' stub không được đăng ký op');
   }
   const t = tmpDb();   // writer thật: tập op = tập op lõi (không op nào đến từ stub)
-  assert.ok(t.write.ops.includes('lesson.submit') && !t.write.ops.some(n => /^(cast\.approve|cast\.retire|thumbnail\.|asset\.attest|render\.mark)/.test(n)));
+  assert.ok(t.write.ops.includes('lesson.submit') && !t.write.ops.some(n => /^(cast\.approve|cast\.retire|thumbnail\.|asset\.attest)/.test(n)));
   t.clean();
 });
 
@@ -82,6 +82,7 @@ test('nạp op từ module: op mới đi qua write() (kiểm quyền + audit); t
   const w = writerWith(`
     exports.register = (op, ctx) => {
       op('x.ping', 'ownerUi', (c) => ({ result: { ok: true }, entity: ['x', 'X-1'], before: null, after: { p: c.p.n } }));
+      op('x.fn', (a) => a.entry === 'ui' && a.type === 'user', () => ({ result: { fn: true }, entity: ['x', 'X-2'], before: null, after: {} }));
       ctx.around('settings.set', (next) => (c) => { const r = next(c); r.result.wrapped = true; return r; });
     };`);
   try {
@@ -89,6 +90,8 @@ test('nạp op từ module: op mới đi qua write() (kiểm quyền + audit); t
     assert.deepEqual(w.write(o, 'x.ping', { n: 7 }), { ok: true });
     assert.equal(w.db.get("SELECT COUNT(*) AS n FROM audit_log WHERE action='x.ping'").n, 1, 'op mới cũng audit');
     for (const [name, a] of NON_OWNER_UI(w.db)) assert.throws(() => w.write(a, 'x.ping', {}), code('forbidden'), name);
+    assert.deepEqual(w.write(o, 'x.fn', {}), { fn: true }, 'who là hàm: write() gọi hàm, không tra bảng allow');
+    for (const [name, a] of NON_OWNER_UI(w.db)) assert.throws(() => w.write(a, 'x.fn', {}), code('forbidden'), 'x.fn ' + name);
     assert.equal(w.write(o, 'settings.set', { key: 'k', value: 1 }).wrapped, true, 'around đã bọc');
   } finally { w.clean(); }
   const dup = tmpOps("exports.register = (op) => { op('lesson.submit', 'owner', () => ({})); };");
