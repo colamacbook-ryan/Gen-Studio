@@ -16,7 +16,7 @@ const AS_RE = /^AS-\d+$/;
 function capabilities() {
   return {
     tutorial: {
-      kind: 'tutorial', variants: ['full', 'trailer'], host_modes: ['pip', 'none'], chrome: ['browser', 'desktop', 'none'], themes: Object.keys(mockUi.THEMES),
+      kind: 'tutorial', variants: ['full', 'trailer'], host_modes: ['pip', 'none'], chrome: ['browser', 'desktop', 'none'], themes: mockUi.THEMES.slice(),
       rule: 'Mỗi bước con trỏ là MỘT beat neo vào chữ; mốc neo = khoảnh khắc hành động (lúc bấm, lúc bắt đầu gõ/cuộn/kéo). Màn đổi bằng beat "screen". Ưu tiên màn giả lập (DSL) hơn ảnh chụp.',
       dsl: { types: mockUi.TYPES, root: 'window', limits: mockUi.LIMITS, id: '^[a-z][a-z0-9_]{0,31}$ — phần tử có id tự thành đích', text_only: true,
         props: { window: ['title', 'children'], sidebar: ['title', 'items', 'active'], topbar: ['title', 'children'], tabs: ['id', 'items', 'active'], row: ['children', 'gap', 'align'],

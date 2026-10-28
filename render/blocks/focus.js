@@ -18,7 +18,7 @@
       var tut = ctx.plan.tutorial || {}, f = (tut.focus || []).filter(function (x) { return x.beat === ctx.beat.id; })[0];
       var C = root.GSBlockDefs && root.GSBlockDefs.callout;
       if (!f || !C) { var e = U.el('div', 'b-focus'); e.style.display = 'none'; layer.appendChild(e); return e; }
-      var o = C.overlay(layer, tut.accent || '#FF6F59', { stroke: 6, callout: f.callout });
+      var o = C.overlay(layer, tut.accent, { stroke: 6, callout: f.callout });
       o.el._r = { o: o, f: f }; o.el.classList.add('b-focus');
       return o.el;
     },

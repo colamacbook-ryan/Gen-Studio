@@ -89,7 +89,7 @@
           var rd = px(U.el('div', 'sc-redact ' + b.style), b); sw.appendChild(rd);
           if (b.style === 'mosaic') {   // khảm = lưới khối đặc tạo sẵn (không filter blur — L-42)
             var cell = Math.max(12, Math.round(Math.min(b.w, b.h) / 4)), html = '';
-            for (var yy = 0; yy < b.h; yy += cell) for (var xx = 0; xx < b.w; xx += cell) { var g = 120 + ((xx * 7 + yy * 13 + i * 31) % 70); html += '<i style="left:' + xx + 'px;top:' + yy + 'px;width:' + cell + 'px;height:' + cell + 'px;background:rgb(' + g + ',' + g + ',' + (g + 8) + ')"></i>'; }
+            for (var yy = 0; yy < b.h; yy += cell) for (var xx = 0; xx < b.w; xx += cell) html += '<i class="m' + ((xx * 7 + yy * 13 + i * 31) % 5) + '" style="left:' + xx + 'px;top:' + yy + 'px;width:' + cell + 'px;height:' + cell + 'px"></i>';
             rd.innerHTML = html;
           }
         });

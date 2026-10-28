@@ -25,6 +25,10 @@
 .sc-redact.mosaic { overflow: hidden; border-radius: 6px; }
 .sc-type { color: #111827; white-space: nowrap; overflow: hidden; font-family: var(--f-display); }
 
+/* ---- theme màn giả lập (token trung tính, KHÔNG phải brand — SPEC §6.4) ---- */
+.mu-theme-console-dark { --mu-bg: #0E1320; --mu-panel: #151C2B; --mu-panel2: #1B2436; --mu-border: #2A3550; --mu-text: #E7EBF3; --mu-muted: #8E99B2; --mu-accent: #4C8DFF; --mu-on-accent: #FFFFFF; --mu-field: #0F1626; --mu-ok: #35C48F; --mu-warn: #F2B544; --mu-danger: #F06A6A; --mu-info: #5AA8FF; --mu-side-active: #22304A; --mu-knob: #FFFFFF; }
+.mu-theme-console-light { --mu-bg: #F3F5F9; --mu-panel: #FFFFFF; --mu-panel2: #EDF0F6; --mu-border: #D3DAE6; --mu-text: #1A2233; --mu-muted: #64708A; --mu-accent: #2F6BFF; --mu-on-accent: #FFFFFF; --mu-field: #FFFFFF; --mu-ok: #1E9E6A; --mu-warn: #B7791F; --mu-danger: #D64545; --mu-info: #2F6BFF; --mu-side-active: #E3EAFB; --mu-knob: #FFFFFF; }
+.mu-theme-plain-light { --mu-bg: #FFFFFF; --mu-panel: #FAFAFA; --mu-panel2: #F2F2F2; --mu-border: #DDDDDD; --mu-text: #222222; --mu-muted: #777777; --mu-accent: #3366CC; --mu-on-accent: #FFFFFF; --mu-field: #FFFFFF; --mu-ok: #2E8B57; --mu-warn: #B8860B; --mu-danger: #C0392B; --mu-info: #3366CC; --mu-side-active: #EAF0FB; --mu-knob: #FFFFFF; }
 /* ---- màn giả lập (mock-ui): mọi nút đặt tuyệt đối theo bố cục tất định ---- */
 .mu { position: absolute; box-sizing: border-box; font-family: var(--f-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mu-titlebar { font-size: 15px; line-height: 40px; padding-left: 18px; }
@@ -82,3 +86,10 @@
   background: rgba(14, 19, 32, .86); padding: 12px 16px; border-radius: 18px; }
 .b-keys .kcap { background: #FFFFFF; color: #1D2A6E; border: 2px solid #C9D0E4; border-bottom-width: 6px; border-radius: 12px; padding: 4px 18px; font: 800 32px/44px var(--f-display); white-space: nowrap; }
 .b-keys .kplus { color: #E7EBF3; font: 800 28px var(--f-display); }
+/* màu con trỏ (SVG nội tuyến trong cursor.js chỉ mang class), lớp tối của focus, ô khảm che thông tin */
+.cur-k .cf { fill: #FFFFFF; stroke: #111827; }
+.cur-k .co { fill: none; stroke: #FFFFFF; } .cur-k .ci { fill: none; stroke: #111827; }
+.ovl-dim { fill: #05070D; }
+.sc-redact.mosaic i.m0 { background: var(--v-ink-soft, #55608F); opacity: .55; } .sc-redact.mosaic i.m1 { background: var(--v-ink-soft, #55608F); opacity: .7; }
+.sc-redact.mosaic i.m2 { background: var(--v-ink-soft, #55608F); opacity: .85; } .sc-redact.mosaic i.m3 { background: var(--v-ink, #1D2A6E); opacity: .6; } .sc-redact.mosaic i.m4 { background: var(--v-ink, #1D2A6E); opacity: .8; }
+.sc-redact.mosaic { background: var(--v-paper, #F6F7FC); }

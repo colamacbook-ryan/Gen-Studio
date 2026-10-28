@@ -12,7 +12,7 @@
   function overlay(layer, accent, opts) {
     var el = U.el('div', 'b-ovl'); el.style.display = 'none'; layer.appendChild(el);
     var svg = document.createElementNS(NS, 'svg'); svg.setAttribute('width', '1920'); svg.setAttribute('height', '1080'); svg.setAttribute('class', 'ovl-svg'); el.appendChild(svg);
-    var dim = document.createElementNS(NS, 'path'); dim.setAttribute('fill', '#05070D'); dim.setAttribute('fill-rule', 'evenodd'); dim.setAttribute('opacity', '0'); svg.appendChild(dim);
+    var dim = document.createElementNS(NS, 'path'); dim.setAttribute('class', 'ovl-dim'); dim.setAttribute('fill-rule', 'evenodd'); dim.setAttribute('opacity', '0'); svg.appendChild(dim);
     var ring = document.createElementNS(NS, 'rect'); ring.setAttribute('fill', 'none'); ring.setAttribute('stroke', accent); ring.setAttribute('stroke-width', String(opts.stroke || 6)); ring.setAttribute('rx', '12'); ring.setAttribute('opacity', '0'); svg.appendChild(ring);
     var card = null, txt = null, arrow = null;
     if (opts.callout) {
@@ -50,7 +50,7 @@
     mount: function (layer, p, ctx) {
       var tut = ctx.plan.tutorial || {}, c = (tut.callouts || []).filter(function (x) { return x.beat === ctx.beat.id; })[0];
       if (!c) { var e = U.el('div', 'b-callout'); e.style.display = 'none'; layer.appendChild(e); return e; }
-      var o = overlay(layer, tut.accent || '#FF6F59', { stroke: 4, callout: c.callout });
+      var o = overlay(layer, tut.accent, { stroke: 4, callout: c.callout });
       o.el._r = { o: o, c: c }; o.el.classList.add('b-callout');
       return o.el;
     },

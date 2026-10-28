@@ -11,14 +11,10 @@
   'use strict';
   var U = (typeof module === 'object' && module.exports) ? require('./util') : root.GSUtil;
   var TYPES = ['window', 'sidebar', 'topbar', 'tabs', 'row', 'col', 'card', 'text', 'button', 'input', 'textarea', 'table', 'list', 'badge', 'toggle', 'image'];
-  var THEMES = {
-    'console-dark': { bg: '#0E1320', panel: '#151C2B', panel2: '#1B2436', border: '#2A3550', text: '#E7EBF3', muted: '#8E99B2', accent: '#4C8DFF', onAccent: '#FFFFFF',
-      field: '#0F1626', ok: '#35C48F', warn: '#F2B544', danger: '#F06A6A', info: '#5AA8FF', sideActive: '#22304A' },
-    'console-light': { bg: '#F3F5F9', panel: '#FFFFFF', panel2: '#EDF0F6', border: '#D3DAE6', text: '#1A2233', muted: '#64708A', accent: '#2F6BFF', onAccent: '#FFFFFF',
-      field: '#FFFFFF', ok: '#1E9E6A', warn: '#B7791F', danger: '#D64545', info: '#2F6BFF', sideActive: '#E3EAFB' },
-    'plain-light': { bg: '#FFFFFF', panel: '#FAFAFA', panel2: '#F2F2F2', border: '#DDDDDD', text: '#222222', muted: '#777777', accent: '#3366CC', onAccent: '#FFFFFF',
-      field: '#FFFFFF', ok: '#2E8B57', warn: '#B8860B', danger: '#C0392B', info: '#3366CC', sideActive: '#EAF0FB' }
-  };
+  // bảng màu theme là token trung tính (không phải brand) nằm ở render/stage/tutorial.css (.mu-theme-<tên> { --mu-*: … }); khối chỉ tham chiếu var(--mu-*)
+  var THEMES = ['console-dark', 'console-light', 'plain-light'];
+  var TK = ['bg', 'panel', 'panel2', 'border', 'text', 'muted', 'accent', 'onAccent', 'field', 'ok', 'warn', 'danger', 'info', 'sideActive', 'knob'];
+  var T = {}; TK.forEach(function (k) { T[k] = 'var(--mu-' + k.replace(/[A-Z]/g, function (c) { return '-' + c.toLowerCase(); }) + ')'; });
   var LIMITS = { depth: 8, nodes: 300, w: [320, 3840], h: [240, 2400], text: 240, label: 60, items: 24, cols: 8, rows: 12 };
   var ID_RE = /^[a-z][a-z0-9_]{0,31}$/;
   var ASSET_RE = /^AS-\d+$/, PATH_RE = /^media\/[0-9a-f]{2}\/[0-9a-f]{64}\.[a-z0-9]{2,5}$/;
@@ -46,7 +42,7 @@
     Object.keys(mock).forEach(function (k) { if (['w', 'h', 'theme', 'root'].indexOf(k) < 0) E('mock.' + k, 'thuộc tính không có trong DSL'); });
     if (!Number.isInteger(mock.w) || mock.w < LIMITS.w[0] || mock.w > LIMITS.w[1]) E('mock.w', 'phải là số nguyên ' + LIMITS.w.join('–'));
     if (!Number.isInteger(mock.h) || mock.h < LIMITS.h[0] || mock.h > LIMITS.h[1]) E('mock.h', 'phải là số nguyên ' + LIMITS.h.join('–'));
-    if (mock.theme !== undefined && !THEMES[mock.theme]) E('mock.theme', 'phải là một trong ' + Object.keys(THEMES).join(' | '));
+    if (mock.theme !== undefined && THEMES.indexOf(mock.theme) < 0) E('mock.theme', 'phải là một trong ' + THEMES.join(' | '));
     var str = function (p, v, max, req) {
       if (v === undefined || v === null) { if (req) E(p, 'còn thiếu'); return; }
       if (typeof v !== 'string') return E(p, 'phải là chữ (DSL không nhận HTML/đối tượng)');
@@ -241,7 +237,8 @@
 
   // ---------- dựng DOM (trình duyệt) — chỉ textContent, không innerHTML từ dữ liệu ----------
   function build(rootEl, mock, lay, opts) {
-    var T = THEMES[lay.theme] || THEMES['console-dark'], doc = rootEl.ownerDocument;
+    var doc = rootEl.ownerDocument;
+    rootEl.classList.add('mu-theme-' + (THEMES.indexOf(lay.theme) >= 0 ? lay.theme : 'console-dark'));
     var mk = function (parent, cls, b, css) {
       var e = doc.createElement('div'); e.className = 'mu ' + cls;
       e.style.left = b.x + 'px'; e.style.top = b.y + 'px'; e.style.width = b.w + 'px'; e.style.height = b.h + 'px';
@@ -294,7 +291,7 @@
         case 'toggle': {
           e = keep(n.id, mk(parent, 'mu-toggle', b));
           var sw = mk(e, 'mu-sw' + (n.on ? ' on' : ''), { x: 0, y: 4, w: 52, h: 24 }, { background: n.on ? T.accent : T.panel2, borderColor: T.border });
-          var knob = mk(sw, 'mu-knob', { x: n.on ? 30 : 4, y: 3, w: 16, h: 16 }, { background: '#fff' });
+          var knob = mk(sw, 'mu-knob', { x: n.on ? 30 : 4, y: 3, w: 16, h: 16 }, { background: T.knob });
           if (n.id) toggles[n.id] = { sw: sw, knob: knob, on: !!n.on, onBg: T.accent, offBg: T.panel2 };
           txt(mk(e, 'mu-toggle-l', { x: 64, y: 0, w: r.w - 64, h: TOGGLE_H }, { color: T.text }), n.label);
           break;
