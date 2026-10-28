@@ -41,3 +41,10 @@ test('chưa quét lần nào: dùng mục ưu tiên đầu; quét ra không có 
     assert.throws(() => pickProvider(ctx, 'judge'), e => e.code === 'no_model');
   } finally { t.clean(); }
 });
+test('vendor chỉ nhận danh sách hỗ trợ (không nạp module theo chuỗi trong DB)', () => {
+  const { t } = setup();
+  try {
+    const b = basics(t.write, t.db);
+    for (const v of ['../../etc/passwd', 'openai', 'fake']) assert.throws(() => t.write(b.o, 'provider.save', { vendor: v, kind: 'tts', key: 'x' }), e => e.code === 'invalid', v);
+  } finally { t.clean(); }
+});

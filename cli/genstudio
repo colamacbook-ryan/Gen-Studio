@@ -98,7 +98,7 @@ case "$cmd" in
     name="Agent token tay"; [ $# -gt 0 ] && case "$1" in --*) ;; *) name="$1"; shift ;; esac
     exec $SUDO docker compose exec -T studio node server/main.js --create-token "$name" "$@" ;;
   agent-login)
-    exec $SUDO docker compose run --rm -it agent claude login ;;
+    exec $SUDO docker compose run --rm -it agent claude auth login ;;   # `claude login` không phải lệnh (mở phiên chat) — đúng là `claude auth login`
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;
 esac

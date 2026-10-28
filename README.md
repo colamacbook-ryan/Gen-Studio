@@ -26,8 +26,11 @@ DATA_DIR=./data GS_SEED_DEMO=1 GS_DEMO_PASSWORD='mat-khau-cua-ban' GS_FAKE_PROVI
 
 ## Cài đặt (self-host, Docker)
 
+**Hướng dẫn từng bước: [`docs/QUICKSTART.md`](docs/QUICKSTART.md).** Repo đang riêng tư nên cần token đọc (`GS_GITHUB_TOKEN`):
 ```bash
-curl -fsSL https://raw.githubusercontent.com/colamacbook-ryan/Gen-Studio/main/install.sh | bash
+export GS_GITHUB_TOKEN='…'
+curl -fsSL -H "Authorization: Bearer $GS_GITHUB_TOKEN" -H "Accept: application/vnd.github.raw" \
+  https://api.github.com/repos/colamacbook-ryan/Gen-Studio/contents/install.sh | bash
 ```
 Installer không hỏi gì, in ra link thiết lập lần đầu (dùng trong 30 phút). Lệnh nhanh: `genstudio start|stop|status|logs|update|backup|restore|uninstall|mcp|password|lang|open|token|agent-login`.
 
@@ -50,7 +53,7 @@ bash tools/test.sh          # kiểm repo + node --test test/*.test.js (gồm e2
 ```
 
 ## Giới hạn đã biết của MVP
-- Chưa chạy thử `install.sh` / image Docker trên máy sạch; chưa thử `claude mcp add --transport http` bằng Claude Code thật và claude.ai Connectors qua tunnel (giao thức đã có test cấp HTTP).
+- Đã cài thật bằng `install.sh` + Docker trên máy Linux sạch (studio + agent, ghép agent, một bài giọng Gemini thật qua 8/8 cổng); **chưa** thử trên macOS (Docker Desktop). Chưa thử `claude mcp add --transport http` trọn vòng bằng Claude Code thật (OAuth của CLI chỉ chạy trong giao diện tương tác) và claude.ai Connectors qua tunnel.
 - Đăng nhập Claude Code của agent nội bộ vẫn làm trên máy chủ (`genstudio agent-login`); giao diện chưa chuyển tiếp được bước này.
 - Gemini TTS gói miễn phí ~10 lượt/ngày/model; ra clip hằng ngày cần gói trả phí.
 - Render ~11 khung/giây ở 1080p30 (clip 45 s ≈ 2 phút).

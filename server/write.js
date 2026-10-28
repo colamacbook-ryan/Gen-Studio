@@ -26,6 +26,7 @@ const err = (code, text, detail) => new WriteError(code, text, detail);
 // ---- Duyệt quyền agent (OAuth 2.1 + ghép thiết bị) ----
 const SCOPES = ['read', 'compose', 'run'];
 const CODE_TTL_MS = 60e3, ACCESS_TTL_MS = 3600e3, REFRESH_TTL_MS = 30 * 86400e3, REQUEST_TTL_MS = 10 * 60e3, DEVICE_TTL_MS = 15 * 60e3, CLIENT_PENDING_MS = 3600e3;
+const VENDORS = ['gemini']; // nhà cung cấp có adapter trong media/providers (fake chỉ bật qua config, không lưu DB)
 const PAIRING_WINDOW_MS = 10 * 60e3, REFRESH_GRACE_MS = 30e3, PURGE_AFTER_MS = 7 * 86400e3;
 // Trần yêu cầu/client đang chờ theo KÊNH VÀO, theo NGUỒN và theo client (CNS-066). Quá trần thì TỪ CHỐI yêu cầu mới (too_many_pending), không bao giờ đẩy bỏ yêu cầu cũ (kẻ flood sẽ xoá mất yêu cầu của chủ xưởng).
 const PENDING_CHANNEL = { internal: 3, loopback: 10, public: 10 }, PENDING_SOURCE = { internal: 3, loopback: 10, public: 3 }, PENDING_CLIENT = 2;
@@ -763,6 +764,7 @@ function createWriter(db, opts = {}) {
     let pv = p.provider ? need('providers', p.provider, 'nhà cung cấp') : null;
     const vendor = p.vendor || (pv && pv.vendor);
     if (!nonEmpty(vendor)) throw err('invalid', 'Nhà cung cấp cần vendor.', null);
+    if (!VENDORS.includes(vendor)) throw err('invalid', 'Nhà cung cấp chưa được hỗ trợ.', { vendor, supported: VENDORS });
     const kind = p.kind || (pv && pv.kind);
     if (!['tts', 'judge', 'align', 'assistant', 'cli_agent'].includes(kind)) throw err('invalid', 'Loại nhà cung cấp không hợp lệ.', { kind });
     let secretName = pv ? pv.secret_name : null;

@@ -129,7 +129,7 @@ test('cli/genstudio có đủ lệnh, mcp qua docker compose exec -T', () => {
     assert.ok(s.includes(c), `thiếu lệnh ${c}`);
   }
   assert.match(s, /exec -T studio node server\/mcp-stdio\.js/);
-  assert.match(s, /run --rm -it agent claude login/);
+  assert.match(s, /run --rm -it agent claude auth login/);
 });
 
 test('backup không chứa data/.env (khoá chủ) và nhắc cất khoá riêng', () => {

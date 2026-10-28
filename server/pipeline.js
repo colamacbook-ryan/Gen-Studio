@@ -103,9 +103,11 @@ function loadBundle(db, render) {
 }
 // Nhà cung cấp chưa chọn model: lấy mục ưu tiên đầu tiên có trong kết quả quét của cùng vendor (bất kỳ hàng nào đã quét);
 // chưa quét lần nào thì dùng mục ưu tiên đầu. Không đoán được thì chặn rõ ràng thay vì gọi model "null".
+// bảng tĩnh — không dựng đường dẫn require từ dữ liệu DB
+const PREFERRED_BY_VENDOR = { gemini: require('../media/providers/gemini.js').PREFERRED };
 function defaultModel(db, pv, kind) {
-  let prefer = [];
-  try { prefer = (require('../media/providers/' + pv.vendor + '.js').PREFERRED || {})[kind] || []; } catch { /* vendor không có danh sách ưu tiên */ }
+  const byVendor = Object.hasOwn(PREFERRED_BY_VENDOR, pv.vendor) ? PREFERRED_BY_VENDOR[pv.vendor] : {};
+  const prefer = Object.hasOwn(byVendor, kind) ? byVendor[kind] : [];
   const seen = new Set(); let scanned = false;
   for (const r of db.all("SELECT scan FROM providers WHERE workspace_id=? AND vendor=? AND deleted_at IS NULL AND scan IS NOT NULL", db.ws, pv.vendor)) {
     const models = (db.json(r).scan || {}).models;
