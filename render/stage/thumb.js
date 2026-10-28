@@ -162,7 +162,7 @@
         M.face = { kind: 'cast', x: cl.x, y: cl.y, w: cl.w, h: cl.h, head_h: hr ? clipTo(hr, hb).h : cl.h * 0.5, alpha: true, mood: f.mood, frame: frame || null, cast: f.cast };
       });
     } else {   // khung giữ chỗ có nhãn (không qua G-THUMB)
-      var ph = el('div', 'th-ph th-abs', 'left:14px;top:14px;right:14px;bottom:14px;color:' + P.text + ';font-size:34px;line-height:1.15;');
+      var ph = el('div', 'th-ph th-abs', 'left:14px;top:14px;right:14px;bottom:14px;color:' + P.ink + ';background:rgba(255,255,255,.92);font-size:34px;line-height:1.15;');
       ph.innerHTML = '<svg width="150" height="150" viewBox="0 0 100 100"><circle cx="50" cy="34" r="20" fill="currentColor" opacity=".55"/><path d="M12 98c0-26 17-40 38-40s38 14 38 40z" fill="currentColor" opacity=".55"/></svg><div>' + esc(f.label || 'ẢNH MẶT CHỦ KÊNH') + '</div>';
       fig.appendChild(ph);
       M.after.push(function () { var hb = rectOf(host); M.face = { kind: 'placeholder', x: hb.x, y: hb.y, w: hb.w, h: hb.h, head_h: hb.h * 0.7, alpha: null, mood: f.mood }; });

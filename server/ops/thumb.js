@@ -8,10 +8,11 @@
 'use strict';
 const T = require('../../render/thumb.js');
 const { gateThumb } = require('../../media/gates/thumb.js');
+const { thumbEnv } = require('./_thumb-data.js');
 
 const EXAMPLE = '{"variants":[{"template":"host-shock-left","headline":"AI bịa chuyện thế nào?","highlight":"bịa","kicker":"SỰ THẬT","face":{"owner":true,"mood":"shock"},"visual":{"beat":0}},' +
   '{"template":"big-visual","headline":"Máy đoán chữ kế tiếp","face":{"cast":"CM-…","mood":"excited"},"visual":{"beat":1}}]}';
-const J = (v) => { if (typeof v !== 'string') return v; try { return JSON.parse(v); } catch { return v; } };
+const { J } = require('./_thumb-data.js');
 
 // lược đồ JSON của thumbnail cho inputSchema validate/submit/update_lesson (lessonExt.schema)
 const MOOD_ENUM = { type: 'string', enum: T.MOODS };
@@ -34,7 +35,6 @@ function register(op, ctx) {
 
   // ---- asset → đường dẫn tương đối trong kho (media/xx/<sha>.<ext>) mà resolveAssets đọc; không còn tệp ⇒ null ----
   const assetRow = (ref) => (typeof ref === 'string' && /^AS-\d+$/.test(ref) ? db.get('SELECT path, mime, kind, media_present FROM assets WHERE workspace_id=? AND display_id=?', db.ws, ref) : null);
-  const assetPath = (ref) => { const a = assetRow(ref); return a && a.media_present ? a.path : null; };
 
   // ---- lessonExt: cột `thumbnail` + kiểm khô + luật bắt buộc theo kênh ----
   ext.lessonExt.register({
@@ -66,21 +66,7 @@ function register(op, ctx) {
   ext.hooks.on('plan.after', ({ B, plan, ctx: pc }) => {
     const th = B && B.lv && J(B.lv.thumbnail);
     if (!th || !Array.isArray(th.variants)) return;
-    const pdb = (pc && pc.db) || db;
-    const rawBrand = (B.channelData && B.channelData.brand) || {};
-    const rawThumb = rawBrand.thumb || {};
-    const pathOf = (ref) => { const a = typeof ref === 'string' && /^AS-\d+$/.test(ref) ? pdb.get('SELECT path, media_present FROM assets WHERE workspace_id=? AND display_id=?', pdb.ws, ref) : null; return a && a.media_present ? a.path : null; };
-    // ảnh mặt chủ kênh (brand.thumb.faces, chính sách chỉ owner): bỏ mục không còn tệp
-    const faces = (Array.isArray(rawThumb.faces) ? rawThumb.faces : []).map((f) => ({ asset: pathOf(f && f.asset), mood: f && f.mood })).filter((f) => f.asset);
-    const lg = rawBrand.logo, logo = lg && lg.asset && (!Array.isArray(lg.show) || lg.show.includes('thumb')) ? pathOf(lg.asset) : null;   // logo chỉ lên ảnh bìa khi brand.logo.show có "thumb" (mặc định có)
-    const castRecipe = (ref) => {   // nhân vật chưa lên sân khấu trong lời thoại: bản đã chốt, không có thì bản hiện hành (cùng luật pipeline)
-      const cm = pdb.json(pdb.get('SELECT * FROM cast_members WHERE workspace_id=? AND display_id=? AND deleted_at IS NULL', pdb.ws, ref));
-      if (!cm || cm.channel_id !== B.channel.id) return null;
-      const ver = cm.status === 'approved' && cm.approved_version ? cm.approved_version : cm.current_version;
-      const v = pdb.json(pdb.get('SELECT data FROM cast_versions WHERE entity_id=? AND version=?', cm.id, ver));
-      return (v && v.data) || null;
-    };
-    const specs = T.resolveThumbs(th, plan, { beatOrder: (B.beats || []).map((b) => b.display_id), faces, assetPath: pathOf, castRecipe, channelName: B.channel && B.channel.name, logoPath: logo });
+    const specs = T.resolveThumbs(th, plan, thumbEnv((pc && pc.db) || db, B));
     plan.thumbs = specs;
     // ảnh mặt/logo/hình chủ đạo đi cùng danh sách asset của plan (quyền dùng + nạp một chỗ); hạ cỡ ảnh lớn (CNS-114)
     plan.assetRefs = (Array.isArray(plan.assetRefs) ? plan.assetRefs : []).concat(T.assetRefsOf(specs).map((r) => Object.assign({ maxPx: [1600, 1600] }, r)));

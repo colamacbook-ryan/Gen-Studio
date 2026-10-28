@@ -36,8 +36,8 @@ test('mcp-tools: mọi tool 0.1.1 còn nguyên tên; thêm render_still; không 
   try {
     for (const n of OLD_TOOLS) assert.ok(mcp.tools.includes(n), n);
     assert.ok(mcp.tools.includes('render_still'));
-    assert.ok(mcp.tools.includes('propose_thumbnail_text'), 'gói T thêm propose_thumbnail_text');
-    assert.equal(mcp.tools.length, OLD_TOOLS.length + 2);   // + render_still (P0b) + propose_thumbnail_text (T)
+    for (const n of ['propose_thumbnail_text', 'preview_thumbnail']) assert.ok(mcp.tools.includes(n), 'gói T thêm ' + n);
+    assert.equal(mcp.tools.length, OLD_TOOLS.length + 3);   // + render_still (P0b) + propose_thumbnail_text + preview_thumbnail (T)
     assert.equal(mcp.tools.filter(n => /approve|reject|delete|^review|remove|attest|pick|publish/.test(n)).length, 0, 'lớp quyết định của owner (§10) không có tool');
   } finally { t.clean(); }
 });

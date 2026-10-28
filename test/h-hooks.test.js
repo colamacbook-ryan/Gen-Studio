@@ -63,7 +63,7 @@ test('Sửa brand/policy của kênh: owner ✓, agent ✗ (policy_field) — c�
 
 test('server/ops/*: 6 module stub là no-op (không đăng ký op nào) và có chủ', () => {
   const dir = path.join(ROOT, 'server/ops');
-  const files = fs.readdirSync(dir).filter(f => f.endsWith('.js'));
+  const files = fs.readdirSync(dir).filter(f => f.endsWith('.js') && !f.startsWith('_'));   // `_*.js` = tiện ích (vd _thumb-data.js của gói T), bộ nạp bỏ qua
   assert.deepEqual(files.sort(), ['brand.js', 'cast.js', 'overview.js', 'publish.js', 'thumb.js', 'tutorial.js']);
   for (const f of files) {
     const m = require(path.join(dir, f));
