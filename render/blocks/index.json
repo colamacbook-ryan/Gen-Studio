@@ -8,10 +8,10 @@
   { "name": "lesson-map", "file": "lesson-map.js", "kinds": ["lesson"], "agent": true, "enabled": true },
   { "name": "end-card", "file": "end-card.js", "kinds": ["lesson", "tutorial"], "agent": true, "enabled": true },
   { "name": "illustration", "file": "illustration.js", "kinds": ["lesson", "tutorial"], "agent": true, "enabled": true },
-  { "name": "screen", "file": "screen.js", "kinds": ["tutorial"], "agent": true, "enabled": false },
-  { "name": "cursor", "file": "cursor.js", "kinds": ["tutorial"], "agent": true, "enabled": false },
-  { "name": "focus", "file": "focus.js", "kinds": ["tutorial"], "agent": true, "enabled": false },
-  { "name": "callout", "file": "callout.js", "kinds": ["tutorial"], "agent": true, "enabled": false },
-  { "name": "keystroke", "file": "keystroke.js", "kinds": ["tutorial"], "agent": true, "enabled": false },
-  { "name": "mock-ui", "file": "mock-ui.js", "kinds": ["tutorial"], "agent": false, "enabled": false }
+  { "name": "screen", "file": "screen.js", "kinds": ["tutorial"], "agent": true, "enabled": true },
+  { "name": "cursor", "file": "cursor.js", "kinds": ["tutorial"], "agent": true, "enabled": true },
+  { "name": "focus", "file": "focus.js", "kinds": ["tutorial"], "agent": true, "enabled": true },
+  { "name": "callout", "file": "callout.js", "kinds": ["tutorial"], "agent": true, "enabled": true },
+  { "name": "keystroke", "file": "keystroke.js", "kinds": ["tutorial"], "agent": true, "enabled": true },
+  { "name": "mock-ui", "file": "mock-ui.js", "kinds": ["tutorial"], "agent": false, "enabled": true }
 ]

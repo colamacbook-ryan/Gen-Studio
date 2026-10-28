@@ -17,7 +17,9 @@ const GATES = [
   { id: 'G-WAV', applies: () => true }, { id: 'G-SCRIPT', applies: () => true }, { id: 'G-PRON', applies: () => true },
   { id: 'G-LOUD', applies: () => true }, { id: 'G-SYNC', applies: () => true }, { id: 'G-MOTION', applies: () => true },
   { id: 'G-FRAMES', applies: () => true }, { id: 'G-MUX', applies: () => true },
-  { id: 'G-THUMB', applies: (kind, lv) => kind === 'tutorial' || hasThumb(lv) },
+  // G-THUMB theo DỮ LIỆU bài (CNS-086): áp khi và chỉ khi bài có `thumbnail`. Bài tutorial luôn có thumbnail khi tính năng ảnh bìa (gói T) đã bật —
+  // luật đó nằm ở lessonExt của gói U (server/ops/tutorial.js), không ở đây (gói U, 0.2.0: tutorial chưa có thumbnail thì không đòi cổng chưa cài).
+  { id: 'G-THUMB', applies: (kind, lv) => hasThumb(lv) },
   { id: 'G-CURSOR', applies: (kind) => kind === 'tutorial' },
 ];
 // Mã các cổng áp cho một bài, theo thứ tự GATES

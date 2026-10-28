@@ -3,6 +3,7 @@
 // Trình duyệt: nạp util.js + các khối (thẻ <script> do tools/gen-stage.js sinh) + file này, gắn window.GSBlocks; định nghĩa index lấy từ window.GSBlockIndex.
 // Khối `enabled:false` vẫn nạp (get() trả được) nhưng không nhận trong bài: validate() từ chối, names()/list() không liệt kê.
 // API: list(kind?) → [{name, version, schema}] · validate(name, params, kind?) → {ok, errors:[chuỗi tiếng Việt]} · get(name) → khối · names(kind?) · all() → mọi mục của index.json · isEnabled(name, kind?)
+// list()/names() không có kind = 'lesson' (giữ đúng API 0.1.x); isEnabled/validate không có kind = mọi loại bài.
 (function (root) {
   'use strict';
   var isNode = typeof module === 'object' && module.exports;
@@ -12,13 +13,15 @@
   INDEX.forEach(function (e) { meta[e.name] = e; defs[e.name] = isNode ? require('./' + e.file) : (root.GSBlockDefs || {})[e.name]; });
   // khối nhận được trong bài loại `kind` (bỏ kind = mọi loại): đã bật + có định nghĩa nạp được
   function usable(e, kind) { return e.enabled !== false && !!defs[e.name] && (!kind || (e.kinds || []).indexOf(kind) >= 0); }
-  var NAMES = INDEX.filter(function (e) { return usable(e); }).map(function (e) { return e.name; });
+  // không truyền kind ⇒ 'lesson' (ngữ nghĩa 0.1.x: tác giả/agent cũ chỉ biết bài thường; khối tutorial chỉ hiện khi hỏi đúng kind — gói U, 0.2.0)
+  var DEFAULT_KIND = 'lesson';
+  var NAMES = INDEX.filter(function (e) { return usable(e, DEFAULT_KIND); }).map(function (e) { return e.name; });
   var api = {
-    names: function (kind) { return INDEX.filter(function (e) { return usable(e, kind); }).map(function (e) { return e.name; }); },
+    names: function (kind) { return INDEX.filter(function (e) { return usable(e, kind || DEFAULT_KIND); }).map(function (e) { return e.name; }); },
     all: function () { return INDEX.map(function (e) { return Object.assign({}, e); }); },
     isEnabled: function (name, kind) { return !!meta[name] && usable(meta[name], kind); },
     get: function (name) { return defs[name] || null; },
-    list: function (kind) { return INDEX.filter(function (e) { return usable(e, kind); }).map(function (e) { return { name: e.name, version: defs[e.name].version, schema: defs[e.name].schema }; }); },
+    list: function (kind) { return INDEX.filter(function (e) { return usable(e, kind || DEFAULT_KIND); }).map(function (e) { return { name: e.name, version: defs[e.name].version, schema: defs[e.name].schema }; }); },
     // danh sách hiệu ứng âm của một beat (khối có thể đổi theo tham số / khi morph)
     sfxOf: function (name, params, morph) {
       var d = defs[name]; if (!d) return [];
