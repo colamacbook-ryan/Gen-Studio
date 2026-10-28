@@ -3,8 +3,8 @@
 //   loadEngine({root?}) → { GC, ... } : nạp engine Gen-Chibi (vendor/gen-chibi) vào `node:vm`, có cache. Cắm được: truyền root khác (vd checkout Gen-Chibi 0.26.0) —
 //     mọi API mới của engine (registerDataPack, partAdvice…) chỉ dùng khi có (feature-detect), không gắn cứng phiên bản.
 //   validateRecipe(data, { library, brand, poses, siblings, channelName, strict, root, allowLegacy, shipped }) → { ok, errors:[{path, code, text_human}], warnings:[{path, code, text_human}], gates, mode }
-//     mode do SERVER quyết (không đọc từ dữ liệu khách): 'v2' (mặc định — lược đồ §3.5 đầy đủ) · 'legacy' (persona chuỗi / voice {role, ai}; CHỈ khi opts.allowLegacy: cast mặc định đóng gói hoặc bản đã lưu vốn là legacy)
-//           · 'light' (bản giữ chỗ vô hại: không linh kiện/trang bị/màu/tính cách — không dựng được, không chốt được).
+//     mode do SERVER quyết qua cờ (mặc định TẮT, không đọc từ dữ liệu khách): 'v2' (mặc định — lược đồ §3.5 đầy đủ + cổng engine) · 'legacy' (persona chuỗi / voice {role, ai}; chỉ khi opts.allowLegacy)
+//           · 'light' (giữ chỗ vô hại: không linh kiện/trang bị/màu/tính cách — không dựng được, không chốt được; chỉ khi opts.allowLight). Agent: luôn v2.
 //     strict:true (candidate / cast.approve): chỉ 'v2' qua; legacy và light bị từ chối.
 //     shipped:true: công thức chính là cast mặc định đóng gói (miễn đối chiếu với chính nó và tên kênh).
 //   siblings: [{ ref, name, data }] — nhân vật KHÁC cùng kênh (luật cứng §3.4.1: không chung dấu `identity.must`, không chung giọng, không đeo cùng linh kiện nhận diện).
@@ -264,7 +264,7 @@ function checkSchema(d, mode, GC, add, warn) {
 }
 
 // ---------------------------------------------------------------- luật cứng: không trùng cast cũ (§3.4.1) ----------------------------------------------------------------
-function checkCollisions(d, mode, others, add, eff, effEquip) {
+function checkCollisions(d, mode, others, add, eff, effEquip, rawParts) {
   const myVoice = voiceOf(d), myMust = mustOf(d), myHat = hatOf(d);
   for (const o of others) {
     const od = o.data || {}, who = `${o.name || o.ref || 'nhân vật khác'}`;
@@ -274,7 +274,7 @@ function checkCollisions(d, mode, others, add, eff, effEquip) {
     // đeo đúng linh kiện nhận diện của người khác (vd kính của Anh Gen) dù không khai vào must
     for (const m of omust) {
       const i = m.indexOf(':'), slot = m.slice(0, i), id = m.slice(i + 1);
-      if (slot !== 'eyes' && ((eff[slot] && eff[slot] === id) || (effEquip[slot] && effEquip[slot] === id))) add(`look.${effEquip[slot] ? 'equip' : 'parts'}.${slot}`, 'trait_collision', `Linh kiện "${id}" (${slot}) là dấu nhận diện của ${who} — nhân vật này không được đeo/dùng nó (vd KOL không đeo kính của Anh Gen).`);
+      if (slot !== 'eyes' && ((eff[slot] && eff[slot] === id) || (eff['equip:' + slot] && eff['equip:' + slot] === id) || (effEquip[slot] && effEquip[slot] === id) || (rawParts[slot] && rawParts[slot] === id))) add(`look.${effEquip[slot] ? 'equip' : 'parts'}.${slot}`, 'trait_collision', `Linh kiện "${id}" (${slot}) là dấu nhận diện của ${who} — nhân vật này không được đeo/dùng nó (vd KOL không đeo kính của Anh Gen).`);
     }
     const oh = hatOf(od);
     if (myHat && oh && myHat === oh) add('look.palette.hat', 'hat_collision', `Màu mũ ${myHat} trùng với ${who} (vd Bé Hỏi đội mũ vàng). Chọn màu mũ khác.`);
@@ -299,8 +299,9 @@ function validateRecipe(data, opts) {
   const lookObj = isObj(data.look) ? data.look : {};
   const hasLook = (isObj(lookObj.parts) && Object.keys(lookObj.parts).length > 0) || (isObj(lookObj.equip) && Object.keys(lookObj.equip).length > 0);
   const legacyShaped = typeof data.persona === 'string' || (isObj(data.voice) && data.voice.provider === undefined && (data.voice.ai !== undefined || data.voice.role !== undefined));
+  const slotBoth = isObj(lookObj.parts) && isObj(lookObj.equip) ? Object.keys(lookObj.equip).filter((k) => own(lookObj.parts, k)) : [];
   const inert = !hasLook && Object.keys(data).every((k) => ['look', 'voice', 'name', 'role', 'id', 'variant'].includes(k)) && Object.keys(lookObj).every((k) => k === 'archetype' || k === 'v');
-  const mode = isObj(data.persona) ? 'v2' : legacyShaped && o.allowLegacy ? 'legacy' : inert ? 'light' : 'v2';
+  const mode = isObj(data.persona) ? 'v2' : legacyShaped && o.allowLegacy === true ? 'legacy' : inert && o.allowLight === true ? 'light' : 'v2';
   if (mode === 'legacy') warn('', 'legacy_schema', 'Công thức theo lược đồ cũ (persona là chuỗi, voice {role, ai}). Vẫn dùng được; nhân vật mới nên theo lược đồ §3.5.');
   if (o.strict && mode !== 'v2') add('look.parts', 'recipe_incomplete', mode === 'light' ? 'Công thức chưa có linh kiện (look.parts) — chưa thể chốt dùng.' : 'Công thức theo lược đồ cũ — cần chuyển sang lược đồ §3.5 (persona là object, voice {provider, model, voice}) mới chốt dùng được.');
 
@@ -310,6 +311,7 @@ function validateRecipe(data, opts) {
   for (const t of eng.libErrors) warn('', 'library', 'Thư viện linh kiện: ' + t);
 
   checkSchema(data, mode, GC, add, warn);
+  for (const k of slotBoth) add(`look.equip.${k}`, 'slot_conflict', `Slot "${k}" khai ở cả look.parts và look.equip — chỉ được khai một nơi.`);
   if (mode === 'v2' && !hasLook) add('look.parts', 'missing_field', 'Công thức cần ít nhất một linh kiện (look.parts) hoặc trang bị (look.equip).');
   // không tên kênh trong công thức (CNS-096)
   const cn = norm(o.channelName);
@@ -323,16 +325,17 @@ function validateRecipe(data, opts) {
     let defaults = [];
     try { defaults = require('./index').defaults(); } catch (e) { add('', 'defaults_unavailable', 'Không đọc được cast mặc định để đối chiếu: ' + e.message); }
     const list = defaults && defaults.cast ? Object.values(defaults.cast) : [];
-    for (const r of list) if (!o.shipped && r.id !== data.id && !(mode !== 'v2' && norm(r.name) === norm(data.name)) && !pool.some((s) => s.data && s.data.id === r.id)) pool.push({ ref: r.id, name: r.name, data: r });
+    for (const r of list) if (!o.shipped) pool.push({ ref: r.id, name: r.name, data: r });
   }
   // phần tử hiệu lực theo slot: trang bị (equip) thắng linh kiện (parts); equip trỏ item thì lấy linh kiện của item (engine ≥ 0.2x có getItem), không có thì dùng chính mã tham chiếu
   const eff = {}, effEquip = {};
   if (isObj(lookObj.parts)) for (const [slot, ref] of Object.entries(lookObj.parts)) if (typeof ref === 'string') eff[slot] = shortId(ref);
   if (isObj(lookObj.equip)) for (const [slot, ref] of Object.entries(lookObj.equip)) if (typeof ref === 'string') {
     let it = null; try { it = typeof GC.getItem === 'function' ? GC.getItem(ref, PACK_ID) : null; } catch (e) { it = null; }
-    effEquip[slot] = shortId(ref); eff[slot] = shortId(it && it.equip && it.equip.part ? it.equip.part : ref);
+    effEquip[slot] = shortId(ref); eff['equip:' + slot] = shortId(it && it.equip && it.equip.part ? it.equip.part : ref); if (!eff[slot]) eff[slot] = eff['equip:' + slot];
   }
-  checkCollisions(data, mode, pool, add, eff, effEquip);
+  const rawParts = {}; if (isObj(lookObj.parts)) for (const [slot, ref] of Object.entries(lookObj.parts)) if (typeof ref === 'string') rawParts[slot] = shortId(ref);
+  checkCollisions(data, mode, pool, add, eff, effEquip, rawParts);
 
   // ---- cổng engine: chỉ khi công thức có linh kiện thật ----
   let gates = [];

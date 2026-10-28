@@ -15,7 +15,7 @@ const SAVE_STATUS = ['draft', 'candidate'];
 function register(op, ctx) {
   const { db, err, need, byRef, around, ext } = ctx;
   if (!db || !around) return;   // test cũ gọi register với ctx rỗng: không có gì để đăng ký
-  const { validateRecipe, isLegacyShaped } = require('../../render/cast/validate.js');
+  const { validateRecipe } = require('../../render/cast/validate.js');
   const castLib = require('../../render/cast');
   const direct = require('../../render/engine/direct.js');
 
@@ -33,12 +33,17 @@ function register(op, ctx) {
   // so khớp cast mặc định đóng gói bằng JSON chuẩn hoá khoá (thứ tự khoá không quan trọng)
   const canon = (v) => (Array.isArray(v) ? v.map(canon) : isObj(v) ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
   const SHIPPED = Object.values(castLib.defaults().cast).map((r) => JSON.stringify(canon(r)));
-  // legacy do SERVER quyết: chỉ cast mặc định đóng gói, hoặc nhân vật mà bản đang lưu vốn đã là legacy — KHÔNG theo hình dạng dữ liệu khách gửi
-  function check(data, chId, selfId, extra) {
+  // Chế độ do SERVER quyết (không bao giờ theo dữ liệu khách):
+  //   • agent (mọi đường token/OAuth/MCP): luôn v2 — không legacy, không light, cổng engine chạy mỗi lần;
+  //   • legacy chỉ khi cột cast_members.origin (server đặt) ∈ {seed, migration} VÀ người lưu là owner/system; light chỉ cho owner (giữ chỗ vô hại, không bao giờ chốt được);
+  //   • shipped = công thức TRÙNG NỘI DUNG cast mặc định đóng gói (là chính nó, không có gì mới để va chạm).
+  function check(data, chId, selfId, extra, actor) {
     const info = channelInfo(chId), shipped = SHIPPED.includes(JSON.stringify(canon(data)));
-    const cur = selfId ? db.get('SELECT * FROM cast_members WHERE id=?', selfId) : null, stored = cur ? dataOf(cur, cur.current_version) : null;
-    const allowLegacy = shipped || isLegacyShaped(stored);
-    return validateRecipe(data, Object.assign({ shipped, allowLegacy, library: castLib.library(), brand: info.brand, channelName: info.name, siblings: siblingsOf(chId, selfId) }, extra));
+    const cur = selfId ? db.get('SELECT * FROM cast_members WHERE id=?', selfId) : null;
+    const agentActor = !actor || actor.type === 'agent' || !(actor.type === 'user' || actor.type === 'system');
+    const trusted = !agentActor && !!cur && (cur.origin === 'seed' || cur.origin === 'migration');
+    const allowLegacy = trusted, allowLight = !agentActor;
+    return validateRecipe(data, Object.assign({ shipped: shipped && allowLegacy, allowLegacy, allowLight, library: castLib.library(), brand: info.brand, channelName: info.name, siblings: siblingsOf(chId, selfId) }, extra));
   }
   function reject(v) {
     const first = v.errors.slice(0, 3).map((e) => (e.path ? `${e.path}: ` : '') + e.text_human).join(' · ');
@@ -56,12 +61,13 @@ function register(op, ctx) {
     if (p.data && typeof p.data === 'object') {   // data thiếu/sai kiểu: để op lõi báo lỗi quen thuộc
       const m = p.id ? need('cast_members', p.id, 'nhân vật') : null;
       const chId = m ? m.channel_id : need('channels', p.channel, 'kênh').id;
-      const v = check(p.data, chId, m ? m.id : null, { strict: p.status === 'candidate' });
+      const v = check(p.data, chId, m ? m.id : null, { strict: p.status === 'candidate' }, c.a);
       if (!v.ok) throw reject(v);
       warnings = v.warnings;
     }
     const r = prev(c), out = r.result;   // run của op trả { result, entity, before, after }
     const m = need('cast_members', out.display_id, 'nhân vật');
+    if (!p.id) db.update('cast_members', m.id, { origin: c.a.type === 'user' ? 'owner' : 'agent' });   // nguồn gốc do server đặt, không bao giờ từ payload
     // chỉ chuyển giữa draft ↔ candidate; nhân vật đã chốt/đã nghỉ giữ nguyên trạng thái (sửa đã chốt ⇒ "có thay đổi chờ chốt")
     if (p.status !== undefined && SAVE_STATUS.includes(m.status) && m.status !== p.status) db.update('cast_members', m.id, { status: p.status });
     const now = byRef('cast_members', m.id);
@@ -76,7 +82,7 @@ function register(op, ctx) {
     const ver = c.p.version === undefined ? m.current_version : c.p.version;
     if (!Number.isInteger(ver) || ver < 1 || ver > m.current_version) throw err('invalid', `Phiên bản ${ver} không có (nhân vật có v1…v${m.current_version}).`, { version: ver });
     const data = dataOf(m, ver);
-    const v = check(data || {}, m.channel_id, m.id, { strict: true });
+    const v = check(data || {}, m.channel_id, m.id, { strict: true }, c.a);
     if (!v.ok) throw reject(v);
     const u = db.get('SELECT id FROM users WHERE id=?', c.a.id);
     const f = { status: 'approved', approved_version: ver, approved_by: u ? u.id : null, approved_at: db.now() };

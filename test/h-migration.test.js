@@ -18,7 +18,7 @@ const cols = (db, t) => db.all(`PRAGMA table_info(${t})`).map(c => c.name);
 
 // mọi thứ 0003 phải để lại, dù DB mới hay nâng cấp
 function assertV020Schema(db) {
-  assert.deepEqual(db.all('SELECT version FROM schema_migrations ORDER BY version').map(r => r.version), [1, 2, 3]);
+  assert.deepEqual(db.all('SELECT version FROM schema_migrations ORDER BY version').map(r => r.version), [1, 2, 3, 4]);
   for (const c of ['kind', 'variant', 'thumbnail', 'screens', 'host', 'music']) assert.ok(cols(db, 'lesson_versions').includes(c), 'lesson_versions.' + c);
   for (const c of ['thumbnail_pick', 'thumbnail_picked_by', 'thumbnail_picked_at', 'exported_at', 'published_at', 'published_by', 'published_source', 'awaiting_review_at']) assert.ok(cols(db, 'renders').includes(c), 'renders.' + c);
   for (const c of ['status', 'approved_version', 'approved_by', 'approved_at']) assert.ok(cols(db, 'cast_members').includes(c), 'cast_members.' + c);
