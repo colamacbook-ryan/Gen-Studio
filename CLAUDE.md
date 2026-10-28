@@ -14,6 +14,7 @@ Hồ sơ dự án: `Second-Brain/01-projects/xuong-video/` (INTENT.md, spec/, au
 - Sản phẩm sẵn sàng bán: chuỗi UI qua i18n vi/en; không hardcode tên owner/kênh (INT-09).
 - Media từ API: kiểm magic bytes, giải bằng thư viện định dạng, không tự bọc (bài học L-101).
 - Mọi thay đổi chạy `bash tools/test.sh` trước khi đẩy.
-- **Trước khi báo xong một bản (L-102, rào sau 3 lần tái phạm):** chạy app thật và đi bằng trình duyệt — (1) thiết lập lần đầu trên DB trống từ đúng link server in ra; (2) một vòng agent giả (`GS_FAKE_AGENT=1 node agent/runner.js`) → bản dựng → Phòng chiếu; chụp 1440×900 các màn chính, 0 lỗi console. Test xanh chưa đủ. Phát hành: sửa `VERSION` + `CHANGELOG.md`.
+- **Trước khi báo xong một bản (L-102, rào sau 3 lần tái phạm):** chạy app thật và đi bằng trình duyệt — (1) thiết lập lần đầu trên DB trống từ đúng link server in ra; (2) một vòng agent giả (`GS_FAKE_AGENT=1 node agent/runner.js`) → bản dựng → Phòng chiếu; chụp 1440×900 các màn chính, 0 lỗi console. Test xanh chưa đủ.
+- **Trước khi tăng `VERSION` (L-105):** cài thật đúng con đường người dùng — `install.sh` + Docker (máy cloud có Docker: `dockerd &`) trên thư mục/DB trống, cổng khác 7490 (`--port`), studio **và** agent lên healthy, thiết lập từ link installer in ra, Bật agent nội bộ → Duyệt, một bài giọng Gemini thật qua 8/8 cổng. Trên máy cloud chỉ được thêm CA proxy qua file override không commit. Phát hành: sửa `VERSION` + `CHANGELOG.md`.
 - Bài học L-42: mọi tính năng vẽ/động phải có ngân sách hiệu năng.
 - Quy trình STD-05: code sản phẩm chỉ bắt đầu sau khi spec ②, frontend spec ③ và database ⑤ được duyệt; trước đó chỉ có spike.
