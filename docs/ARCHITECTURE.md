@@ -73,6 +73,10 @@ put(db, ws, name, plaintext) ; get(db, ws, name) → plaintext   // AES-256-GCM,
 seedDemo(db) — đúng dữ liệu BUILD-BRIEF §5 (idempotent)
 ```
 Migration `migrations/0001_init.sql` hiện thực đủ bảng DATABASE §4 (kể cả trigger bất biến, audit append-only).
+Migration `0003_v020.sql` (0.2.0, SPEC-0.2.0 §9; `-- fk-off`): `lesson_versions` + `kind/variant/thumbnail/screens/host/music` (không CHECK `kind`, CNS-090); dựng lại `gate_results` bỏ CHECK trên `gate` (giữ CHECK `result`, `subject_kind`) — danh sách cổng theo `media/gates` `GATES`, không theo DB;
+`renders` + `thumbnail_pick*`, `exported_at`, `published_*`, `awaiting_review_at` (ghi một lần — `tr_render_awaiting_once`, backfill từ `audit_log`); `tr_render_outputs_once` khoá `outputs` CHỈ khi `OLD.state` ∈ awaiting_review/approved/changes_requested/rejected/superseded (trong pipeline `state.js` vẫn gộp dần, CNS-119);
+`cast_members` + `status` (draft|candidate|approved|retired, hàng cũ ⇒ draft) + `approved_*`; bảng mới `asset_rights` (chỉ thêm hàng, hiện trạng = hàng mới nhất, CNS-125); các index §9 #9.
+`media/gates/index.js` `GATES = [{id, applies(kind, lv)}]` + `gatesFor(kind, lv)`: 8 cổng R3 luôn áp; G-THUMB khi bài có `thumbnail` (hoặc tutorial); G-CURSOR chỉ tutorial. Hợp đồng plan v2 + `plan.cursor` + `plan.assetRefs`: `test/h-fixtures.js` (fixture + bộ kiểm lược đồ) và `test/h-contracts.test.js`.
 
 ## 3. Gói B — Giọng, âm thanh, cổng
 ```js
@@ -113,9 +117,13 @@ renderGates({mixPath, mp4Path, lines:[{a_ms,b_ms}], beats:[{anchor_ok}], frames:
 
 ## 4. Gói C — Dựng hình
 ```js
-// render/blocks/registry.js (chạy cả Node và trình duyệt: UMD gắn window.GSBlocks khi có window)
-list() → [{name, version, schema}] ; validate(name, params) → {ok, errors:[...]}
-// Khối MVP: title, concept-chip, token-row, prob-card, stamp, takeaway, lesson-map, end-card, illustration
+// render/blocks/index.json — NGUỒN DUY NHẤT danh sách khối (0.2.0 §2.3): [{name, file, kinds:['lesson'|'tutorial'], agent:boolean, enabled:boolean}]
+//   enabled:false = nạp vào sân khấu nhưng bài chưa nhận (6 khối tutorial: screen, cursor, focus, callout, keystroke, mock-ui — stub do P0a, gói U làm thật)
+// `node tools/gen-stage.js` sinh vùng <script> khối trong render/stage/stage.html (giữa gen-stage:blocks:begin/end) + render/blocks/index.browser.js (window.GSBlockIndex);
+//   `--check` thoát mã 1 nếu lệch (test h-contracts kiểm). Thêm/bật một khối = sửa index.json + chạy gen-stage, không sửa lõi.
+// render/blocks/registry.js (chạy cả Node và trình duyệt: UMD gắn window.GSBlocks khi có window) — đọc index.json
+list(kind?) → [{name, version, schema}] ; validate(name, params, kind?) → {ok, errors:[...]} ; names(kind?) ; all() ; isEnabled(name, kind?) ; get(name)
+// Khối MVP (enabled): title, concept-chip, token-row, prob-card, stamp, takeaway, lesson-map, end-card, illustration
 // Mỗi khối: {name, version, schema, footprint(aspect) → {w,h}, sfx:[{at:'in'|'peak', name}], mount(world, params, ctx), draw(el, t_local, ctx)}
 
 // render/engine/timeline.js (thuần, không DOM)
@@ -127,11 +135,23 @@ buildPlan({lesson:{lines, beats, camera_hints}, clips:{[lineId]:{duration_ms, wo
 
 // render/stage/stage.html + stage.js — trang sân khấu, nạp vendor/gen-chibi + blocks
 window.__load(plan) → Promise ; window.__seek(t_ms) ; window.__sfx(names) → {name: base64 WAV}
+window.__still(mode, payload) → Promise<measures>   // render/stage/still.js: gọi GSStill.<mode>(payload); mode ∈ brand|thumb|frame|cast; KHÔNG chạy vòng __seek
+//   GSStill.brand (gói B) · GSStill.thumb (gói T; phải hiểu payload.textOff=true ⇒ ẩn lớp chữ để đo tương phản) · GSStill.frame (gói U; bản P0a dựng plan.t_ms của payload.plan)
+//   · GSStill.cast (gói K sở hữu render/stage/cast-sheet.js; P0a để stub). Bản mặc định trong still.js có measures.stub=true.
 
 // render/chromium.js — tìm và chạy Chromium headless (CHROMIUM_PATH | 'chromium' | /opt/pw-browsers/chromium-*/chrome-linux*/chrome)
 // render/cdp.js — client CDP thuần (WebSocket toàn cục của Node 22): connect, send(method, params), on(event)
 // render/render.js
-renderPlan({plan, outDir, chromiumPath, onProgress(p)}) → {framesPattern, frames, fps, errors:[...], sfx:{[name]:path}, cover:path}
+renderPlan({plan, outDir, chromiumPath, assetRoot, ffmpegPath, onProgress(p)}) → {framesPattern, frames, fps, errors:[...], sfx:{[name]:path}, cover:path, thumbs:[{index, spec, measures, png, png_notext, jpg1280, jpg1920}]}
+//   plan.thumbs (mặc định []) ⇒ sau vòng khung hình, mỗi phương án đi __still('thumb', spec) và {…spec, textOff:true} trong CÙNG phiên Chromium (không mở lần nữa), ffmpeg hạ 1280/1920 JPEG q85.
+//   plan.assetRefs = [{asset, label?, maxPx?:[w,h]}] (hoặc chuỗi) ⇒ resolveAssets(plan, errors, assetRoot, {ffmpegPath}) → {asset: dataURL}; cùng luật magic bytes/assetRoot/≤ 8 MB; maxPx hạ ảnh raster lớn (CNS-114). Param `asset` của khối illustration vẫn được đọc (bài v1).
+openStage({chromiumPath?, nice?, shared?:{ch,client}, width, height, errors?, holder?}) → {page, ev(expr), shot(format?, quality?, clip?), errors, close()}   // phần Chromium/CDP dùng chung renderPlan + renderStill
+
+// render/still.js — đường dựng MỘT khung (0.2.0 §2.2, CNS-118: mọi đường dựng ảnh đi qua đây)
+renderStill({mode:'thumb'|'frame'|'brand'|'cast', payload, size:[w,h], format:'jpeg'|'png', quality, outFile?, assetRoot?, ffmpegPath?, chromiumPath?, timeoutMs?}) → Promise<{file|null, buffer, measures, errors, elapsed_ms}>
+//   payload.assetRefs (cùng lược đồ trên) được phân giải thành payload.assetData trước khi gọi sân khấu. size phải cùng tỉ lệ ≤ 16:9 so với sân khấu 1920×1080 (chụp clip + scale).
+//   Tiết chế (CNS-106): 1 still chạy một lúc, Chromium riêng `nice 10`, FIFO ≤ 8 chờ (đầy ⇒ lỗi code still_queue_full), hạn 15 s từ lúc BẮT ĐẦU dựng (still_timeout, bỏ Chromium), Chromium ấm 60 s rồi tự đóng.
+//   Mã lỗi: still_mode · still_size · still_queue_full · still_timeout. closeStill() đóng Chromium ấm (test/tắt máy chủ). Tool MCP `render_still` thuộc gói P0b (server/mcp-tools/still.js).
 ```
 `tools/sync-gen-chibi.sh <đường dẫn Gen-Chibi>` chép `engine/core.js, i18n.js, voices.js, sounds.js, audio.js, choreo.js, kinds/character/gen.core.js, kinds/khung/gen.khung.js, kinds/character/gen.choreo.js` + `VERSION` vào `vendor/gen-chibi/`. Gen-Chibi ở phiên bản 0.25.1.
 

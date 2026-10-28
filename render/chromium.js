@@ -1,5 +1,6 @@
 // © 2026 Gen Labs — All rights reserved.
-// Tìm và chạy Chromium headless cho render. find(configured?) → đường dẫn | null ; launch({path}) → {wsUrl, close(), pid}
+// Tìm và chạy Chromium headless cho render. find(configured?) → đường dẫn | null ; launch({path, nice?}) → {wsUrl, close(), pid}
+// nice: số (vd 10) ⇒ chạy qua `nice -n <số>` (ưu tiên thấp cho Chromium still, SPEC-0.2.0 §2.2).
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
@@ -38,7 +39,9 @@ function launch(opts) {
   const bin = find(opts && opts.path);
   if (!bin) return Promise.reject(Object.assign(new Error('Không tìm thấy Chromium (đặt CHROMIUM_PATH hoặc cài chromium).'), { code: 'chromium_missing' }));
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-chromium-'));
-  const proc = spawn(bin, ARGS.concat(['--user-data-dir=' + dataDir], (opts && opts.args) || []), { stdio: ['ignore', 'ignore', 'pipe'] });
+  const args = ARGS.concat(['--user-data-dir=' + dataDir], (opts && opts.args) || []);
+  const niceN = opts && Number.isInteger(opts.nice) && opts.nice > 0 && which('nice');
+  const proc = niceN ? spawn('nice', ['-n', String(opts.nice), bin].concat(args), { stdio: ['ignore', 'ignore', 'pipe'] }) : spawn(bin, args, { stdio: ['ignore', 'ignore', 'pipe'] });
   let tail = '';
   const close = () => new Promise(res => {
     const done = () => { try { fs.rmSync(dataDir, { recursive: true, force: true }); } catch (e) { /* tạm */ } res(); };
