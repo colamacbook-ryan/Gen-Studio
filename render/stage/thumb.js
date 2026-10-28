@@ -119,7 +119,7 @@
     return svg;
   }
   // khung nhìn (toạ độ khung xương, chân ở y=228): đầu + vai (mặt chính) / đầu nhỏ (sidekick)
-  var VIEW_FACE = [8, -6, 184, 196], VIEW_SIDE = [8, -6, 184, 196], VIEW_SIDE_FRAMED = [4, -12, 192, 216];
+  var VIEW_FACE = [8, -6, 184, 196], VIEW_SIDE = [8, -6, 184, 196], VIEW_SIDE_FRAMED = [-14, -30, 228, 262];
   function headRect(svgEl) {
     var gs = svgEl.querySelectorAll('g[data-j="head"]'), rs = [], i;
     for (i = 0; i < gs.length; i++) { var r = gs[i].getBoundingClientRect(); if (r.width > 0 && r.height > 0) rs.push({ x: r.left / SC, y: r.top / SC, w: r.width / SC, h: r.height / SC }); }

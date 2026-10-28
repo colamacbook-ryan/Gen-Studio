@@ -252,8 +252,10 @@ function resolveThumbs(thumbnail, plan, ctx) {
     const kickOnHl = contrast(tokens.hl, bg) >= 3;   // nhãn phụ trên nền đặc: màu nhấn nếu tách được khỏi nền, không thì đảo (mực trên nền vàng ↔ vàng trên nền mực)
     const palette = { bg, text, light: luminance(hexToRgb(bg) || [0, 0, 0]) > 0.3, kickBg: kickOnHl ? tokens.hl : tokens.ink, kickFg: kickOnHl ? tokens.ink : tokens.hl, hl: hlOk || bg, hlMode: hlOk ? 'color' : 'plate', hlPlate: text, shadow: contrast('#000000', bg) > contrast('#FFFFFF', bg) ? '#FFFFFF' : '#05071A',
       ink: tokens.ink, paper: tokens.paper, card: tokens.card, accent: tokens.accent, accent2: tokens.accent2, hlToken: tokens.hl, burst: tokens[tpl.bg && tpl.bg.burst] || tokens.hl, rule: tokens.rule };
-    const corner = (brand && brand.thumb && CORNERS.includes(brand.thumb.corner) && brand.thumb.corner !== 'br') ? brand.thumb.corner : tpl.boxes.brand.corner;
-    const bb = Object.assign({}, tpl.boxes.brand, cornerRect(corner, tpl.boxes.brand));
+    // góc dấu kênh = brand.thumb.corner (mặc định brand là 'tl'); góc dưới-phải là vùng thời lượng, và góc không còn chỗ trong mẫu (đè chữ/mặt/hình) ⇒ giữ góc của mẫu
+    let corner = brand && brand.thumb && CORNERS.includes(brand.thumb.corner) && brand.thumb.corner !== 'br' ? brand.thumb.corner : tpl.boxes.brand.corner;
+    let bb = Object.assign({}, tpl.boxes.brand, cornerRect(corner, tpl.boxes.brand));
+    if (['headline', 'kicker', 'visual', 'face', 'sidekick'].some((k) => tpl.boxes[k] && hit(rect(bb), rect(tpl.boxes[k])))) { corner = tpl.boxes.brand.corner; bb = Object.assign({}, tpl.boxes.brand); }
     return {
       index, template: tpl, headline: v.headline.trim(), highlight: v.highlight || null, kicker: v.kicker ? v.kicker.trim() : null,
       face, sidekick, visual, palette, tokens: { ink: tokens.ink, paper: tokens.paper, rule: tokens.rule, card: tokens.card },

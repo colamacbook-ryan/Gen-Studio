@@ -223,8 +223,11 @@ test('resolveThumbs: hình chủ đạo theo số thứ tự/BT-…/asset; thi�
   assert.throws(() => specsOf([mk({ beat: 0 }, { face: { cast: 'CM-0777', mood: 'shock' } })]), (e) => e.code === 'thumb_cast_missing');
   assert.deepEqual(T.assetRefsOf(specsOf([mk({ asset: 'AS-0005' })], { assetPath: () => 'media/cc/5.png', logoPath: 'media/dd/logo.png', faces: [] })).map((r) => r.asset), ['media/cc/5.png', 'media/dd/logo.png']);
   const withCorner = (corner) => T.resolveThumbs({ variants: [mk({ beat: 0 })] }, Object.assign({}, plan, { style: Object.assign({}, plan.style, { brand: { thumb: { corner } } }) }), { beatOrder: H.BEAT_ORDER })[0];
-  assert.equal(withCorner('bl').brand.corner, 'bl'); assert.deepEqual([withCorner('bl').brand.box.x, withCorner('bl').brand.box.y], [48, 616]);
+  assert.equal(withCorner('bl').brand.corner, 'tr', 'big-visual: góc dưới-trái đè hộp chữ ⇒ giữ góc của mẫu');
+  assert.equal(withCorner('tl').brand.corner, 'tr', 'big-visual: góc trên-trái (mặc định brand) đè nhãn phụ ⇒ giữ góc của mẫu');
   assert.equal(withCorner('br').brand.corner, 'tr', 'góc dưới-phải là vùng thời lượng ⇒ rơi về góc của mẫu');
+  const left = T.resolveThumbs({ variants: [mk({ beat: 0 }, { template: 'host-shock-left' })] }, Object.assign({}, plan, { style: Object.assign({}, plan.style, { brand: { thumb: { corner: 'tl' } } }) }), { beatOrder: H.BEAT_ORDER })[0];
+  assert.deepEqual([left.brand.corner, left.brand.box.x, left.brand.box.y], ['tl', 48, 48]);
   // màu: chữ luôn tương phản cao với nền; nền vàng ⇒ nhấn dạng "tấm" đảo màu
   const s = specsOf([mk({ beat: 0 }, { template: 'host-shock-right' })])[0];
   assert.ok(T.contrast(s.palette.text, s.palette.bg) >= 4.5); assert.equal(s.palette.hlMode, 'plate');

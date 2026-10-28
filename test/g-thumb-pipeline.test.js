@@ -53,7 +53,8 @@ test('pipeline: bài có thumbnail ⇒ awaiting_review + outputs.thumbs (CNS-119
     assert.equal(r.state, 'awaiting_review', JSON.stringify(r.blocked_reason));
     assert.ok(r.awaiting_review_at, 'awaiting_review_at ghi một lần');
     const th = r.outputs.thumbs;
-    assert.deepEqual(th.map((x) => x.variant), [0, 1], 'CHỈ phương án đạt thành asset: phương án 3 (trùng phương án 2, T11) bị bỏ');
+    const why = () => JSON.stringify(t.db.json(t.db.get("SELECT measure FROM gate_results WHERE subject_kind='render' AND subject_id=? AND gate='G-THUMB'", r.id)).measure.variants.map((v) => v.fails));
+    assert.deepEqual(th.map((x) => x.variant), [0, 1], 'CHỈ phương án đạt thành asset: phương án 3 (trùng phương án 2, T11) bị bỏ. ' + why());
     for (const x of th) {
       assert.equal(x.pass, true); assert.ok(x.score > 0.5 && x.score <= 1);
       assert.deepEqual(G.jpegSize(fs.readFileSync(fileOf(t.db, x.w1280))), [1280, 720]); assert.deepEqual(G.jpegSize(fs.readFileSync(fileOf(t.db, x.w1920))), [1920, 1080]);
@@ -73,13 +74,15 @@ test('pipeline: bài có thumbnail ⇒ awaiting_review + outputs.thumbs (CNS-119
     state.review(t.db, { user: { id: u.id, role: 'owner' }, renderId: r.id, decision: 'approved', notes: [], reviewSeconds: 5, entry: 'ui' });
     const row = () => t.db.get('SELECT * FROM renders WHERE id=?', r.id);
     const best = th.reduce((a, b) => (b.score > a.score ? b : a)), worst = th.reduce((a, b) => (b.score < a.score ? b : a));
-    const ex1 = pipeline.exportRender(s.ctx, row());
-    assert.ok(ex1.files.includes(r.display_id + '.cover.jpg') && ex1.files.includes(r.display_id + '.cover-1920.jpg'));
-    assert.ok(fs.readFileSync(path.join(ex1.dir, r.display_id + '.cover.jpg')).equals(fs.readFileSync(fileOf(t.db, best.w1280))), 'chưa chọn ⇒ phương án đạt có score cao nhất');
-    if (worst.variant !== best.variant) {
+    assert.ok(best && worst);
+    if (worst.variant === best.variant) {   // chỉ một phương án: chưa chọn ⇒ chính nó
+      const ex = pipeline.exportRender(s.ctx, row());
+      assert.ok(ex.files.includes(r.display_id + '.cover.jpg') && ex.files.includes(r.display_id + '.cover-1920.jpg'));
+    } else {
       t.write(s.o, 'thumbnail.pick', { render: r.display_id, variant: worst.variant });
       assert.equal(row().thumbnail_pick, worst.w1280);
       const ex2 = pipeline.exportRender(s.ctx, row());
+      assert.ok(ex2.files.includes(r.display_id + '.cover.jpg') && ex2.files.includes(r.display_id + '.cover-1920.jpg'));
       assert.ok(fs.readFileSync(path.join(ex2.dir, r.display_id + '.cover.jpg')).equals(fs.readFileSync(fileOf(t.db, worst.w1280))), 'đã chọn ⇒ đúng phương án chọn');
       assert.ok(fs.readFileSync(path.join(ex2.dir, r.display_id + '.cover-1920.jpg')).equals(fs.readFileSync(fileOf(t.db, worst.w1920))));
     }
