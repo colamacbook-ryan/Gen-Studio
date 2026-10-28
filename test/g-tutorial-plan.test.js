@@ -61,7 +61,13 @@ test('F4-1 bài mẫu "Tạo kênh đầu tiên" (màn DSL): 60–90 s, ≥ 12 b
   }
   // host PiP (Q-16): một người nói, lớp HUD
   assert.deepEqual(plan.actors.map(a => a.layout.mode), ['pip']); assert.deepEqual(plan.tutorial.pip, T.PIP);
-  assert.equal(plan.kind, 'tutorial'); assert.equal(plan.variant, 'full'); assert.equal(plan.style.zones.length, 0);
+  assert.equal(plan.kind, 'tutorial'); assert.equal(plan.variant, 'full'); assert.equal(plan.style.zones.length, 0); assert.deepEqual(plan.packs, []);
+  // plan.packs (gói K) đi xuyên nhánh tutorial; intro nhận diện (gói B) đẩy câu đầu lùi
+  const spec = fake.loadSample('tutorial'), L1 = [{ id: 'L1', who: 'CM-0001', say: spec.lines[0].say }];
+  const mini = (extra) => buildPlan(Object.assign({ kind: 'tutorial', cast: { 'CM-0001': {} }, lesson: { kind: 'tutorial', lines: L1, screens: spec.extra.screens, beats: [{ id: 'B1', block: 'screen', anchor: { line: 'L1', word_index: 1 }, params: { screen: 'SC-1' } }] } }, extra));
+  const packs = [{ json: { id: 'pk' }, outline: null }];
+  assert.deepEqual(mini({ packs }).packs, packs);
+  assert.equal(mini({ brand: { intro: { enabled: true, kind: 'logo', duration_ms: 2000 } } }).lines[0].a_ms, 2300);
   assert.ok(plan.cues.some(c => c.name === 'tick') && plan.cues.some(c => c.name === 'swish'));
 });
 

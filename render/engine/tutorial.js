@@ -39,8 +39,8 @@ function synthEnvelope(words, durMs, fps) {
   for (let i = 0; i < n; i++) { const t = i / fps * 1000; const w = words.find(x => t >= x.t0 && t <= x.t1); env.push(w ? +(0.45 + 0.4 * Math.abs(Math.sin(i * 0.9))).toFixed(3) : 0.05); }
   return env;
 }
-function buildLines(lesson, clips, pace) {
-  let cur = pace.lead;
+function buildLines(lesson, clips, pace, leadMs) {
+  let cur = leadMs || pace.lead;
   return lesson.lines.map(l => {
     const c = (clips && clips[l.id]) || {}, dur = c.duration_ms > 0 ? Math.round(c.duration_ms) : estimateMs(l.say);
     const rel = Array.isArray(c.word_times) && c.word_times.length ? c.word_times : proportionalWords(l.say, dur);
@@ -151,7 +151,9 @@ function buildTutorialPlan(input) {
   // nhân vật + host (§6.6): pip (mặc định, 1 người nói) | none (ẩn). intro_outro cần sân khấu đổi bố cục theo thời gian — chưa có ở bản này.
   const dflt = (!input.cast || !Object.keys(input.cast).length) ? require('../cast').defaults() : null;
   const castIn = dflt ? dflt.cast : input.cast, parts = input.parts || (dflt ? dflt.parts : []);
-  const lines = buildLines(lesson, input.clips, pace);
+  // nhận diện kênh (gói B): intro bật ⇒ câu đầu đợi intro tan (như nhánh bài thường), cả trailer
+  const bi = input.brand && input.brand.intro && input.brand.intro.enabled && input.brand.intro.kind !== 'none' ? Math.min(3000, input.brand.intro.duration_ms | 0) : 0;
+  const lines = buildLines(lesson, input.clips, pace, bi ? Math.max(pace.lead, bi + 300) : pace.lead);
   const lineById = {}; lines.forEach(l => { lineById[l.id] = l; });
   const speakers = [];
   lines.forEach(l => { if (!castIn[l.who]) throw new PlanError('cast_missing', 'Nhân vật ' + l.who + ' của câu ' + l.id + ' chưa có trong cast.', { who: l.who, line: l.id }); if (!speakers.includes(l.who)) speakers.push(l.who); });
@@ -337,6 +339,7 @@ function buildTutorialPlan(input) {
     lines, beats: clean, camera: cam.keys, cues, cast, parts, actors,
     kind: 'tutorial', variant, cursor: comp.cursor, screens, thumbs: Array.isArray(input.thumbs) ? input.thumbs : [], assetRefs,
     persona: input.persona && typeof input.persona === 'object' ? input.persona : {},
+    packs: Array.isArray(input.packs) ? input.packs : [],   // gói dữ liệu Gen-Chibi (gói K) — giữ nguyên như nhánh bài thường
     music: music ? { asset: music.asset, gain_db: music.gain_db === undefined ? -18 : music.gain_db, duck_db: music.duck_db === undefined ? -10 : music.duck_db } : null,
     tutorial: tut,
     style: { world: { w: 1920, h: 1080 }, zones: [], meta: { title: lesson.title || '', tag: lesson.tag || '' }, brand },
