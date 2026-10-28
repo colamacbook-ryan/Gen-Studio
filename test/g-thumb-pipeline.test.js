@@ -24,9 +24,9 @@ function studio({ alpha = true, by = null } = {}) {
   const faceBytes = H.ownerFacePng({ alpha });
   const face = t.write(by || o, 'asset.put', { kind: 'image', mime: 'image/png', bytes: faceBytes, meta: { role: 'thumb_face' } });
   const ch = t.write(o, 'channel.create', { name: 'Kênh ảnh bìa', data: { brand: { thumb: { faces: [{ asset: face.display_id, mood: 'shock' }] } } } });
-  const defs = cast.defaults().cast;
-  const m1 = t.write(o, 'cast.save', { channel: ch.display_id, name: 'Anh Gen', data: defs['CM-0001'] });
-  const m2 = t.write(o, 'cast.save', { channel: ch.display_id, name: 'Bé Hỏi', data: defs['CM-0002'] });
+  const hosts = cast.samples();
+  const m1 = t.write(o, 'cast.save', { channel: ch.display_id, name: 'Anh Gen', data: hosts[0] });
+  const m2 = t.write(o, 'cast.save', { channel: ch.display_id, name: 'Bé Hỏi', data: hosts[1] });
   const ctx = { db: t.db, write: t.write, events: events.create(), config: { dataDir: t.dir, fakeProviders: true, ffmpegPath: H.FFMPEG, chromiumPath: null, version: 'test' }, pipelineOpts: { backoffMs: 1 } };
   return { t, o, ch, m1, m2, face, ctx };
 }

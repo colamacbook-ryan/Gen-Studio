@@ -12,7 +12,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const T = require('../../render/thumb.js');
 const { gateThumb } = require('../../media/gates/thumb.js');
-const { previewPlan, J } = require('../ops/_thumb-data.js');
+const { resolvePreview, J } = require('../ops/_thumb-data.js');
 const { kit } = require('./_kit.js');
 
 const RATE_MAX = 6, RATE_WINDOW_MS = 60e3, PREVIEW_MAX_BYTES = 200 * 1024;
@@ -53,26 +53,9 @@ function tools(ctx) {
       } },
     { name: 'preview_thumbnail', scope: 'compose', description: `Xem trước MỘT phương án ảnh bìa của bài (lesson [+ version], variant = số thứ tự phương án bắt đầu từ 0; hoặc spec = một phương án chưa nộp): trả ảnh JPEG 640×360 + số đo G-THUMB (T1–T11) của phương án đó. Giới hạn ${RATE_MAX} lần/phút.`,
       schema: { lesson: S, version: N, variant: N, spec: O }, required: ['lesson'], handler: async (a, c) => {
-        const l = need('lessons', a.lesson, 'bài học');
-        const ver = a.version === undefined ? l.current_version : a.version;
-        const lv = db.json(db.get('SELECT * FROM lesson_versions WHERE lesson_id=? AND version=?', l.id, ver));
-        if (!lv) throw fail('not_found', `Bài ${l.display_id} không có phiên bản ${ver}.`);
-        let variant;
-        if (a.spec !== undefined) { if (!a.spec || typeof a.spec !== 'object' || Array.isArray(a.spec)) throw fail('invalid', 'spec phải là object (một phương án ảnh bìa).'); variant = a.spec; }
-        else {
-          const th = J(lv.thumbnail);
-          if (!th || !Array.isArray(th.variants) || !th.variants.length) throw fail('invalid', 'Bài chưa có thumbnail — truyền spec hoặc nộp thumbnail trước.');
-          const i = a.variant === undefined ? 0 : a.variant;
-          if (!Number.isInteger(i) || i < 0 || i >= th.variants.length) throw fail('invalid', `variant phải từ 0 đến ${th.variants.length - 1}.`);
-          variant = th.variants[i];
-        }
+        const pv = resolvePreview(db, a, { need, fail, chanData });
         if (limited(c.agent.id)) throw fail('rate_limited', `Xem trước ảnh bìa quá nhiều (tối đa ${RATE_MAX}/phút). Thử lại sau ít phút.`);
-        const channel = db.json(db.get('SELECT * FROM channels WHERE id=?', l.channel_id));
-        const B = { lv, channel, channelData: chanData(channel), beats: db.all('SELECT * FROM beats WHERE lesson_version_id=? ORDER BY ord', lv.id).map((b) => db.json(b)), lines: db.all('SELECT * FROM lines WHERE lesson_version_id=? ORDER BY ord', lv.id) };
-        const plan = previewPlan(db, B);
-        let spec;
-        try { spec = T.resolveThumbs({ variants: [variant] }, plan, plan.env)[0]; } catch (e) { if (e && e.name === 'PlanError') throw fail('invalid', e.text_human, e.detail); throw e; }
-        spec.index = 0;
+        const spec = pv.resolve();
         const still = (ctx.deps && ctx.deps.still) || require('../../render/still.js');
         const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-thumb-prev-'));
         try {

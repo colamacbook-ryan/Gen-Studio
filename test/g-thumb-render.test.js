@@ -154,9 +154,9 @@ test('khung giữ chỗ khi chưa có mặt thật; ngân sách L-42: ≤ 2 nhâ
 
 // ---- tool MCP preview_thumbnail: phân giải phương án từ bài + kênh rồi dựng qua renderStill (SPEC §5.6) ----
 function previewSetup(deps) {
-  const t = tmpDb(), o = owner(t.db), defs = cast.defaults().cast;
+  const t = tmpDb(), o = owner(t.db), hosts = cast.samples();
   const ch = t.write(o, 'channel.create', { name: 'Kênh xem trước' });   // kênh mới: bắt buộc ảnh bìa, chưa có ảnh mặt chủ kênh ⇒ face.owner rơi về KOL
-  const m1 = t.write(o, 'cast.save', { channel: ch.display_id, name: 'Anh Gen', data: defs['CM-0001'] }), m2 = t.write(o, 'cast.save', { channel: ch.display_id, name: 'Bé Hỏi', data: defs['CM-0002'] });
+  const m1 = t.write(o, 'cast.save', { channel: ch.display_id, name: 'Anh Gen', data: hosts[0] }), m2 = t.write(o, 'cast.save', { channel: ch.display_id, name: 'Bé Hỏi', data: hosts[1] });
   const th = { variants: [
     { template: 'host-shock-left', headline: 'AI bịa chuyện thế nào?', highlight: 'bịa', kicker: 'SỰ THẬT', face: { owner: true, mood: 'shock' }, sidekick: { cast: m2.display_id, mood: 'panic' }, visual: { beat: 1 } },
     { template: 'duo-versus', headline: 'Máy đoán chữ kế tiếp', face: { cast: m1.display_id, mood: 'vow' }, sidekick: { cast: m2.display_id, mood: 'panic' }, visual: { beat: 0 } }] };
@@ -166,7 +166,7 @@ function previewSetup(deps) {
   const mcp = createMcp({ db: t.db, write: t.write, config: { version: 't', dataDir: t.dir, ffmpegPath: H.FFMPEG || 'ffmpeg', chromiumPath: null }, deps });
   const mk = (scopes) => auth.verifyAgentToken(t.db, t.write(o, 'agent.create', { name: 'A' + scopes.join(''), scopes }).token);
   const call = async (c, name, args) => (await mcp.handle({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args || {} } }, c)).result;
-  return { t, lesson: sub.lesson.display_id, mk, call };
+  return { t, o, ch, m1, m2, lesson: sub.lesson.display_id, mk, call };
 }
 
 test('preview_thumbnail: phân giải phương án từ bài + kênh, JPEG 640×360 ≤ 200 KB + số đo G-THUMB; KOL host_lead thay ảnh mặt chủ kênh khi chưa có (kèm lưu ý); tham số sai ⇒ lỗi', { skip: SKIP, timeout: 180000 }, async () => {
@@ -182,7 +182,7 @@ test('preview_thumbnail: phân giải phương án từ bài + kênh, JPEG 640×
     assert.equal(r.structuredContent.measure.index, 0); assert.equal(r.structuredContent.measure.face, 'cast'); assert.match(r.content[0].text, /Phương án đạt G-THUMB/);
     assert.match(r.content[0].text, /Kênh chưa có ảnh mặt chủ kênh/);
     const r2 = await s.call(c, 'preview_thumbnail', { lesson: s.lesson, spec: { template: 'big-visual', headline: 'a b c d e f g', face: { cast: 'CM-0001', mood: 'shock' }, visual: { beat: 1 } } });
-    assert.ok(!r2.isError); assert.equal(r2.structuredContent.result, 'fail'); assert.match(r2.content[0].text, /TRƯỢT G-THUMB: T3/);
+    assert.equal(r2.isError, true); assert.match(r2.content[0].text, /chưa hợp lệ.*7 từ > 6/s, 'spec của agent đi qua kiểm khô T3–T6 trước khi dựng');
     for (const bad of [{ lesson: s.lesson, variant: 5 }, { lesson: s.lesson, variant: -1 }, { lesson: 'LS-9999' }, { lesson: s.lesson, version: 9 }, { lesson: s.lesson, spec: [] },
       { lesson: s.lesson, spec: { template: 'big-visual', headline: 'Chào', face: { cast: 'CM-0777', mood: 'shock' }, visual: { beat: 0 } } },
       { lesson: s.lesson, spec: { template: 'big-visual', headline: 'Chào', face: { cast: 'CM-0001', mood: 'shock' }, visual: { beat: 9 } } }]) {
@@ -207,5 +207,57 @@ test('preview_thumbnail: giới hạn 6 lần/phút/agent (hàng đợi still d�
     const full = { async renderStill() { throw Object.assign(new Error('đầy'), { code: 'still_queue_full' }); } };
     const s2 = previewSetup({ still: full });
     try { const r = await s2.call(s2.mk(['read', 'compose']), 'preview_thumbnail', { lesson: s2.lesson }); assert.equal(r.isError, true); assert.match(r.content[0].text, /rate_limited/); } finally { s2.t.clean(); }
+  } finally { s.t.clean(); }
+});
+
+// ---- route /api/preview/still?mode=thumb (mở rộng routes/preview.js của gói B): chỉ phiên UI, JPEG theo cỡ w, phương án nháp qua POST ----
+test('route preview mode=thumb: phiên UI nhận JPEG đúng cỡ (đã nộp + nháp); không phiên ⇒ 401/403; tham số sai ⇒ 400/404', { skip: SKIP, timeout: 180000 }, async () => {
+  const { bootTmp, request, setupOwner } = require('./d-helpers.js');
+  const t = await bootTmp();
+  try {
+    const s = await setupOwner(t.app, t.base), { write, db } = t.app.ctx;
+    const o = db.json(db.get("SELECT id FROM users WHERE username='owner'")), ow = { type: 'user', id: o.id, role: 'owner', entry: 'ui' }, hosts = cast.samples();
+    const ch = write(ow, 'channel.create', { name: 'K' });
+    const m1 = write(ow, 'cast.save', { channel: ch.display_id, name: 'A', data: hosts[0] }), m2 = write(ow, 'cast.save', { channel: ch.display_id, name: 'B', data: hosts[1] });
+    const v = (template, headline) => ({ template, headline, face: { cast: m1.display_id, mood: 'shock' }, visual: { beat: 0 } });
+    const sub = write(ow, 'lesson.submit', { channel: ch.display_id, title: 'T', thumbnail: { variants: [v('big-visual', 'Chào bạn'), v('duo-versus', 'Đoán chữ')] },
+      lines: [{ who: m2.display_id, say: 'Sao vậy ạ?' }], beats: [{ block: 'title', anchor: { line: 0, word: 'Sao' }, params: { text: 'Hi' } }] });
+    const get = (q, withSess = true) => request(t.base, 'GET', '/api/preview/still?' + q, withSess ? { cookie: s.cookie, origin: t.base } : {});
+    const r = await get(`mode=thumb&lesson=${sub.lesson.display_id}&variant=1&w=640`);
+    assert.equal(r.status, 200, r.text.slice(0, 200)); assert.deepEqual(G.jpegSize(r.buf), [640, 360]); assert.equal(r.headers['content-type'], 'image/jpeg');
+    const p = await request(t.base, 'POST', '/api/preview/still', { cookie: s.cookie, csrf: s.csrf, origin: t.base, body: { mode: 'thumb', lesson: sub.lesson.display_id, w: 480, spec: v('host-shock-right', 'Nháp thử') } });
+    assert.equal(p.status, 200, p.text.slice(0, 200)); assert.deepEqual(G.jpegSize(p.buf), [480, 270]);
+    assert.ok([401, 403].includes((await get(`mode=thumb&lesson=${sub.lesson.display_id}`, false)).status));
+    assert.equal((await get(`mode=thumb&lesson=${sub.lesson.display_id}&variant=9`)).status, 400);
+    assert.equal((await get(`mode=thumb&lesson=${sub.lesson.display_id}&w=10`)).status, 400);
+    assert.equal((await get(`mode=thumb&lesson=LS-9999`)).status, 404);
+  } finally { await still.closeStill(); await t.clean(); }
+});
+
+// ---- an ninh: preview KHÔNG đọc đường dẫn do agent điều khiển (params.asset của illustration, spec.visual.asset), asset phải AS-… còn tệp + qua kiểm quyền như pipeline ----
+test('preview_thumbnail: params.asset kiểu đường dẫn/AS lạ/asset chưa xác nhận quyền bị từ chối, renderStill KHÔNG được gọi (không đọc file ngoài asset hợp lệ)', { timeout: 60000 }, async () => {
+  let calls = 0;
+  const stub = { async renderStill() { calls++; throw new Error('không được dựng'); } };
+  const s = previewSetup({ still: stub });
+  try {
+    const { t } = s, c = s.mk(['read', 'compose']);
+    t.write(s.o, 'channel.update', { channel: s.ch.display_id, data: { policy: { thumbnail_required: false } } });   // bài "độc" không cần ảnh bìa riêng; phương án xem trước đi qua spec
+    const spec = { template: 'big-visual', headline: 'Chào bạn', face: { cast: 'CM-0001', mood: 'shock' }, visual: { beat: 0 } };
+    const raster = Buffer.from(H.encodePng(H.canvas(8, 8, [1, 2, 3, 255])));
+    const up = t.write({ type: 'agent', id: 'AG-X', scopes: ['compose'], entry: 'mcp' }, 'asset.put', { kind: 'image', mime: 'image/png', bytes: raster });   // agent tải lên: chưa có quyền
+    const gone = t.write({ type: 'system', entry: 'system' }, 'asset.put', { kind: 'svg', mime: 'image/svg+xml', bytes: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect width="1" height="1"/></svg>'), source: 'system' });
+    t.db.run('UPDATE assets SET media_present=0 WHERE id=?', gone.id);
+    for (const evil of ['../../.env', '/etc/passwd', 'file:///etc/passwd', 'AS-9999', '../../../etc/passwd', gone.display_id, up.display_id, { x: 1 }]) {
+      const sub = t.write(s.o, 'lesson.submit', { channel: s.ch.display_id, title: 'Độc', lines: [{ who: s.m2.display_id, say: 'Sao vậy ạ?' }], beats: [{ block: 'illustration', anchor: { line: 0, word: 'Sao' }, params: { asset: evil } }] });
+      const r = await s.call(s.mk(['read', 'compose']), 'preview_thumbnail', { lesson: sub.lesson.display_id, spec });
+      assert.equal(r.isError, true, 'params.asset=' + JSON.stringify(evil));
+      assert.match(r.content[0].text, /thumb_visual_missing|không có trong bản dựng|rights_missing|chưa được chủ xưởng xác nhận/, JSON.stringify(evil));
+    }
+    // spec do agent gửi: visual.asset không phải AS-… / không tồn tại / chưa có quyền ⇒ kiểm khô hoặc kiểm quyền chặn
+    for (const asset of ['../../.env', '/etc/passwd', 'AS-9999', up.display_id]) {
+      const r = await s.call(s.mk(['read', 'compose']), 'preview_thumbnail', { lesson: s.lesson, spec: Object.assign({}, spec, { visual: { asset } }) });
+      assert.equal(r.isError, true, 'visual.asset=' + asset);
+    }
+    assert.equal(calls, 0, 'không lần nào chạm tới renderStill');
   } finally { s.t.clean(); }
 });

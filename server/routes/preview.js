@@ -4,10 +4,13 @@
 //   POST /api/preview/still {mode:'brand', channel, view, brand?, w?}                          — brand NHÁP (form chưa lưu); không ghi gì vào DB
 // Chỉ phiên đăng nhập của chủ xưởng/UI (sess). Trả ảnh JPEG; lỗi lược đồ/tương phản ⇒ 400 invalid kèm `errors` theo từng token (UI hiện dưới ô tương ứng).
 // Khung mẫu dùng nội dung mẫu + nhân vật mặc định (cast.defaults) — xem trước là để thấy BỘ NHẬN DIỆN, không phải bài thật.
-// Hiện chỉ mode=brand (các mode khác do gói khác thêm sau khi gộp, không trùng (method, pattern)).
+// mode=thumb (gói T): GET ?mode=thumb&lesson=LS-…[&version=N][&variant=0][&w=640] · POST {mode:'thumb', lesson, variant | spec (phương án nháp), w?} — JPEG một phương án ảnh bìa, cùng đường phân giải với tool preview_thumbnail.
+// Các mode khác (frame, cast…) do gói khác thêm sau khi gộp, không trùng (method, pattern).
 'use strict';
 const brandMod = require('../../render/brand.js');
 const { buildPlan } = require('../../render/engine/timeline.js');
+const thumbMod = require('../../render/thumb.js');
+const { resolvePreview } = require('../ops/_thumb-data.js');
 
 const VIEWS = ['mid', 'card', 'thumb'];
 const CACHE_MAX = 32, W_MIN = 320, W_MAX = 1920;
@@ -27,8 +30,29 @@ function register(add, rctx) {
   const cache = new Map();   // khoá → {buf, hash}
   const put = (k, v) => { cache.set(k, v); while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value); };
 
+  // ảnh bìa (gói T): phương án đã nộp hoặc nháp → spec → renderStill; không ghi DB
+  async function serveThumb({ res, q }) {
+    const w = q.w === undefined ? 640 : Math.round(Number(q.w));
+    if (!Number.isFinite(w) || w < W_MIN || w > W_MAX) throw fail('invalid', `w phải trong ${W_MIN}..${W_MAX}.`);
+    const num = (v) => (v === undefined || v === '' ? undefined : Number(v));
+    const spec = resolvePreview(db, { lesson: q.lesson, version: num(q.version), variant: num(q.variant), spec: q.spec }, { need, fail, chanData: (ch) => { const v = db.json(db.get('SELECT data FROM channel_versions WHERE entity_id=? AND version=?', ch.id, ch.current_version)); return (v && v.data) || {}; } }).resolve();
+    let r;
+    try {
+      r = await require('../../render/still.js').renderStill({ mode: 'thumb', payload: Object.assign({}, spec, { assetRefs: thumbMod.assetRefsOf([spec]) }), size: [w, Math.round(w * 9 / 16)], format: 'jpeg', quality: 82, assetRoot: config.dataDir, ffmpegPath: config.ffmpegPath, chromiumPath: config.chromiumPath });
+    } catch (e) {
+      if (e && e.code === 'still_queue_full') throw fail('rate_limited', e.message, { still: e.code });
+      if (e && e.code === 'still_timeout') throw fail('bad_gateway', e.message, { still: e.code });
+      throw e;
+    }
+    if (r.errors && r.errors.length) throw fail('bad_gateway', 'Dựng xem trước có lỗi trong sân khấu.', { errors: r.errors });
+    res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Content-Length': r.buffer.length, 'Cache-Control': 'private, no-store' });
+    res.end(r.buffer);
+    return null;
+  }
+
   async function serve({ res, q, draft }) {
-    if (q.mode !== 'brand') throw fail('invalid', 'Chế độ xem trước "' + q.mode + '" chưa hỗ trợ (hiện có: brand).');
+    if (q.mode === 'thumb') return serveThumb({ res, q });
+    if (q.mode !== 'brand') throw fail('invalid', 'Chế độ xem trước "' + q.mode + '" chưa hỗ trợ (hiện có: brand, thumb).');
     const view = q.view || 'mid';
     if (!VIEWS.includes(view)) throw fail('invalid', 'view phải là một trong: ' + VIEWS.join(', ') + '.');
     const w = q.w === undefined ? 1280 : Math.round(Number(q.w));

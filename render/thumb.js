@@ -119,7 +119,7 @@ function validateThumbnail(th, env) {
   const out = [], E = (p, text) => out.push({ path: 'thumbnail' + p, text });
   if (!th || typeof th !== 'object' || Array.isArray(th) || !Array.isArray(th.variants)) { E('', 'thumbnail phải là {variants:[…]} (2–3 phương án).'); return out; }
   const vs = th.variants;
-  if (vs.length < RULES.variants_min || vs.length > RULES.variants_max) E('.variants', `Cần ${RULES.variants_min}–${RULES.variants_max} phương án ảnh bìa (đang ${vs.length}).`);
+  if (!env.single && (vs.length < RULES.variants_min || vs.length > RULES.variants_max)) E('.variants', `Cần ${RULES.variants_min}–${RULES.variants_max} phương án ảnh bìa (đang ${vs.length}).`);
   const sigs = new Map();
   vs.forEach((v, i) => {
     const at = `.variants[${i}]`;
