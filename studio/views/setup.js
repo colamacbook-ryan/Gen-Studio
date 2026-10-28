@@ -82,7 +82,10 @@ export function mount(container, ctx) {
     return formShell(t('setup.provider.title'), t('setup.provider.hint'), [inField(t('prov.key'), k), result],
       async (msg, row) => {
         clear(result);
-        const saved = await post('/api/providers', { vendor: 'gemini', kind: 'tts', key: k.value.trim() });
+        const key = k.value.trim();
+        const saved = await post('/api/providers', { vendor: 'gemini', kind: 'tts', key });
+        // cùng khoá Gemini làm giám khảo (chép lời, phát âm, mốc từng từ): thiếu thì bản dựng đầu tiên bị chặn no_provider
+        await post('/api/providers', { vendor: 'gemini', kind: 'judge', key });
         k.value = '';
         result.append(h('div', { class: 'muted mono' }, t('setup.provider.saved')));
         const id = saved && (saved.display_id || saved.id || (saved.provider && (saved.provider.display_id || saved.provider.id)));

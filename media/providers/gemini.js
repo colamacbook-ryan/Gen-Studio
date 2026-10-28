@@ -145,4 +145,11 @@ async function probe({ key }) {
   return { models, voices: VOICES.slice(), voices_source: 'builtin_list' };
 }
 
-module.exports = { tts, judge, probe, VOICES };
+// Model mặc định khi nhà cung cấp chưa chọn model (vd tạo ở bước thiết lập): thứ tự ưu tiên đã kiểm trên gói miễn phí
+// (3.1-flash-tts-preview giữ giọng nhất quán; 2.5-pro-preview-tts hạn mức 0 nên không ưu tiên). Chọn mục đầu tiên có trong kết quả quét.
+const PREFERRED = {
+  tts: ['gemini-3.1-flash-tts-preview', 'gemini-3.8-flash-tts', 'gemini-2.5-flash-preview-tts'],
+  judge: ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-flash-latest'],
+};
+
+module.exports = { tts, judge, probe, VOICES, PREFERRED };
