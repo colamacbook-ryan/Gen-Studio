@@ -28,7 +28,7 @@ test('renderStill: mỗi chế độ (thumb/frame/brand/cast) dựng ra PNG th�
     assert.deepEqual(r.errors, [], mode);
     assert.equal(r.file, out); assert.ok(isPng(fs.readFileSync(out)), mode);
     assert.deepEqual(pngSize(r.buffer), [960, 540], mode);
-    assert.equal(r.measures.mode, mode); assert.equal(r.measures.stub, true, mode + ' là stub ở P0a');
+    assert.equal(r.measures.mode, mode); assert.equal(r.measures.stub, mode === 'brand' ? false : true, mode + (mode === 'brand' ? ' là bản thật của gói B' : ' là stub ở P0a'));
   }
   fs.rmSync(dir, { recursive: true, force: true });
 });

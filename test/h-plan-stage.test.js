@@ -45,12 +45,12 @@ test('buildPlan: kind theo registry — tutorial đi nhánh tutorial.js (stub n�
   assert.equal(cursorPath.compileCursor({}), null); assert.deepEqual(fx.cursorSchemaErrors(cursorPath.compileCursor({})), []);
 });
 
-test('stub W1: render/brand.js (normalize/hash ổn định), render/thumb.js, cast.library()/samples() có chữ ký cố định', () => {
+test('chữ ký cố định: render/brand.js (bản thật của gói B), render/thumb.js stub, cast.library()/samples()', () => {
   assert.equal(brandMod.normalize({}), null); assert.equal(brandMod.normalize({ brand: [] }), null);
-  const b = brandMod.normalize({ brand: { tokens: { ink: '#000', paper: '#fff' }, z: 1 } });
-  assert.equal(b.hash, brandMod.hash({ z: 1, tokens: { paper: '#fff', ink: '#000' } }), 'hash không phụ thuộc thứ tự khoá');
-  assert.notEqual(brandMod.normalize({ brand: { z: 2 } }).hash, brandMod.normalize({ brand: { z: 1 } }).hash);
-  assert.deepEqual(brandMod.check(b), []); assert.deepEqual(brandMod.cssVars(b), {}); assert.equal(brandMod.hash(null), null);
+  const b = brandMod.normalize({ brand: { tokens: { ink: '#000000', paper: '#ffffff' } } });
+  assert.equal(b.hash, brandMod.hash(Object.assign({}, b)), 'hash không tính hash/vars');
+  assert.notEqual(brandMod.normalize({ brand: { preset: 'console' } }).hash, brandMod.normalize({ brand: { preset: 'tron' } }).hash);
+  assert.deepEqual(brandMod.check(b), []); assert.ok(Object.keys(brandMod.cssVars(b)).includes('--v-ink')); assert.equal(brandMod.hash(null), null);
   assert.deepEqual(thumbMod.resolveThumbs({ variants: [] }, {}), []); assert.deepEqual(thumbMod.measure([], {}, null), { variants: [] });
   const lib = cast.library(); assert.ok(Array.isArray(lib.parts) && lib.parts.length > 0); assert.equal(lib.hash, null); assert.deepEqual(cast.samples(), []);
 });

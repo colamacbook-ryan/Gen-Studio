@@ -56,16 +56,17 @@ test('Sửa brand/policy của kênh: owner ✓, agent ✗ (policy_field) — c�
   for (const f of ['brand', 'policy']) {
     assert.throws(() => t.write(agent(['compose']), 'channel.update', { channel: b.ch.display_id, data: { [f]: { x: 1 } } }), code('forbidden'));
     assert.throws(() => t.write(agent(['compose']), 'channel.create', { name: 'Z', data: { [f]: { x: 1 } } }), code('forbidden'));
-    t.write(b.o, 'channel.update', { channel: b.ch.display_id, data: { [f]: { x: 1 } } });   // owner ✓
+    t.write(b.o, 'channel.update', { channel: b.ch.display_id, data: { [f]: f === 'brand' ? { preset: 'console' } : { x: 1 } } });   // owner ✓ (brand phải hợp lệ lược đồ — gói B kiểm khi lưu)
   }
   t.clean();
 });
 
-test('server/ops/*: 6 module stub là no-op (không đăng ký op nào) và có chủ', () => {
+test('server/ops/*: module stub là no-op (không đăng ký op nào) và có chủ; gói đã làm thật (B) bị loại khỏi kiểm no-op', () => {
   const dir = path.join(ROOT, 'server/ops');
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.js'));
   assert.deepEqual(files.sort(), ['brand.js', 'cast.js', 'overview.js', 'publish.js', 'thumb.js', 'tutorial.js']);
-  for (const f of files) {
+  const DONE = ['brand.js'];   // gói B đã thay stub bằng bản thật (test riêng: g-brand.test.js)
+  for (const f of files.filter(x => !DONE.includes(x))) {
     const m = require(path.join(dir, f));
     assert.equal(typeof m.register, 'function', f); assert.ok(m.OWNER, f + ' ghi rõ gói sở hữu');
     const calls = [];
@@ -182,16 +183,16 @@ test('lessonExt: kind/cột ext — chưa đăng ký ⇒ từ chối rõ; đăng
 test('suggestion: apply CHỈ owner + phiên UI (ô ✗ §10) ; loại có bộ áp dụng chạy trong tx; validate khi tạo', () => {
   const w = writerWith(`
     exports.register = (op, ctx) => {
-      ctx.ext.suggestionApply.register('channel_brand', {
+      ctx.ext.suggestionApply.register('test_brand_kind', {
         validate(c, p) { if (!p.diff || !p.diff.brand) throw ctx.err('invalid', 'diff phải có brand', null); },
         apply(c, sg) { ctx.db.run("INSERT INTO settings(workspace_id,key,value,updated_at,updated_by) VALUES(?,?,?,?,?)", ctx.ws(), 'brand_applied', JSON.stringify(sg.diff), ctx.db.now(), c.by); return { brand_applied: true }; } });
     };`);
   try {
     const o = owner(w.db);
     const asst = { type: 'assistant', entry: 'assistant' };   // Trợ lý: "chỉ Suggestion" (§10); agent MCP đề xuất brand qua op riêng của gói B (propose_brand_change)
-    assert.throws(() => w.write(asst, 'suggestion.create', { target_kind: 'channel_brand', diff: {} }), code('invalid'));
-    assert.throws(() => w.write(agent(['compose']), 'suggestion.create', { target_kind: 'channel_brand', diff: { brand: {} } }), code('forbidden'), 'op chung vẫn không cho agent tạo SG-');
-    const sg = w.write(asst, 'suggestion.create', { target_kind: 'channel_brand', diff: { brand: { a: 1 } } });
+    assert.throws(() => w.write(asst, 'suggestion.create', { target_kind: 'test_brand_kind', diff: {} }), code('invalid'));
+    assert.throws(() => w.write(agent(['compose']), 'suggestion.create', { target_kind: 'test_brand_kind', diff: { brand: {} } }), code('forbidden'), 'op chung vẫn không cho agent tạo SG-');
+    const sg = w.write(asst, 'suggestion.create', { target_kind: 'test_brand_kind', diff: { brand: { a: 1 } } });
     for (const [name, a] of NON_OWNER_UI(w.db)) assert.throws(() => w.write(a, 'suggestion.apply', { suggestion: sg.display_id }), code('forbidden'), name + ' ✗ áp dụng SG-');
     assert.equal(w.db.get('SELECT state FROM suggestions WHERE display_id=?', sg.display_id).state, 'proposed');
     w.write(o, 'suggestion.apply', { suggestion: sg.display_id });
@@ -202,7 +203,7 @@ test('suggestion: apply CHỈ owner + phiên UI (ô ✗ §10) ; loại có bộ 
     const sg2 = w.write(o, 'suggestion.create', { target_kind: 'khac', diff: {} });
     w.write(o, 'suggestion.apply', { suggestion: sg2.display_id });
     // bộ áp dụng ném lỗi ⇒ cả tx lùi, SG- vẫn proposed
-    const sg3 = w.write(o, 'suggestion.create', { target_kind: 'channel_brand', diff: { brand: { a: 1 } } });
+    const sg3 = w.write(o, 'suggestion.create', { target_kind: 'test_brand_kind', diff: { brand: { a: 1 } } });
     w.db.run("DELETE FROM settings WHERE key='brand_applied'");
     w.db.raw.exec("CREATE TRIGGER tr_x BEFORE INSERT ON settings WHEN NEW.key='brand_applied' BEGIN SELECT RAISE(ABORT,'x'); END");
     assert.throws(() => w.write(o, 'suggestion.apply', { suggestion: sg3.display_id }));
