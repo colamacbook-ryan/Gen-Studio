@@ -29,6 +29,12 @@ export function fieldList(row, columns) {
   return box;
 }
 
+// Ô truy vấn ban đầu: `?q=` trong route (Tổng quan ↗ mở lưới đã lọc, vd #/work-orders?q=state:open) thắng cfg.q; rỗng ⇒ cfg.q ⇒ ''.
+export function initialQuery(ctx, cfg) {
+  const rq = ctx && ctx.route && ctx.route.query && ctx.route.query.q;
+  return typeof rq === 'string' && rq.trim() ? rq.trim() : (cfg && cfg.q) || '';
+}
+
 // cfg: {grid, title, desc, empty, actions(ctx, grid)→nodes, inspector(row, ctx, reload)→node, onOpen(row, ctx), q}
 export function gridView(cfg) {
   return function mount(container, ctx, tabsEl) {
@@ -43,7 +49,7 @@ export function gridView(cfg) {
         cfg.inspector ? cfg.inspector(row, ctx, () => grid.reload(), grid.getColumns()) : fieldList(row, grid.getColumns()));
     };
     grid = createDataGrid({
-      name: cfg.grid, q: cfg.q, emptyText: cfg.empty ? t(cfg.empty) : undefined, selectedId: ctx.route.id,
+      name: cfg.grid, q: initialQuery(ctx, cfg), emptyText: cfg.empty ? t(cfg.empty) : undefined, selectedId: ctx.route.id,
       onSelect: showRow, onOpen: cfg.onOpen ? (row) => cfg.onOpen(row, ctx) : undefined,
       extra: cfg.actions ? cfg.actions(ctx, () => grid.reload()) : [],
     });

@@ -8,7 +8,17 @@ import { skeleton, errorBanner, badge } from '../components/states.js';
 import { buildHash, fmtTc, fmtClock, lineAt, toText, statusTone } from '../components/util.js';
 import { termSpans } from './lessons.js';
 
-const GATE_ORDER = ['G-WAV', 'G-SCRIPT', 'G-PRON', 'G-LOUD', 'G-SYNC', 'G-MOTION', 'G-FRAMES', 'G-MUX'];
+// Làn tuỳ chọn của bàn dựng (SPEC-0.2.0 §13.2, P0b mở móc): mỗi tên N ở đây ứng với studio/views/review-lanes/N.js, export
+//   lane(env) → { key, label, draw(env, track) } | null   (env: plan, lines, beats, cues, castName, pct(ms), total(), seekMs(ms), addBlock(track, key, a_ms, b_ms, label, title, cls, row), h, clear, t)
+// Thiếu file (gói chưa có) ⇒ import lỗi ⇒ bỏ qua êm, không làm hỏng Phòng chiếu. Danh sách cổng KHÔNG hardcode: lấy theo thứ tự API trả về (GATES theo loại bài).
+const OPTIONAL_LANES = ['cursor'];
+async function loadLaneModules() {
+  const out = [];
+  for (const name of OPTIONAL_LANES) {
+    try { const m = await import('./review-lanes/' + name + '.js'); if (m && typeof m.lane === 'function') out.push(m); } catch (e) { /* chưa có làn này */ }
+  }
+  return out;
+}
 
 // Số đo cổng → một dòng người đọc được (không bao giờ đổ JSON thô ra giao diện)
 const num = (x, d = 1) => (typeof x === 'number' && isFinite(x) ? x.toFixed(d).replace(/\.0+$/, '') : '—');
@@ -119,7 +129,17 @@ function build(root, id, data, ctx) {
     cues.forEach((c, i) => addBlock(laneSfx, 'C:' + i, c.t_ms, c.t_ms + 150, '', toText(c.name) + ' @' + fmtTc(c.t_ms), 'sfx', 0));
     const allPass = gates.length && gates.every((g) => g.result === 'pass');
     laneGate.append(h('div', { class: 'gate-strip tone-' + (allPass ? 'ok' : gates.some((g) => g.result === 'fail') ? 'danger' : 'warn'), title: t('room.gates') }));
+    drawExtraLanes();
     paintSel();
+  }
+  // ---- làn tuỳ chọn (review-lanes/*.js) ----
+  const extraLanes = [];
+  const laneEnv = () => ({ plan, lines, beats, cues, castName, pct, total, seekMs, addBlock, h, clear, t });
+  function drawExtraLanes() {
+    for (const l of extraLanes) {
+      clear(l.track);
+      try { if (l.draw) l.draw(laneEnv(), l.track); } catch (e) { console.error('làn ' + l.key, e); }
+    }
   }
   const seekFromEvent = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -159,7 +179,7 @@ function build(root, id, data, ctx) {
 
   // ---- bảng cổng ----
   const gateByName = new Map(gates.map((g) => [g.gate, g]));
-  const gateNames = GATE_ORDER.filter((n) => gateByName.has(n)).concat(gates.map((g) => g.gate).filter((n) => !GATE_ORDER.includes(n)));
+  const gateNames = gates.map((g) => g.gate);   // đúng thứ tự máy chủ trả (cổng áp cho loại bài)
   const passN = gates.filter((g) => g.result === 'pass').length;
   const gatePanel = h('section', { class: 'panel' }, h('div', { class: 'micro' }, t('room.gates') + ' · ' + passN + '/' + gates.length),
     gateNames.length ? h('div', { class: 'gate-table', role: 'table' }, gateNames.map((n) => {
@@ -284,5 +304,17 @@ function build(root, id, data, ctx) {
     h('aside', { class: 'theater-right' }, gatePanel, notesPanel, h('div', { class: 'decide-bar' }, decideBtn)),
     dockRail));
   drawTimeline(); drawNotes(); paint();
+  loadLaneModules().then((mods) => {
+    if (!root.isConnected && !timeline.isConnected) return;
+    for (const m of mods) {
+      let l = null;
+      try { l = m.lane(laneEnv()); } catch (e) { console.error('review-lane', e); }
+      if (!l || !l.key) continue;
+      const trk = track('x-' + l.key); trk.addEventListener('click', seekFromEvent);
+      timeline.insertBefore(h('div', { class: 'lane l-' + l.key }, h('div', { class: 'lane-label micro' }, toText(l.label || l.key)), trk), timeline.querySelector('.playhead-wrap'));
+      extraLanes.push({ key: l.key, track: trk, draw: l.draw });
+    }
+    drawExtraLanes(); paintSel();
+  });
   return disposers;
 }

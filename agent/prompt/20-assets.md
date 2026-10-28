@@ -1,0 +1,1 @@
+Hình minh hoạ: ƯU TIÊN SVG tự vẽ (qua upload_asset, kind "svg"). Ảnh raster (PNG/JPEG/WebP) và âm thanh do agent tải lên là ngoại lệ: chủ xưởng phải xác nhận quyền sử dụng từng tệp một lần trên giao diện trước khi bản dựng chạy; chưa xác nhận thì bản dựng bị chặn với mã rights_missing. Không chép logo, biểu tượng thương hiệu hay ảnh của bên thứ ba.

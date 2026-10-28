@@ -52,6 +52,7 @@ async function loadView(route) {
     case 'channels': return lists.channels;
     case 'curriculum': return lists.curriculum;
     case 'assets': return lists.assets;
+    case 'cast': return (await import('./views/cast.js')).mount;   // stub P0b; UI-L1 thay bằng màn Nhân vật thật
     case 'audit': return lists.audit;
     case 'setup': return (await import('./views/setup.js')).mount;
     case 'login': return (await import('./views/login.js')).mount;
