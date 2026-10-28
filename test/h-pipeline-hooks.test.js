@@ -159,8 +159,8 @@ test('pipeline: brand → plan.style.brand + manifest.brand_hash (đổi brand �
     e.write(o, 'channel.update', { channel: b.ch.display_id, data: { brand: { tokens: { paper: '#FFFFFF' } } } });
     const r1 = await run(e, lessonBody(b));
     assert.equal(r1.state, 'awaiting_review', JSON.stringify(r1.blocked_reason));
-    assert.match(r1.manifest.brand_hash, /^[0-9a-f]{16}$/); assert.deepEqual(e.calls.renderPlan[0].brand.tokens, { paper: '#FFFFFF' });
-    e.write(o, 'channel.update', { channel: b.ch.display_id, data: { brand: { tokens: { paper: '#000000' } } } });
+    assert.match(r1.manifest.brand_hash, /^[0-9a-f]{16}$/); assert.equal(e.calls.renderPlan[0].brand.tokens.paper, '#FFFFFF');   // gói B: brand đã chuẩn hoá (đủ token theo preset)
+    e.write(o, 'channel.update', { channel: b.ch.display_id, data: { brand: { tokens: { paper: '#EEF7EE' } } } });   // phải đủ tương phản (gói B kiểm khi lưu)
     const r2 = await run(e, lessonBody(b, { title: 'B2' }));
     assert.notEqual(r2.manifest.brand_hash, r1.manifest.brand_hash);
     // approved_version: v1 chốt, v2 là bản nháp mới ⇒ bản dựng dùng v1; chưa chốt ⇒ bản hiện hành
