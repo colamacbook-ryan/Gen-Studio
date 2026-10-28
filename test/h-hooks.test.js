@@ -65,7 +65,7 @@ test('server/ops/*: 6 module stub là no-op (không đăng ký op nào) và có 
   const dir = path.join(ROOT, 'server/ops');
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.js'));
   assert.deepEqual(files.sort(), ['brand.js', 'cast.js', 'overview.js', 'publish.js', 'thumb.js', 'tutorial.js']);
-  for (const f of files) {
+  for (const f of files.filter(x => x !== 'publish.js')) {   // publish.js: gói O đã thay stub bằng bản thật (test/g-overview.test.js)
     const m = require(path.join(dir, f));
     assert.equal(typeof m.register, 'function', f); assert.ok(m.OWNER, f + ' ghi rõ gói sở hữu');
     const calls = [];
@@ -73,7 +73,7 @@ test('server/ops/*: 6 module stub là no-op (không đăng ký op nào) và có 
     assert.deepEqual(calls, [], f + ' stub không được đăng ký op');
   }
   const t = tmpDb();   // writer thật: tập op = tập op lõi (không op nào đến từ stub)
-  assert.ok(t.write.ops.includes('lesson.submit') && !t.write.ops.some(n => /^(cast\.approve|cast\.retire|thumbnail\.|asset\.attest|render\.mark)/.test(n)));
+  assert.ok(t.write.ops.includes('lesson.submit') && !t.write.ops.some(n => /^(cast\.approve|cast\.retire|thumbnail\.|asset\.attest)/.test(n)));
   t.clean();
 });
 

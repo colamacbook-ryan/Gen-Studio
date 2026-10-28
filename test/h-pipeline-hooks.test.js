@@ -12,7 +12,7 @@ const dbm = require('../server/db');
 const pipeline = require('../server/pipeline.js');
 const events = require('../server/events.js');
 const { createWriter } = require('../server/write');
-const { basics, lessonBody, owner } = require('./a-helpers');
+const { basics, lessonBody, owner, agent } = require('./a-helpers');
 const realGates = require('../media/gates/index.js');
 
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
@@ -104,7 +104,7 @@ test('pipeline: bài có thumbnail ⇒ 9 cổng; CHỈ phương án đạt thàn
     const ex = pipeline.exportRender(e.ctx, e.db.get('SELECT * FROM renders WHERE id=?', r.id), { actor: owner(e.db), entry: 'ui' });
     assert.ok(ex.files.includes(r.display_id + '.cover.jpg') && ex.files.includes(r.display_id + '.cover-1920.jpg') && !ex.files.some(f => /cover\.png/.test(f)));
     assert.deepEqual(st.exportLog.map(x => [x.actor, x.entry]), [['user', 'ui']]);
-    pipeline.exportRender(e.ctx, e.db.get('SELECT * FROM renders WHERE id=?', r.id), { actor: { type: 'agent' }, entry: 'mcp' });
+    pipeline.exportRender(e.ctx, e.db.get('SELECT * FROM renders WHERE id=?', r.id), { actor: agent(['run']), entry: 'mcp' });
     assert.deepEqual(st.exportLog.map(x => x.entry), ['ui', 'mcp'], 'hook phân biệt owner UI và agent MCP');
   } finally { e.clean(); }
 });
