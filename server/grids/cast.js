@@ -9,11 +9,12 @@ const grid = {
   cols: {
     display_id: { label: 'ID', type: 'id', expr: 'cm.display_id', search: true },
     name: { label: 'Tên', type: 'text', expr: 'cm.name', search: true },
+    // 0.2.0 (SPEC §13.2/§3.7): draft | candidate | approved | retired (D0: #/cast?q=status:candidate) — ngay sau Tên (UI-INT, màn 1440)
+    status: { label: 'Trạng thái nhân vật', type: 'enum', expr: 'cm.status' },
     role_label: { label: 'Vai', type: 'text', expr: 'cm.role_label', search: true },
     channel: { label: 'Kênh', type: 'id', expr: 'ch.display_id' },
     version: { label: 'Version', type: 'num', expr: 'cm.current_version' },
-    // 0.2.0 (thêm sẵn, SPEC §13.2/§3.7): draft | candidate | approved | retired + bản đã chốt (D0: #/cast?q=status:candidate)
-    status: { label: 'Trạng thái nhân vật', type: 'enum', expr: 'cm.status' },
+    // bản đã chốt
     approved_version: { label: 'Bản đã chốt', type: 'num', expr: 'cm.approved_version' },
     approved_at: { label: 'Chốt lúc', type: 'date', expr: 'cm.approved_at' },
   },

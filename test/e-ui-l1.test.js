@@ -74,6 +74,9 @@ test('L1 HTTP: xem nhân vật, chốt (owner UI), đổi giọng ⇒ có thay �
     assert.equal((await t.api('POST', '/api/cast/CM-0002/retire', {})).status, 409, 'nghỉ rồi ⇒ xung đột');
     const sheet = await t.api('GET', '/api/cast/CM-0001/sheet?w=10');
     assert.equal(sheet.status, 400, 'w ngoài biên');
+    const cg = await t.api('GET', '/api/grid/cast');
+    assert.equal(cg.status, 200, cg.text);
+    assert.deepEqual(cg.json.columns.map((c) => c.key).slice(0, 3), ['display_id', 'name', 'status'], 'Trạng thái ngay sau Tên');
     const nf = await t.api('GET', '/api/cast/CM-9999');
     assert.equal(nf.status, 404);
   } finally { await t.clean(); }

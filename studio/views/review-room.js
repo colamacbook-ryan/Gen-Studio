@@ -7,7 +7,8 @@ import { get, post } from '../components/api.js';
 import { openDialog } from '../components/dialog.js';
 import { skeleton, errorBanner, badge } from '../components/states.js';
 import { buildHash, fmtTc, fmtClock, lineAt, toText } from '../components/util.js';
-import { termSpans, AspectUI } from './lessons.js';
+import { termSpans } from './lessons.js';
+import * as A from '../components/aspect.js';
 
 // Làn tuỳ chọn của bàn dựng (SPEC-0.2.0 §13.2, P0b mở móc): mỗi tên N ở đây ứng với studio/views/review-lanes/N.js, export
 //   lane(env) → { key, label, draw(env, track) } | null   (env: plan, lines, beats, cues, gates, castName, pct(ms), total(), seekMs(ms), addBlock(track, key, a_ms, b_ms, label, title, cls, row), h, clear, t)
@@ -68,7 +69,7 @@ export function measureText(m, gate) {
 export function safeItemText(v) {
   const bits = [tOr('rv.safe.rule.' + toText(v.rule), toText(v.rule))];
   if (v.rule === 'S6') {
-    if (v.preset) bits.push(t('rv.safe.dur_max', { d: num(v.duration_s), p: tOr('lsn.asp.preset.' + v.preset, v.preset), m: v.max_s }));
+    if (v.preset) bits.push(t('rv.safe.dur_max', { d: num(v.duration_s), p: A.presetLabel(v.preset), m: v.max_s }));
     else if (Array.isArray(v.target_s)) bits.push(t('rv.safe.dur_target', { d: num(v.duration_s), a: v.target_s[0], b: v.target_s[1] }));
     return bits.join(' · ');
   }
@@ -194,9 +195,9 @@ function build(root, id, data, ctx) {
   const aspectInfo = h('div', { class: 'asp-info' + (portrait ? ' side' : '') });
   function drawAspectInfo() {
     clear(aspectInfo);
-    const def = catalog && AspectUI.def(catalog, aspect);
-    const chips = fit && Object.keys(fit).length && (portrait || Object.keys(fit).some((k) => fit[k] && fit[k].ok === false)) ? AspectUI.fitChips(fit, catalog) : null;
-    aspectInfo.append(h('div', { class: 'asp-row' }, AspectUI.badge(aspect), h('span', { class: 'mono muted small' }, t('rv.size', { w: FW, h: FH }))));
+    const def = catalog && A.aspectDef(catalog, aspect);
+    const chips = fit && Object.keys(fit).length && (portrait || Object.keys(fit).some((k) => fit[k] && fit[k].ok === false)) ? A.fitChips(fit) : null;
+    aspectInfo.append(h('div', { class: 'asp-row' }, A.aspectBadge(aspect), h('span', { class: 'mono muted small' }, t('rv.size', { w: FW, h: FH }))));
     if (chips) aspectInfo.append(h('div', { class: 'micro' }, t('rv.platforms')), chips);
     if (typeof media.cover_frame_ms === 'number') {
       aspectInfo.append(h('button', { type: 'button', class: 'linkish small', title: t('rv.cover_seek'), onclick: () => seekMs(media.cover_frame_ms) }, icon('image'), t('rv.cover_frame', { tc: fmtTc(media.cover_frame_ms) })));
@@ -530,7 +531,7 @@ function build(root, id, data, ctx) {
   const top = h('header', { class: 'theater-top' },
     h('nav', { class: 'crumb' }, h('a', { href: buildHash('review') }, t('nav.review')), h('span', { class: 'muted' }, ' › '), h('span', { class: 'mono' }, id)),
     lessonRef ? h('span', { class: 'tag mono' }, lessonRef + ver) : null,
-    AspectUI.badge(aspect),
+    A.aspectBadge(aspect),
     h('span', { class: 'spacer' }),
     h('span', { class: 'clock' }, icon('clock'), clock),
     h('a', { class: 'btn', href: buildHash('review') }, t('room.exit'), h('span', { class: 'mono kbd' }, 'Esc')));
@@ -543,13 +544,13 @@ function build(root, id, data, ctx) {
   drawTimeline(); drawNotes(); paint(); drawAspectInfo(); setTab('gates');
 
   // dữ liệu phụ (không chặn hiển thị): danh mục tỉ lệ (lớp phủ), trạng thái xuất/đăng + nhân vật, chữ ảnh bìa từ đặc tả bài
-  AspectUI.load().then((cat) => {
+  A.loadAspects().then((cat) => {
     if (!root.isConnected) return;
-    catalog = cat; const def = AspectUI.def(cat, aspect);
-    const ov = def && def.safe ? AspectUI.safeOverlay(def, { tier: 'both' }) : null;
+    catalog = cat; const def = A.aspectDef(cat, aspect);
+    const ov = def && def.safe ? A.safeOverlay(def, { tier: 'both' }) : null;
     if (ov) { overlayLayer.append(ov); overlayBtn.hidden = false; overlayBtn.title = t('rv.overlay_off'); }
     drawAspectInfo();
-  }).catch((e) => { if (root.isConnected) aspectInfo.append(errorBanner({ code: (e && e.code) || 'aspects', text_human: t('lsn.asp.err_load'), detail: e && (e.detail || e.message) })); });
+  }).catch((e) => { if (root.isConnected) aspectInfo.append(errorBanner({ code: (e && e.code) || 'aspects', text_human: t('aspect.err_load'), detail: e && (e.detail || e.message) })); });
   function loadRoom() {
     return get('/api/renders/' + encodeURIComponent(id) + '/room').then((x) => {
       if (!root.isConnected || !x) return;

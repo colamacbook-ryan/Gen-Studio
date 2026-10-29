@@ -42,4 +42,3 @@
 .sw-chip{display:inline-flex;align-items:center;gap:4px}
 .sw-chip i{width:14px;height:14px;border-radius:3px;border:1px solid var(--b2);display:inline-block}
 .sw-chip i.ref{background:repeating-linear-gradient(45deg,var(--raised) 0 3px,var(--b2) 3px 5px)}
-.cast-voice .asp-seg{align-self:flex-start}

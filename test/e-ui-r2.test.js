@@ -28,7 +28,7 @@ test('R2 measureText: G-SAFE (pass/fail/unknown theo fixture), G-THUMB, G-CURSOR
     assert.ok(s && !/[{}[\]"]/.test(s) && !/undefined|null/.test(s), s);
   }
   assert.match(safeItemText(caseOf('fail').measure.violations[3]), /chữ 20 px < 28 px/);
-  assert.match(safeItemText(caseOf('fail').measure.warnings[2]), /191 s > Shorts 180 s/);
+  assert.match(safeItemText(caseOf('fail').measure.warnings[2]), /191 s > YouTube Shorts 180 s/);
 });
 
 test('R2 khung theo tỉ lệ + chọn ảnh bìa: frameOf, pickedIndex (mã asset ↔ URL), bestIndex (bằng điểm ⇒ phương án trước)', async () => {

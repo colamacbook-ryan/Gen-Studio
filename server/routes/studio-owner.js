@@ -134,34 +134,52 @@ function register(add, rctx) {
       data, voice: isObj(data && data.voice) ? data.voice : null, versions, validation: validation(m, data), voices: voicesByVendor(),
     };
   });
+  // Bảng nhân vật dựng bằng Chromium (đắt): chống DoS bằng (1) w lượng tử hoá bậc 160 px ⇒ ≤ 11 cỡ; (2) cache 16 ảnh theo
+  // (nhân vật, version, version kênh, w); (3) gộp yêu cầu trùng đang dựng; (4) hạn tần suất dựng mới theo phiên (cache trúng không tính);
+  // (5) hàng renderStill FIFO ≤ 8 ⇒ 429. Ảnh gửi đi Cache-Control private, no-store.
   const sheetCache = new Map();
+  const sheetInflight = new Map();
+  const sheetLimiter = require('../auth.js').limiter();
+  const SHEET_PER_MIN = 12;
   add('GET', '/api/cast/:id/sheet', { sess: true }, async (c) => {
     const m = need('cast_members', c.params.id, 'nhân vật');
-    const w = c.url.searchParams.get('w') === null ? 1280 : Math.round(Number(c.url.searchParams.get('w')));
-    if (!Number.isFinite(w) || w < 320 || w > 1920) throw fail('invalid', 'w phải trong 320..1920.');
-    const ver = Number(c.url.searchParams.get('version')) || m.current_version;
+    const w0 = c.url.searchParams.get('w') === null ? 1280 : Math.round(Number(c.url.searchParams.get('w')));
+    if (!Number.isFinite(w0) || w0 < 320 || w0 > 1920) throw fail('invalid', 'w phải trong 320..1920.');
+    const w = Math.min(1920, Math.max(320, Math.round(w0 / 160) * 160));
+    const vq = c.url.searchParams.get('version');
+    const ver = vq === null || vq === '' ? m.current_version : Number(vq);
+    if (!Number.isInteger(ver) || ver < 1) throw fail('invalid', 'version phải là số nguyên ≥ 1.');
     const data = castData(m, ver);
     if (!data) throw fail('not_found', `Nhân vật ${m.display_id} không có v${ver}.`);
-    const key = [m.id, ver, w].join('|');
+    const ch = db.get('SELECT * FROM channels WHERE id=? AND workspace_id=?', m.channel_id, db.ws);
+    const key = [m.id, ver, ch ? ch.current_version : 0, w].join('|');
     let buf = sheetCache.get(key);
     if (!buf) {
-      const castLib = require('../../render/cast');
-      const lib = castLib.library();
-      const ch = db.get('SELECT * FROM channels WHERE id=?', m.channel_id);
-      const cd = ch ? chanData(ch) : {};
-      const brand = isObj(cd.brand) ? brandMod.normalize(cd) : null;
-      const payload = { cast: { [m.display_id]: data }, packs: lib.packs, parts: lib.parts, title: m.name + ' · v' + ver };
-      if (brand && brand.tokens) payload.brand = { tokens: { bg: brand.tokens.paper, ink: brand.tokens.ink, hl: brand.tokens.hl } };
-      let r;
-      try {
-        r = await require('../../render/still.js').renderStill({ mode: 'cast', payload, size: [w, Math.round(w * 9 / 16)], format: 'jpeg', quality: 82, assetRoot: config.dataDir, ffmpegPath: config.ffmpegPath, chromiumPath: config.chromiumPath });
-      } catch (e) {
-        if (e && e.code === 'still_queue_full') throw fail('rate_limited', e.message, { still: e.code });
-        throw fail('bad_gateway', 'Không dựng được bảng nhân vật.', { still: e && e.code, message: String(e && e.message || e).slice(0, 300) });
+      let job = sheetInflight.get(key);
+      if (!job) {
+        if (sheetLimiter.hit('sheet:' + c.sess.tokenHash, SHEET_PER_MIN, 60e3)) throw fail('rate_limited', 'Dựng bảng nhân vật quá nhiều lần trong một phút. Thử lại sau.');
+        job = (async () => {
+          const castLib = require('../../render/cast');
+          const lib = castLib.library();
+          const cd = ch ? chanData(ch) : {};
+          const brand = isObj(cd.brand) ? brandMod.normalize(cd) : null;
+          const payload = { cast: { [m.display_id]: data }, packs: lib.packs, parts: lib.parts, title: m.name + ' · v' + ver };
+          if (brand && brand.tokens) payload.brand = { tokens: { bg: brand.tokens.paper, ink: brand.tokens.ink, hl: brand.tokens.hl } };
+          let r;
+          try {
+            r = await require('../../render/still.js').renderStill({ mode: 'cast', payload, size: [w, Math.round(w * 9 / 16)], format: 'jpeg', quality: 82, assetRoot: config.dataDir, ffmpegPath: config.ffmpegPath, chromiumPath: config.chromiumPath });
+          } catch (e) {
+            if (e && e.code === 'still_queue_full') throw fail('rate_limited', e.message, { still: e.code });
+            throw fail('bad_gateway', 'Không dựng được bảng nhân vật.', { still: e && e.code, message: String(e && e.message || e).slice(0, 300) });
+          }
+          if (r.errors && r.errors.length) throw fail('bad_gateway', 'Dựng bảng nhân vật có lỗi trong sân khấu.', { errors: r.errors.slice(0, 5) });
+          sheetCache.set(key, r.buffer); while (sheetCache.size > 16) sheetCache.delete(sheetCache.keys().next().value);
+          return r.buffer;
+        })();
+        sheetInflight.set(key, job);
+        job.then(() => sheetInflight.delete(key), () => sheetInflight.delete(key));
       }
-      if (r.errors && r.errors.length) throw fail('bad_gateway', 'Dựng bảng nhân vật có lỗi trong sân khấu.', { errors: r.errors.slice(0, 5) });
-      buf = r.buffer;
-      sheetCache.set(key, buf); while (sheetCache.size > 16) sheetCache.delete(sheetCache.keys().next().value);
+      buf = await job;
     }
     c.res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Content-Length': buf.length, 'Cache-Control': 'private, no-store' });
     c.res.end(buf);

@@ -1,28 +1,20 @@
 // © 2026 Gen Labs — All rights reserved.
 // Chuỗi giao diện của gói UI-P2 (= UI-TUT) — Bài học: cột Loại/Tỉ lệ, nút "Tạo lệnh bản …", tab Màn hình & bước (views/lessons.js)
-// + bộ chuyển tỉ lệ dùng chung tạm thời (ADAPTER UI-0 trong views/lessons.js, khoá `lsn.asp.*` — khi gộp UI-0 chuyển sang `aspect.*` của studio/i18n/aspect.js).
+// Chữ tỉ lệ khung (badge, bộ chọn, lớp phủ, "Tạo lệnh bản …", lý do tutorial chỉ 16:9) dùng khoá `aspect.*` của studio/i18n/aspect.js.
 // vi và en CÙNG bộ khoá; khoá không trùng module khác. `lane.cursor`: nhãn làn Con trỏ của Phòng chiếu (gói U).
 export const vi = {
   'lane.cursor': 'Con trỏ',
-  // ---- ADAPTER UI-0 (tỉ lệ) ----
-  'lsn.asp.label': 'Tỉ lệ khung', 'lsn.asp.16x9': '16:9 · Video dài', 'lsn.asp.9x16': '9:16 · Clip ngắn',
-  'lsn.asp.err_load': 'Không tải được danh sách tỉ lệ',
-  'lsn.asp.preset.yt_long': 'YouTube dài', 'lsn.asp.preset.yt_shorts': 'Shorts', 'lsn.asp.preset.fb_reels': 'Reels', 'lsn.asp.preset.tiktok': 'TikTok',
-  'lsn.asp.fit.ok': 'vừa', 'lsn.asp.fit.over': 'quá {s}', 'lsn.asp.unverified': 'cần kiểm lại',
-  'lsn.asp.safe.hard': 'Vùng UI che chắc chắn', 'lsn.asp.safe.soft': 'Vùng nên tránh',
-  'lsn.asp.safe.top': 'Thanh trạng thái · tab', 'lsn.asp.safe.bottom': 'Caption · tên kênh · nhạc', 'lsn.asp.safe.right': 'Cột nút',
   // ---- lưới + Inspector ----
   'kind.lesson': 'Bài học', 'kind.tutorial': 'Hướng dẫn', 'lsn.variant.trailer': 'Trailer',
   'lsn.f.kind': 'Loại', 'lsn.f.all': 'Tất cả',
   'lsn.channel': 'Kênh', 'lsn.aspect_from_channel': 'theo kênh',
-  'lsn.make_other': 'Tạo lệnh bản {v}', 'lsn.make_title': 'Tạo lệnh sản xuất bản {v}',
+  'lsn.make_title': 'Tạo lệnh sản xuất bản {v}',
   'lsn.make_hint': 'Agent soạn lại «{title}» cho khung {v} ({w}×{h}). Bài gốc giữ nguyên; bản mới đi qua đủ cổng như mọi bài.',
   'lsn.make_brief_label': 'Lời giao việc cho agent',
   'lsn.make_brief': 'Làm bản {v} của {id} «{title}». Giữ ý chính, chữ và khối trong vùng an toàn của khung {v}.',
   'lsn.make_target': ' Thời lượng nên trong {a}–{b} giây.',
   'lsn.make_submit': 'Tạo lệnh', 'lsn.make_done': 'Đã tạo lệnh {id} — agent nhận ở lượt kế tiếp.',
   'lsn.make_owner_only': 'Chỉ chủ xưởng tạo được lệnh sản xuất.',
-  'lsn.tutorial_blocked': 'Bài hướng dẫn (tutorial/trailer) hiện chỉ dựng được khung 16:9. Bản dọc 9:16 cho hướng dẫn dự kiến ở 0.2.x. Hãy để tỉ lệ 16:9 cho bài này, hoặc làm bài thường (lesson) nếu cần clip dọc.',
   'lsn.tab.screens': 'Màn hình & bước', 'lsn.no_screens': 'Bài này chưa khai màn hình nào.',
   'lsn.screen.mock': 'Màn giả lập · {theme}', 'lsn.screen.asset': 'Ảnh chụp {id}',
   'lsn.screen.targets': '{n} đích', 'lsn.screen.redact': '{n} vùng che', 'lsn.screen.size': '{w}×{h}',
@@ -32,23 +24,16 @@ export const vi = {
 };
 export const en = {
   'lane.cursor': 'Cursor',
-  'lsn.asp.label': 'Aspect ratio', 'lsn.asp.16x9': '16:9 · Long video', 'lsn.asp.9x16': '9:16 · Short clip',
-  'lsn.asp.err_load': 'Could not load the aspect list',
-  'lsn.asp.preset.yt_long': 'YouTube long', 'lsn.asp.preset.yt_shorts': 'Shorts', 'lsn.asp.preset.fb_reels': 'Reels', 'lsn.asp.preset.tiktok': 'TikTok',
-  'lsn.asp.fit.ok': 'fits', 'lsn.asp.fit.over': 'over {s}', 'lsn.asp.unverified': 'needs re-check',
-  'lsn.asp.safe.hard': 'Always covered by platform UI', 'lsn.asp.safe.soft': 'Better to avoid',
-  'lsn.asp.safe.top': 'Status bar · tabs', 'lsn.asp.safe.bottom': 'Caption · channel · music', 'lsn.asp.safe.right': 'Button column',
   'kind.lesson': 'Lesson', 'kind.tutorial': 'Tutorial', 'lsn.variant.trailer': 'Trailer',
   'lsn.f.kind': 'Type', 'lsn.f.all': 'All',
   'lsn.channel': 'Channel', 'lsn.aspect_from_channel': 'from channel',
-  'lsn.make_other': 'Order a {v} version', 'lsn.make_title': 'New production order · {v} version',
+  'lsn.make_title': 'New production order · {v} version',
   'lsn.make_hint': 'The agent rewrites «{title}» for a {v} frame ({w}×{h}). The original lesson stays as is; the new version goes through every gate like any lesson.',
   'lsn.make_brief_label': 'Brief for the agent',
   'lsn.make_brief': 'Make a {v} version of {id} «{title}». Keep the key ideas; keep text and blocks inside the {v} safe area.',
   'lsn.make_target': ' Aim for {a}–{b} seconds.',
   'lsn.make_submit': 'Create order', 'lsn.make_done': 'Order {id} created — the agent picks it up on its next round.',
   'lsn.make_owner_only': 'Only the studio owner can create production orders.',
-  'lsn.tutorial_blocked': 'Tutorials (tutorial/trailer) can only be rendered in 16:9 for now. A vertical 9:16 tutorial is planned for 0.2.x. Keep 16:9 for this lesson, or make a regular lesson if you need a vertical clip.',
   'lsn.tab.screens': 'Screens & steps', 'lsn.no_screens': 'This lesson declares no screens.',
   'lsn.screen.mock': 'Mock screen · {theme}', 'lsn.screen.asset': 'Screenshot {id}',
   'lsn.screen.targets': '{n} targets', 'lsn.screen.redact': '{n} redactions', 'lsn.screen.size': '{w}×{h}',

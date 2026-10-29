@@ -2,9 +2,10 @@
 // GSStill.cast(payload) → measures | Promise<measures> — chế độ `cast` của renderStill (SPEC-0.2.0 §3.9/§3.10, CNS-120). Gói K sở hữu file này.
 // Bảng nhân vật 1920×1080 dựng bằng ĐÚNG trang sân khấu + engine vendor (không harness riêng, §3.4.7): mỗi nhân vật một khối gồm 5 hướng nhìn,
 // 16 mood (bảng §3.6, mỗi ô là một tư thế động tác), lời thoại/gag; hàng dưới: bóng xám + bóng đen ở 64/32 px kèm số XOR, hai KOL cạnh nhau trên nền brand,
-// mock ảnh bìa (ô ảnh Ryan + KOL sidekick) và mặt cắt 168×94 của chính mock đó.
+// mock ảnh bìa (ô ảnh chủ kênh + KOL sidekick) và mặt cắt 168×94 của chính mock đó.
 // payload = { cast:{[id]:công thức}, packs?:[{json, outline}], parts?:[linh kiện → pack local.my], ink?:'#hex' (opts.ink của engine = brand.tokens.ink),
-//             outline?:{width,sticker} (mặc định theo gói), brand?:{tokens:{bg,ink,hl}}, title?, subtitle?, mock?:{title, sub},
+//             outline?:{width,sticker} (mặc định theo gói), brand?:{tokens:{bg,ink,hl}}, title?, subtitle?, mock?:{title, sub, host?, caption?},
+//             (mock.host = nhãn ô ảnh chủ kênh, mock.caption = tiêu đề ô mock; mặc định chữ chung — KHÔNG hardcode tên owner, INT-09)
 //             layout?:'sheet'|'solo', solo?:{id, state, director, t, x, scale} }.
 //   'solo' = đúng một nhân vật đặt như trên sân khấu (.hud > .actor) để so pixel với khung sân khấu cùng t (F1-9e).
 // measures = { mode:'cast', stub:false, chars:[{id,name,views,moods,svg_max}], masks:{'64':{w,h,chars:{[id]:base64 (1 byte/điểm, 0|1)}}, '32':{…}},
@@ -106,11 +107,11 @@
     var host = box(parent, x, y, Math.round(1280 * scale), Math.round(720 * scale), 'overflow:hidden;border-radius:' + Math.round(10 * scale * 3) + 'px');
     var inner = box(host, 0, 0, 1280, 720, 'transform-origin:0 0;transform:scale(' + scale + ');background:' + tk.bg + ';overflow:hidden');
     box(inner, 0, 0, 1280, 720, 'background:linear-gradient(120deg,' + tk.hl + ' 0 38%,transparent 38%)');
-    // ô ảnh Ryan (giữ chỗ: khung bo + hình người trung tính; ảnh thật do chủ xưởng đặt khi dựng ảnh bìa, §5)
+    // ô ảnh chủ kênh (giữ chỗ: khung bo + hình người trung tính; ảnh thật do chủ xưởng đặt khi dựng ảnh bìa, §5)
     var ph = box(inner, 40, 70, 480, 580, 'background:#E7E9F2;border:10px solid ' + tk.ink + ';border-radius:36px;overflow:hidden');
     ph.innerHTML = '<svg viewBox="0 0 100 120" style="width:100%;height:100%;display:block"><circle cx="50" cy="44" r="22" fill="#B9BFD3"/><path d="M12,120 C12,84 30,72 50,72 C70,72 88,84 88,120 Z" fill="#B9BFD3"/></svg>';
-    box(ph, 0, 520, 460, 50, 'display:flex;align-items:center;justify-content:center;font:800 34px/1 var(--f-display);color:' + tk.ink + ';letter-spacing:.04em', 'ẢNH RYAN');
     var mock = payload.mock || {};
+    box(ph, 0, 520, 460, 50, 'display:flex;align-items:center;justify-content:center;font:800 34px/1 var(--f-display);color:' + tk.ink + ';letter-spacing:.04em', esc(mock.host || 'ẢNH CHỦ KÊNH'));
     box(inner, 560, 50, 690, 200, 'font:900 90px/1.02 var(--f-display);color:' + tk.ink + ';-webkit-text-stroke:0;letter-spacing:-.02em', esc(mock.title || 'TIÊU ĐỀ MẪU'));
     box(inner, 560, 262, 690, 60, 'font:800 42px/1.1 var(--f-display);color:' + tk.ink + ';background:' + tk.hl + ';display:inline-block;padding:6px 18px;border-radius:14px;width:auto', esc(mock.sub || 'phụ đề mẫu'));
     var slots = [[540, 345], [880, 345]];
@@ -210,7 +211,7 @@
     chars.slice(0, 2).forEach(function (c, i) { box(duo, 12 + i * 200, 30, 206, bh - 36, '', setView(svgOf(c, i ? 'smug' : 'normal', i ? { facing: 'left' } : {}, 0.2, payload), VB.full)); });
     // mock ảnh bìa + mặt cắt 168×94
     var mk = box(page, 1070, by, 430, bh, 'background:#fff;border:3px solid #14121A;border-radius:18px;overflow:hidden');
-    box(mk, 12, 6, 400, 20, 'font:800 15px/20px var(--f-display)', 'Mock ảnh bìa 1280×720 · ô ảnh Ryan + KOL sidekick');
+    box(mk, 12, 6, 400, 20, 'font:800 15px/20px var(--f-display)', esc((payload.mock && payload.mock.caption) || 'Mock ảnh bìa 1280×720 · ô ảnh chủ kênh + KOL sidekick'));
     mockThumb(mk, 12, 34, 0.31, chars, payload, tk, VB.full);
     var cr = box(page, 1512, by, 396, bh, 'background:#fff;border:3px solid #14121A;border-radius:18px;overflow:hidden');
     box(cr, 12, 6, 370, 20, 'font:800 15px/20px var(--f-display)', 'Mặt cắt 168×94 (ảnh nhỏ trên điện thoại)');
@@ -241,7 +242,7 @@
     payload = payload || {};
     if (!payload.cast || !Object.keys(payload.cast).length) {   // không có nhân vật: giữ chỗ (như P0a)
       var r0 = document.getElementById('stage'); r0.innerHTML = '';
-      r0.appendChild(el('div', 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 64px sans-serif;color:#1D2A6E;background:#F6F7FC', 'still:cast' + (payload.label ? ' · ' + payload.label : '')));
+      r0.appendChild(el('div', 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 64px sans-serif;color:#1D2A6E;background:#F6F7FC', esc('still:cast' + (payload.label ? ' · ' + payload.label : ''))));
       return { mode: 'cast', stub: true };
     }
     var chars = register(payload, 'cast'), refs = payload.refs && Object.keys(payload.refs).length ? register(payload, 'refs') : [];

@@ -10,7 +10,7 @@ import { get, post, getCsrf } from '../../components/api.js';
 import { errorBanner, badge, skeleton } from '../../components/states.js';
 import { toText, fmtTc } from '../../components/util.js';
 import { fmtDateTime } from '../../components/datagrid.js';
-import { AspectUI } from '../lessons.js';
+import * as A from '../../components/aspect.js';
 
 const TOKEN_KEYS = ['paper', 'rule', 'rule_strong', 'margin', 'ink', 'ink_soft', 'hl', 'accent', 'accent2', 'leaf', 'card', 'en'];
 // (nền, chữ, token bị báo, ngưỡng, khoá nhãn) — cùng luật render/brand.js CONTRAST_RULES (máy chủ kiểm lại khi lưu)
@@ -84,7 +84,7 @@ export function mountEditor(host, opts) {
 
   async function load() {
     try {
-      const [d, c] = await Promise.all([get('/api/channels/' + encodeURIComponent(chId) + '/brand'), AspectUI.load().catch(() => null)]);
+      const [d, c] = await Promise.all([get('/api/channels/' + encodeURIComponent(chId) + '/brand'), A.loadAspects().catch(() => null)]);
       if (!alive) return;
       data = d; cat = c; saved = cleanBrand(d.normalized); draft = clone(saved);
       aspect = d.default_aspect || '16:9';
@@ -224,7 +224,7 @@ export function mountEditor(host, opts) {
       row(t('brand.lt.style'), seg('brand.lt.style', ['chip', 'bar', 'tag'], lt.style, t('brand.lt.style'), (v) => { lt.style = v; changed(); })),
       row(t('brand.lt.dur'), numIn(lt.duration_ms, 800, 6000, 100, (n) => { lt.duration_ms = n; }, t('brand.lt.dur'))),
       row(t('brand.lt.text'), text),
-      h('p', { class: 'note-vert small' }, AspectUI.badge('9:16'), h('span', null, t('brand.lt_off_vertical'))));
+      h('p', { class: 'note-vert small' }, A.aspectBadge('9:16'), h('span', null, t('brand.lt_off_vertical'))));
   }
   function subSec() {
     const s = draft.subtitle;
@@ -233,7 +233,7 @@ export function mountEditor(host, opts) {
       row(t('brand.sub.plate'), seg('brand.sub.plate', ['none', 'card'], s.plate, t('brand.sub.plate'), (v) => { s.plate = v; changed(); })),
       row(t('brand.sub.max'), numIn(s.max_chars_line, 20, 60, 1, (n) => { s.max_chars_line = n; }, t('brand.sub.max'))),
       row(t('brand.sub.pos'), seg('brand.sub.pos', ['bottom', 'top'], s.position, t('brand.sub.pos'), (v) => { s.position = v; changed(true); })),
-      s.position === 'top' ? h('p', { class: 'note-vert small' }, AspectUI.badge('9:16'), h('span', null, t('brand.sub.top_vertical'))) : null);
+      s.position === 'top' ? h('p', { class: 'note-vert small' }, A.aspectBadge('9:16'), h('span', null, t('brand.sub.top_vertical'))) : null);
   }
   function introSec() {
     const it = draft.intro, ou = draft.outro;
@@ -256,8 +256,8 @@ export function mountEditor(host, opts) {
   // ---- xem trước ----
   function previewCol() {
     pvStateEl = h('span', { class: 'muted small' });
-    const opts = ((cat && cat.aspects) || [{ id: '16:9' }, { id: '9:16' }]).filter((a) => a.enabled !== false).map((a) => ({ id: a.id }));
-    const picker = AspectUI.picker({ options: opts, value: aspect, label: t('brand.pv.aspect'), onChange: (v) => { aspect = v; drawPvGrid(); schedulePreview(0); } });
+    const aspects = cat && Array.isArray(cat.aspects) && cat.aspects.length ? cat : { aspects: [{ id: '16:9' }, { id: '9:16' }] };
+    const picker = A.aspectPicker({ aspects, value: aspect, presets: false, onChange: (v) => { if (!v) return; aspect = v; drawPvGrid(); schedulePreview(0); } });
     pvGrid = h('div', { class: 'pv-grid' });
     drawPvGrid();
     return h('aside', { class: 'brand-pv', 'aria-label': t('brand.pv.title') },
@@ -265,12 +265,12 @@ export function mountEditor(host, opts) {
   }
   function drawPvGrid() {
     clear(pvGrid);
-    const vert = AspectUI.portrait(aspect);
+    const vert = A.isVertical(aspect);
     pvGrid.className = 'pv-grid' + (vert ? ' vert' : '');
     for (const [v, tc] of VIEWS) {
       const img = h('img', { alt: t('brand.pv.' + v), hidden: !urls.get(v + '|' + aspect) });
       if (urls.get(v + '|' + aspect)) img.src = urls.get(v + '|' + aspect);
-      const frame = h('div', { class: 'pv-frame', style: { aspectRatio: AspectUI.ratioCss(aspect) } }, img, h('i', { class: 'pv-bar', 'aria-hidden': 'true' }));
+      const frame = h('div', { class: 'pv-frame', style: { aspectRatio: A.aspectRatioCss(aspect) } }, img, h('i', { class: 'pv-bar', 'aria-hidden': 'true' }));
       const err = h('div', { class: 'pv-err' });
       pvBoxes[v] = { frame, img, err };
       pvGrid.append(h('figure', { class: 'pv-item' }, frame, h('figcaption', { class: 'small' }, h('span', null, t('brand.pv.' + v)), tc != null ? h('span', { class: 'mono muted' }, t('brand.pv.tc', { tc: fmtTc(tc) })) : null), err));
@@ -285,7 +285,7 @@ export function mountEditor(host, opts) {
     if (!alive || !data) return;
     if (pvAbort) pvAbort.abort();
     const ac = new AbortController(); pvAbort = ac; const seq = ++pvSeq;
-    const asp = aspect, vert = AspectUI.portrait(asp);
+    const asp = aspect, vert = A.isVertical(asp);
     const body = (view) => ({ mode: 'brand', channel: chId, view, aspect: asp, w: vert ? 360 : 640, brand: draft });
     pvStateEl.textContent = dirty() ? t('brand.pv.draft') : t('brand.pv.saved');
     // tuần tự để không dồn hàng still (FIFO ≤ 8 của máy chủ)

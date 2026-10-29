@@ -64,14 +64,14 @@ function voiceTab(d, reload, isOwner) {
   if (!providers.length) { box.append(h('p', { class: 'muted small' }, t('cast.voice.no_provider'))); return box; }
   let prov = providers.includes(cur.provider) ? cur.provider : providers[0];
   let pick = cur.provider === prov ? toText(cur.voice) : '';
-  const seg = h('div', { class: 'asp-seg', role: 'radiogroup', 'aria-label': t('cast.voice.provider') });
+  const seg = h('div', { class: 'brand-seg', role: 'radiogroup', 'aria-label': t('cast.voice.provider') });
   const list = h('div', { class: 'voice-pick', role: 'radiogroup', 'aria-label': t('cast.voice.pick') });
   const note = h('p', { class: 'muted small' });
   const save = h('button', { type: 'button', class: 'btn', disabled: true }, t('cast.voice.save'));
   const err = h('div');
   const paint = () => {
     clear(seg); clear(list);
-    for (const p of providers) seg.append(h('button', { type: 'button', role: 'radio', class: 'asp-opt' + (p === prov ? ' on' : ''), 'aria-checked': p === prov ? 'true' : 'false', onclick: () => { prov = p; pick = cur.provider === p ? toText(cur.voice) : ''; paint(); } }, h('span', { class: 'vp-label' }, t('cast.voice.' + p))));
+    for (const p of providers) seg.append(h('button', { type: 'button', role: 'radio', class: 'seg-opt' + (p === prov ? ' on' : ''), 'aria-checked': p === prov ? 'true' : 'false', onclick: () => { prov = p; pick = cur.provider === p ? toText(cur.voice) : ''; paint(); } }, h('span', { class: 'vp-label' }, t('cast.voice.' + p))));
     const vs = voices[prov] || [];
     if (!vs.length) list.append(h('p', { class: 'muted small' }, t('cast.voice.empty')));
     for (const v of vs) {

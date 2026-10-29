@@ -12,7 +12,6 @@
 .theater-body.is-portrait .l-beat{height:36px}
 .ov-layer,.ov-mark{position:absolute;inset:0;pointer-events:none}
 .ov-layer svg{width:100%;height:100%;display:block}
-.safe-lab{fill:#ECEAE6;font:600 40px var(--sans);paint-order:stroke;stroke:rgba(8,8,10,.85);stroke-width:8px}
 .ov-box{position:absolute;border:2px solid var(--danger);box-shadow:0 0 0 9999px rgba(8,8,10,.35);border-radius:2px;animation:ovpulse .9s ease-out 2}
 @keyframes ovpulse{50%{border-color:var(--warn)}}
 .ov-btn.on{border-color:var(--ember);color:var(--ember);background:var(--ember-soft)}
@@ -21,9 +20,10 @@
 .asp-info{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;width:100%;max-width:1000px;font-size:12px}
 .asp-info.side{flex:0 0 240px;width:240px;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;padding:12px;border:1px solid var(--b1);border-radius:6px;background:var(--surface);align-self:center}
 .asp-row{display:flex;align-items:center;gap:8px}
+.asp-info.side .ar-fit{flex-direction:column;align-items:flex-start}
 .asp-legend{margin:0;line-height:1.5}
 .asp-legend .lg-hard,.asp-legend .lg-soft{display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:-1px;border-radius:2px}
-.asp-legend .lg-hard{background:repeating-linear-gradient(45deg,rgba(229,96,77,.55) 0 3px,rgba(229,96,77,.2) 3px 6px)}
+.asp-legend .lg-hard{background:rgba(229,96,77,.16);border:1.5px dashed var(--danger)}
 .asp-legend .lg-soft{border:1.5px dashed var(--warn);margin-right:8px}
 .linkish{background:none;border:0;padding:0;color:var(--ember);display:inline-flex;align-items:center;gap:4px;cursor:pointer;font:inherit}
 .linkish:hover{color:#F2B85C;text-decoration:underline}
