@@ -2,9 +2,9 @@
 // Gói T — tool MCP ảnh bìa (SPEC-0.2.0 §5.6). Chọn ảnh bìa KHÔNG có tool (chỉ owner trên UI, §10 — op thumbnail.pick).
 //   propose_thumbnail_text {lesson | title+lines+beats}  — KHÔNG gọi LLM (agent tự nghĩ chữ): trả khung gợi ý TẤT ĐỊNH từ dữ liệu bài (thuật ngữ chính, nhịp concept-chip/stamp/takeaway,
 //                                                          giới hạn độ dài, 3 khuôn câu "X là gì?" · "Đừng … nếu chưa biết X" · "Sự thật về X" đã điền thuật ngữ + đếm từ). Agent chọn/viết lại rồi gửi trong `thumbnail`.
-//   capabilities → get_capabilities.thumbnail = { templates, rules, owner_faces }
+//   capabilities → get_capabilities.thumbnail = { templates (16:9, mỗi mẫu kèm aspect/canvas), templates_by_aspect, rules (+ by_aspect), owner_faces }
 //   preview_thumbnail {lesson, version?, variant? | spec?}  — xem trước MỘT phương án ảnh bìa: JPEG 640×360 (≤ 200 KB) + số đo G-THUMB của phương án đó (SPEC §5.6). Dựng qua renderStill (hàng đợi still dùng chung, CNS-106),
-//                                                          giới hạn 6 lần/phút/agent. (render_still mode:'thumb' nhận đặc tả đã phân giải; tool này phân giải từ bài + kênh giúp agent.)
+//                                                          giới hạn 6 lần/phút/agent. F7: mẫu dọc ⇒ ảnh 360×640 (cạnh dài 640), dựng 1080×1920 (renderStill phải cho cao > 1080 — gói A2). (render_still mode:'thumb' nhận đặc tả đã phân giải; tool này phân giải từ bài + kênh giúp agent.)
 'use strict';
 const fs = require('node:fs');
 const os = require('node:os');
@@ -19,10 +19,12 @@ const RATE_MAX = 6, RATE_WINDOW_MS = 60e3, PREVIEW_MAX_BYTES = 200 * 1024;
 
 function templateInfo(t) {
   const h = t.boxes.headline;
-  return { id: t.id, version: t.version, label: t.label, has_sidekick: !!t.boxes.sidekick, headline: { width_px: h.w, lines_max: h.lines_max, font_px_min: h.font_px_min }, brand_corner: t.boxes.brand.corner };
+  const cv = T.canvasOf(t);
+  return { id: t.id, version: t.version, label: t.label, aspect: T.aspectOf(t), canvas: cv, has_sidekick: !!t.boxes.sidekick, headline: { width_px: h.w, lines_max: h.lines_max, font_px_min: h.font_px_min }, brand_corner: t.boxes.brand.corner };
 }
 const rules = () => ({ words_max: T.RULES.words_max, chars_max: T.RULES.chars_max, lines_max: T.RULES.lines_max, kicker_words_max: T.RULES.kicker_words_max, kicker_chars_max: T.RULES.kicker_chars_max,
-  variants: [T.RULES.variants_min, T.RULES.variants_max], moods: T.MOODS.slice(), contrast_min: T.RULES.contrast_min, font_px_min: T.RULES.font_px_min });
+  variants: [T.RULES.variants_min, T.RULES.variants_max], moods: T.MOODS.slice(), contrast_min: T.RULES.contrast_min, font_px_min: T.RULES.font_px_min,
+  by_aspect: Object.fromEntries(Object.keys(T.RULES.by_aspect).map((a) => { const R = T.rulesFor(a); return [a, { sizes: R.sizes, lines_max: R.lines_max, font_px_min: R.font_px_min, margin: R.margin, crop: R.crop }]; })) });
 
 function tools(ctx) {
   const { db, S, N, O, arr, fail, need, chanData } = kit(ctx);
@@ -51,17 +53,18 @@ function tools(ctx) {
           + `\nGiới hạn: ≤ ${r.limits.words_max} từ, ≤ ${r.limits.chars_max} ký tự, ≤ ${r.limits.lines_max} dòng; nhấn tối đa 1 từ (highlight); mood ∈ ${r.limits.moods.join(' | ')}.`;
         return { text, data: r };
       } },
-    { name: 'preview_thumbnail', scope: 'compose', description: `Xem trước MỘT phương án ảnh bìa của bài (lesson [+ version], variant = số thứ tự phương án bắt đầu từ 0; hoặc spec = một phương án chưa nộp): trả ảnh JPEG 640×360 + số đo G-THUMB (T1–T11) của phương án đó. Giới hạn ${RATE_MAX} lần/phút.`,
+    { name: 'preview_thumbnail', scope: 'compose', description: `Xem trước MỘT phương án ảnh bìa của bài (lesson [+ version], variant = số thứ tự phương án bắt đầu từ 0; hoặc spec = một phương án chưa nộp): trả ảnh JPEG 640×360 (mẫu dọc 360×640) + số đo G-THUMB (T1–T11) của phương án đó. Giới hạn ${RATE_MAX} lần/phút.`,
       schema: { lesson: S, version: N, variant: N, spec: O }, required: ['lesson'], handler: async (a, c) => {
         const pv = resolvePreview(db, a, { need, fail, chanData });
         if (limited(c.agent.id)) throw fail('rate_limited', `Xem trước ảnh bìa quá nhiều (tối đa ${RATE_MAX}/phút). Thử lại sau ít phút.`);
         const spec = pv.resolve();
         const still = (ctx.deps && ctx.deps.still) || require('../../render/still.js');
+        const asp = T.aspectOf(spec.template), R = T.rulesFor(asp), [fw, fh] = R.sizes[1], [sw, sh] = asp === '16:9' ? [640, 360] : [Math.round(640 * R.W / R.H), 640];   // dựng ở cỡ cạnh dài 1920; xem trước cạnh dài 640
         const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-thumb-prev-'));
         try {
           const payload = Object.assign({}, spec, { assetRefs: T.assetRefsOf([spec]) });
           const shot = async (extra, file) => {
-            try { return await still.renderStill({ mode: 'thumb', payload: Object.assign({}, payload, extra), size: [1920, 1080], format: 'png', outFile: file, assetRoot: ctx.config.dataDir, ffmpegPath: FF, chromiumPath: ctx.config.chromiumPath }); }
+            try { return await still.renderStill({ mode: 'thumb', payload: Object.assign({}, payload, extra), size: [fw, fh], format: 'png', outFile: file, assetRoot: ctx.config.dataDir, ffmpegPath: FF, chromiumPath: ctx.config.chromiumPath }); }
             catch (e) {
               if (e && ['still_queue_full', 'still_timeout'].includes(e.code)) throw fail(e.code === 'still_queue_full' ? 'rate_limited' : 'bad_gateway', e.message, { still: e.code });
               throw e;
@@ -69,11 +72,11 @@ function tools(ctx) {
           };
           const t1 = await shot({}, path.join(tmp, 't1.png')), t2 = await shot({ textOff: true }, path.join(tmp, 't1.notext.png'));
           const pngs = { png: path.join(tmp, 't1.png'), png_notext: path.join(tmp, 't1.notext.png'), jpg1280: path.join(tmp, 't1.1280.jpg'), jpg1920: path.join(tmp, 't1.1920.jpg') };
-          ff(['-v', 'error', '-y', '-i', pngs.png, '-vf', 'scale=1280:-2:flags=lanczos', '-q:v', '3', pngs.jpg1280], 'hạ 1280');
-          ff(['-v', 'error', '-y', '-i', pngs.png, '-vf', 'scale=1920:-2:flags=lanczos', '-q:v', '3', pngs.jpg1920], 'hạ 1920');
+          ff(['-v', 'error', '-y', '-i', pngs.png, '-vf', `scale=${R.sizes[0][0]}:${R.sizes[0][1]}:flags=lanczos`, '-q:v', '3', pngs.jpg1280], 'hạ 1280');
+          ff(['-v', 'error', '-y', '-i', pngs.png, '-vf', `scale=${fw}:${fh}:flags=lanczos`, '-q:v', '3', pngs.jpg1920], 'hạ 1920');
           const g = gateThumb({ variants: [{ index: 0, spec, measures: t1.measures, png: pngs.png, png_notext: pngs.png_notext, jpg1280: pngs.jpg1280, jpg1920: pngs.jpg1920 }], ffmpegPath: FF });
           const small = path.join(tmp, 'p.jpg');
-          for (const q of [5, 8, 12, 18]) { ff(['-v', 'error', '-y', '-i', pngs.png, '-vf', 'scale=640:360:flags=lanczos', '-q:v', String(q), small], 'dựng ảnh xem trước'); if (fs.statSync(small).size <= PREVIEW_MAX_BYTES) break; }
+          for (const q of [5, 8, 12, 18]) { ff(['-v', 'error', '-y', '-i', pngs.png, '-vf', `scale=${sw}:${sh}:flags=lanczos`, '-q:v', String(q), small], 'dựng ảnh xem trước'); if (fs.statSync(small).size <= PREVIEW_MAX_BYTES) break; }
           const buf = fs.readFileSync(small), v = g.measure.variants[0] || null;
           const errors = [].concat(t1.errors || [], t2.errors || []);
           const text = g.result === 'unknown' ? g.measure.text_human
@@ -87,7 +90,8 @@ function tools(ctx) {
 
 // get_capabilities.thumbnail: mẫu + quy cách; owner_faces = số ảnh mặt chủ kênh đã khai (0 ⇒ face.owner rơi về KOL host_lead)
 function capabilities(ctx, args) {
-  const out = { thumbnail: { templates: T.templates().map(templateInfo), rules: rules() } };
+  // `templates` = mẫu 16:9 (hợp đồng cũ, không đổi); mẫu của tỉ lệ khác nằm ở `templates_by_aspect` (cộng thêm).
+  const out = { thumbnail: { templates: T.templates().map(templateInfo), templates_by_aspect: Object.fromEntries(Object.keys(T.RULES.by_aspect).map((a) => [a, T.templatesOf(a).map(templateInfo)])), rules: rules() } };
   try {
     const { channelOf, chanData } = kit(ctx);
     const d = chanData(channelOf(args && args.channel));

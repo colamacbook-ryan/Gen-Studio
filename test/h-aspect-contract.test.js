@@ -102,9 +102,10 @@ test('list / get / token / presetsOf / fit / thumbSizes: đúng dữ liệu, tr�
   assert.equal(A.thumbSizes('1:1'), null);
 });
 
-test('thumbSupported: theo mẫu ảnh bìa cùng tỉ lệ (mẫu không khai aspect ⇒ 16:9); hiện chưa có mẫu dọc ⇒ 9:16 false (đường L-MID)', () => {
+test('thumbSupported: theo mẫu ảnh bìa cùng tỉ lệ (mẫu không khai aspect ⇒ 16:9); có mẫu dọc (A3: v-host-top, v-big-visual) ⇒ 9:16 true; gỡ mẫu dọc ⇒ false (đường L-MID)', () => {
   assert.equal(A.thumbSupported('16:9'), true);
-  assert.equal(A.thumbSupported('9:16'), false);
+  assert.equal(A.thumbSupported('9:16'), true, 'A3: render/thumbs/templates.json có mẫu dọc');
+  assert.equal(A.thumbSupported('9:16', [{ id: 'a' }]), false, 'chỉ mẫu cũ ⇒ L-MID');
   assert.equal(A.thumbSupported('9:16', [{ id: 'a' }, { id: 'v', aspect: '9:16' }]), true);
   assert.equal(A.thumbSupported('9:16', { templates: [{ id: 'v', aspect: '9:16' }] }), true);
   assert.equal(A.thumbSupported('16:9', [{ id: 'v', aspect: '9:16' }]), false);

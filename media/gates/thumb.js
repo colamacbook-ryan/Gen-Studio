@@ -1,7 +1,8 @@
 // © 2026 Gen Labs — All rights reserved.
 // Cổng G-THUMB (SPEC-0.2.0 §5.5, §5.7): đo ảnh bìa theo T1–T11. Áp khi bài có `thumbnail` (media/gates/index.js GATES).
 //   gateThumb({ variants, ffmpegPath }) → { gate:'G-THUMB', result:'pass'|'fail'|'unknown', measure:{ variants:[{index, pass, score, …}], passed:[…], text_human } }
-//   variants = renderPlan().thumbs = [{ index, spec, measures (DOM, toạ độ 1280), png, png_notext, jpg1280, jpg1920 }]
+//   variants = renderPlan().thumbs = [{ index, spec, measures (DOM, toạ độ canvas của mẫu), png, png_notext, jpg1280, jpg1920 }]
+// F7 §5.1/§6.1: khung đo = canvas của mẫu (16:9 ⇒ 1280×720; 9:16 ⇒ 1080×1920), T1 theo aspects.thumbSizes(aspect) — jpg1280/jpg1920 là ảnh có CẠNH DÀI 1280/1920.
 // Đo pixel bằng ffmpeg `-f rawvideo -pix_fmt rgb24` (giải mã chuẩn, không tự bọc — L-101). Mặt nạ chữ = pixel khác nhau (> 24/255) giữa bản CÓ chữ và KHÔNG chữ;
 // tương phản = luminance trung bình của pixel chữ so với cùng các pixel đó ở bản không chữ (WCAG: (L1 + 0,05) / (L2 + 0,05)).
 // `pass` ⇔ ≥ 1 phương án đạt toàn bộ T1–T11. Không đo được (thiếu tệp, ffmpeg lỗi) ⇒ `unknown` ⇒ chặn như mọi cổng (INT-08).
@@ -10,10 +11,10 @@ const fs = require('node:fs');
 const { spawnSync } = require('node:child_process');
 const T = require('../../render/thumb.js');
 
-const W = 1280, H = 720;
 
 // rgb24 W×H của một ảnh (hạ/phóng về 1280×720 bằng ffmpeg). Ném lỗi có mã nếu không giải được.
-function decodeRgb(file, ffmpegPath) {
+function decodeRgb(file, ffmpegPath, canvas) {
+  const [W, H] = canvas || [1280, 720];
   const r = spawnSync(ffmpegPath, ['-v', 'error', '-i', file, '-vf', `scale=${W}:${H}:flags=area`, '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', 'pipe:1'], { maxBuffer: 16 * 1024 * 1024 });
   if (r.error) throw Object.assign(new Error('không chạy được ffmpeg: ' + r.error.message), { code: 'ffmpeg_missing' });
   if (r.status !== 0 || !r.stdout || r.stdout.length !== W * H * 3) throw Object.assign(new Error('ffmpeg không giải được ' + file + ' (' + String(r.stderr || '').slice(0, 120) + ')'), { code: 'decode_failed' });
@@ -25,10 +26,11 @@ for (let i = 0; i < 256; i++) { const c = i / 255; LIN[i] = c <= 0.04045 ? c / 1
 const lum = (buf, o) => 0.2126 * LIN[buf[o]] + 0.7152 * LIN[buf[o + 1]] + 0.0722 * LIN[buf[o + 2]];
 
 // Tương phản chữ/nền từ hai ảnh (có chữ, không chữ) đã giải mã → { contrast|null, text_px }
-function contrastOf(withText, noText, threshold) {
+function contrastOf(withText, noText, threshold, canvas) {
+  const N = canvas ? canvas[0] * canvas[1] : 1280 * 720;
   const th = threshold == null ? T.RULES.mask_threshold : threshold;
   let n = 0, a = 0, b = 0;
-  for (let i = 0; i < W * H; i++) {
+  for (let i = 0; i < N; i++) {
     const o = i * 3;
     const d = Math.max(Math.abs(withText[o] - noText[o]), Math.abs(withText[o + 1] - noText[o + 1]), Math.abs(withText[o + 2] - noText[o + 2]));
     if (d > th) { n++; a += lum(withText, o); b += lum(noText, o); }
@@ -37,14 +39,15 @@ function contrastOf(withText, noText, threshold) {
   return { contrast: T.contrastOfLum(a / n, b / n), text_px: n };
 }
 // tỉ lệ pixel khác nhau (> ngưỡng ở ít nhất một kênh) giữa hai ảnh cùng cỡ
-function diffRatio(x, y, threshold) {
+function diffRatio(x, y, threshold, canvas) {
+  const N = canvas ? canvas[0] * canvas[1] : 1280 * 720;
   const th = threshold == null ? T.RULES.diff_threshold : threshold;
   let n = 0;
-  for (let i = 0; i < W * H; i++) {
+  for (let i = 0; i < N; i++) {
     const o = i * 3;
     if (Math.abs(x[o] - y[o]) > th || Math.abs(x[o + 1] - y[o + 1]) > th || Math.abs(x[o + 2] - y[o + 2]) > th) n++;
   }
-  return n / (W * H);
+  return n / N;
 }
 // cỡ ảnh JPEG từ SOF (đọc tiêu đề, không giải mã) → [w,h] | null
 function jpegSize(buf) {
@@ -74,14 +77,16 @@ function gateThumb(opts) {
       if (!v || !v.spec || !v.measures) throw new Error('phương án thiếu spec/số đo DOM');
       for (const k of ['png', 'png_notext', 'jpg1280', 'jpg1920']) if (!v[k] || !fs.existsSync(v[k])) throw new Error(`phương án ${v.index + 1} thiếu tệp ${k}`);
       const j1 = fs.readFileSync(v.jpg1280), j2 = fs.readFileSync(v.jpg1920);
-      const withText = decodeRgb(v.png, ffmpegPath), noText = decodeRgb(v.png_notext, ffmpegPath);
-      const c = contrastOf(withText, noText);
+      const cv = T.canvasOf(v.spec.template);
+      const withText = decodeRgb(v.png, ffmpegPath, cv), noText = decodeRgb(v.png_notext, ffmpegPath, cv);
+      const c = contrastOf(withText, noText, undefined, cv);
       specs.push(v.spec); doms.push(v.measures);
       pxs.push({ dim1280: jpegSize(j1), dim1920: jpegSize(j2), magic1280: isJpeg(j1), magic1920: isJpeg(j2), bytes1280: j1.length, bytes1920: j2.length, contrast: c.contrast, text_px: c.text_px, diffs: {} });
-      imgs.push(withText);
+      imgs.push({ rgb: withText, cv });
     }
     // T11: mọi cặp (j < i) — measure() chỉ phạt phương án sau nếu giống một phương án ĐÃ ĐẠT trước nó
-    for (let i = 0; i < imgs.length; i++) for (let j = 0; j < i; j++) pxs[i].diffs[specs[j].index] = diffRatio(imgs[i], imgs[j]);
+    // (hai phương án khác tỉ lệ không so được — vô nghĩa, bài chỉ có một tỉ lệ; bỏ qua cặp đó)
+    for (let i = 0; i < imgs.length; i++) for (let j = 0; j < i; j++) if (imgs[i].cv[0] === imgs[j].cv[0] && imgs[i].cv[1] === imgs[j].cv[1]) pxs[i].diffs[specs[j].index] = diffRatio(imgs[i].rgb, imgs[j].rgb, undefined, imgs[i].cv);
   } catch (e) {
     return unknown('Không đo được ảnh bìa: ' + e.message);
   }

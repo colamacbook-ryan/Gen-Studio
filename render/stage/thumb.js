@@ -1,14 +1,14 @@
 // © 2026 Gen Labs — All rights reserved.
 // Gói T (SPEC-0.2.0 §5.5): ảnh bìa trên trang sân khấu. Nạp SAU still.js, brand.js.
-//   GSThumb.render(spec) — dựng DOM TĨNH 1920×1080 (khung 1280×720 phóng 1,5): nền brand, mặt chính (ảnh chủ kênh <img> hoặc KOL Gen-Chibi), sidekick, một hình chủ đạo
+//   GSThumb.render(spec) — dựng DOM TĨNH theo CANVAS của mẫu (F7 §5.1: mặc định 1280×720 phóng 1,5 ⇒ 1920×1080; mẫu dọc canvas 1080×1920 phóng 1 ⇒ 1080×1920; hệ số = 1920 / cạnh dài canvas): nền brand, mặt chính (ảnh chủ kênh <img> hoặc KOL Gen-Chibi), sidekick, một hình chủ đạo
 //                          (khối của beat ở trạng thái đã lắng, hoặc một asset), tiêu đề tự co trong hộp (không nhỏ hơn font_px_min), nhãn phụ, dấu kênh.
-//                          Trả bbox từng phần (toạ độ 1280) + cỡ chữ thật + số dòng + độ cao đầu — render/thumb.js evaluateVariant đo T1–T11 từ đó.
+//                          Trả bbox từng phần (toạ độ canvas của mẫu) + cỡ chữ thật + số dòng + độ cao đầu — render/thumb.js evaluateVariant đo T1–T11 từ đó.
 //   GSThumb.textOff()    — ẩn lớp chữ (tiêu đề + nhãn phụ) để Node đo tương phản bằng hiệu hai ảnh (SPEC §5.5). GSStill.thumb(spec) hiểu spec.textOff === true: bố cục GIỮ NGUYÊN, chỉ ẩn chữ.
 // Tất định (F3-5): không ngẫu nhiên, không đồng hồ; nhân vật vẽ ở t = 0,9 s, khối ở trạng thái lắng. Ngân sách (L-42): 1 mặt chính + ≤ 1 sidekick + 1 khối + chữ (≤ 2 actor).
 (function () {
   'use strict';
   var GS = window.GSStill = window.GSStill || {};
-  var W = 1280, H = 720, SC = 1.5, CHAR_T = 0.9;
+  var W = 1280, H = 720, SC = 1.5, U = 1, CHAR_T = 0.9;   // W×H canvas, SC phóng ra ảnh, U = template.ui_scale (chữ phụ/logo/viền to hơn cho điện thoại) — đặt lại mỗi lần render
   var lastAssets = {};   // assetData của plan đã __load (renderPlan dựng ảnh bìa trong CÙNG phiên, spec không mang theo dữ liệu asset)
 
   // bắt assetData khi sân khấu nạp plan (không sửa stage.js)
@@ -24,13 +24,13 @@
     '.th-headline{display:flex;flex-direction:column;justify-content:center}',
     '.th-fit{font-weight:900;line-height:1.02;letter-spacing:-.025em;width:100%}',
     '.th-w{display:inline-block;white-space:pre}',
-    '.th-kick{display:inline-block;font-weight:900;font-size:30px;line-height:1.15;letter-spacing:.04em;text-transform:uppercase;padding:4px 16px;border-radius:10px;white-space:nowrap;transform:rotate(-1.5deg)}',
+    '.th-kick{display:inline-block;font-weight:900;font-size:calc(30px*var(--th-u,1));line-height:1.15;letter-spacing:.04em;text-transform:uppercase;padding:calc(4px*var(--th-u,1)) calc(16px*var(--th-u,1));border-radius:calc(10px*var(--th-u,1));white-space:nowrap;transform:rotate(-1.5deg)}',
     '.th-fig{position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden}',
-    '.th-sticker{filter:drop-shadow(5px 0 0 #fff) drop-shadow(-5px 0 0 #fff) drop-shadow(0 5px 0 #fff) drop-shadow(0 -5px 0 #fff) drop-shadow(0 14px 16px rgba(0,0,0,.38))}',
-    '.th-card{background:#fff;border:6px solid #fff;border-radius:18px;box-shadow:0 12px 26px rgba(0,0,0,.45);overflow:hidden}',
+    '.th-sticker{filter:drop-shadow(calc(5px*var(--th-u,1)) 0 0 #fff) drop-shadow(calc(-5px*var(--th-u,1)) 0 0 #fff) drop-shadow(0 calc(5px*var(--th-u,1)) 0 #fff) drop-shadow(0 calc(-5px*var(--th-u,1)) 0 #fff) drop-shadow(0 14px 16px rgba(0,0,0,.38))}',
+    '.th-card{background:#fff;border:calc(6px*var(--th-u,1)) solid #fff;border-radius:calc(18px*var(--th-u,1));box-shadow:0 12px 26px rgba(0,0,0,.45);overflow:hidden}',
     '.th-ph{border:5px dashed currentColor;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;text-align:center}',
     '.th-brand{display:flex;align-items:center;justify-content:center}',
-    '.th-bname{display:block;max-width:100%;padding:8px 14px;border-radius:12px;font-weight:900;font-size:26px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}'
+    '.th-bname{display:block;max-width:100%;padding:calc(8px*var(--th-u,1)) calc(14px*var(--th-u,1));border-radius:calc(12px*var(--th-u,1));font-weight:900;font-size:calc(26px*var(--th-u,1));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}'
   ].join('\n');
   function ensureCss() {
     if (document.getElementById('gs-thumb-css')) return;
@@ -94,7 +94,7 @@
     star.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '"><polygon points="' + starburst(fcx, fcy, sb, sb * 0.8, 14) + '" fill="' + P.burst + '" stroke="#fff" stroke-width="7" stroke-linejoin="round"/></svg>';
     root.appendChild(star);
     // dải chéo trang trí cạnh dưới (không phải chữ)
-    root.appendChild(el('div', 'th-abs', 'left:-40px;bottom:-30px;width:1360px;height:58px;background:' + P.burst + ';transform:rotate(-1.2deg);opacity:.9;'));
+    root.appendChild(el('div', 'th-abs', 'left:-40px;bottom:-30px;width:' + (W + 80) + 'px;height:' + Math.round(58 * U) + 'px;background:' + P.burst + ';transform:rotate(-1.2deg);opacity:.9;'));
   }
 
   // ---------- nhân vật Gen-Chibi ----------
@@ -140,7 +140,7 @@
     var frame = b.frame;
     if (frame) {   // khung bo/tròn: viền dày + nền tia nắng, mặt neo đáy trong khung
       var d = Math.min(b.w, b.h), fx = b.x + (b.w - (frame === 'circle' ? d : b.w)) / 2, fy = b.y + (b.h - (frame === 'circle' ? d : b.h)) / 2;
-      host.style.cssText = px({ x: fx, y: fy, w: frame === 'circle' ? d : b.w, h: frame === 'circle' ? d : b.h }) + 'border:10px solid #fff;box-shadow:0 14px 30px rgba(0,0,0,.45);overflow:hidden;background:' + P.burst + ';border-radius:' + (frame === 'circle' ? '50%' : '34px') + ';';
+      host.style.cssText = px({ x: fx, y: fy, w: frame === 'circle' ? d : b.w, h: frame === 'circle' ? d : b.h }) + 'border:' + 10 * U + 'px solid #fff;box-shadow:0 14px 30px rgba(0,0,0,.45);overflow:hidden;background:' + P.burst + ';border-radius:' + (frame === 'circle' ? '50%' : 34 * U + 'px') + ';';
     } else host.style.overflow = 'hidden';
     root.appendChild(host);
     var fig = el('div', 'th-fig'); host.appendChild(fig);
@@ -150,12 +150,12 @@
       img.src = assetUrl(spec, f.asset); fig.appendChild(img);
       M.pending.push(img.decode ? img.decode().catch(function () { console.error('thumb: ảnh mặt không giải mã được'); }) : Promise.resolve());
       M.after.push(function () {
-        var nw = img.naturalWidth, nh = img.naturalHeight, hb = rectOf(host), bw = hb.w - (frame ? 20 : 0), bh = hb.h - (frame ? 20 : 0);
+        var nw = img.naturalWidth, nh = img.naturalHeight, hb = rectOf(host), bw = hb.w - (frame ? 20 * U : 0), bh = hb.h - (frame ? 20 * U : 0);
         var s = Math.min(bw / nw, bh / nh), rw = nw * s, rh = nh * s;
-        M.face = { kind: 'owner', x: hb.x + (hb.w - rw) / 2, y: hb.y + hb.h - (frame ? 10 : 0) - rh, w: rw, h: rh, head_h: rh, alpha: hasAlpha(img), mood: f.mood, frame: frame || null };
+        M.face = { kind: 'owner', x: hb.x + (hb.w - rw) / 2, y: hb.y + hb.h - (frame ? 10 * U : 0) - rh, w: rw, h: rh, head_h: rh, alpha: hasAlpha(img), mood: f.mood, frame: frame || null };
       });
     } else if (f.kind === 'cast') {
-      fig.innerHTML = castSvg(spec, f.cast, f.state, VIEW_FACE, spec.brand.data);
+      fig.innerHTML = castSvg(spec, f.cast, f.state, b.view || VIEW_FACE, spec.brand.data);
       fig.firstChild.classList.add('th-sticker');
       M.after.push(function () {
         var hb = rectOf(host), hr = headRect(fig.firstChild), vr = rectOf(fig.firstChild), cl = clipTo(vr, hb);
@@ -172,7 +172,7 @@
     var sk = spec.sidekick; if (!sk) return;
     var b = spec.template.boxes.sidekick, P = spec.palette, frame = b.frame, d = Math.min(b.w, b.h);
     var fb = frame === 'circle' ? { x: b.x + (b.w - d) / 2, y: b.y + (b.h - d) / 2, w: d, h: d } : b;   // khung tròn nằm giữa hộp
-    var host = el('div', 'th-abs', px(fb) + 'overflow:hidden;' + (frame ? 'border:7px solid #fff;box-shadow:0 10px 22px rgba(0,0,0,.45);background:' + P.burst + ';border-radius:' + (frame === 'circle' ? '50%' : '24px') + ';' : ''));
+    var host = el('div', 'th-abs', px(fb) + 'overflow:hidden;' + (frame ? 'border:' + 7 * U + 'px solid #fff;box-shadow:0 10px 22px rgba(0,0,0,.45);background:' + P.burst + ';border-radius:' + (frame === 'circle' ? '50%' : 24 * U + 'px') + ';' : ''));
     var fig = el('div', 'th-fig');
     host.appendChild(fig); root.appendChild(host);
     fig.innerHTML = castSvg(spec, sk.cast, sk.state, frame ? VIEW_SIDE_FRAMED : VIEW_SIDE, spec.brand.data);
@@ -189,7 +189,7 @@
     var b = spec.template.boxes.visual, P = spec.palette;
     var cb = rotFit(b, 2.5), card = el('div', 'th-abs th-card', px(cb) + 'transform:rotate(-2.5deg);');
     root.appendChild(card);
-    var iw = cb.w - 12, ih = cb.h - 12;   // trong viền
+    var iw = cb.w - 12 * U, ih = cb.h - 12 * U;   // trong viền
     if (v.kind === 'asset') {
       var img = el('img', '', 'width:100%;height:100%;object-fit:contain;display:block;background:' + P.paper + ';');
       img.src = assetUrl(spec, v.asset); card.appendChild(img);
@@ -265,7 +265,9 @@
       img.src = assetUrl(spec, spec.brand.logo); box.appendChild(img); target = img;
       M.pending.push(img.decode ? img.decode().catch(function () { console.error('thumb: logo không giải mã được'); }) : Promise.resolve());
     } else if (spec.brand.name) {
-      var n = el('span', 'th-bname'); n.textContent = spec.brand.name; n.style.background = P.paper; n.style.color = P.ink; box.appendChild(n); target = n;
+      var n = el('span', 'th-bname'); n.textContent = spec.brand.name; n.style.background = P.paper;
+      // mẫu phóng chữ (dọc, ui_scale > 1) có hộp logo ≤ 12 % bề rộng ⇒ tên dài không vừa: dùng chữ cái đầu (tối đa 3) thay vì cắt "L…"; 16:9 giữ nguyên
+      if (U > 1) { box.appendChild(n); if (n.scrollWidth > n.clientWidth + 1) n.textContent = spec.brand.name.split(/\s+/).filter(Boolean).map(function (w) { return w.charAt(0); }).join('').slice(0, 3).toUpperCase(); box.removeChild(n); } n.style.color = P.ink; box.appendChild(n); target = n;
     } else {   // chưa có tên/logo: dấu hình thoi trung tính (không đặt tên kênh cứng — INT-09)
       var m = el('div', '', 'width:44px;height:44px;'); m.innerHTML = '<svg width="44" height="44" viewBox="0 0 44 44"><rect x="7" y="7" width="30" height="30" rx="6" transform="rotate(45 22 22)" fill="' + P.hlToken + '" stroke="#fff" stroke-width="4"/></svg>'; box.appendChild(m); target = m;
     }
@@ -276,10 +278,14 @@
   function render(spec) {
     if (!spec || !spec.template || !spec.template.boxes || !spec.palette) throw new Error('payload không phải đặc tả ảnh bìa đã phân giải (cần template, palette, face…): dùng render/thumb.js resolveThumbs hoặc tool preview_thumbnail.');
     ensureCss();
+    var cv = spec.template.canvas || [1280, 720];   // mẫu cũ không khai canvas ⇒ 1280×720 (16:9)
+    W = cv[0]; H = cv[1]; SC = 1920 / Math.max(W, H); U = spec.template.ui_scale || 1;
     if (spec.fontCss && !document.getElementById('gs-thumb-font')) { var fs0 = document.createElement('style'); fs0.id = 'gs-thumb-font'; fs0.textContent = spec.fontCss; document.head.appendChild(fs0); }
     var stage = document.getElementById('stage'); stage.innerHTML = '';
-    var root = el('div', 'th-root'); stage.appendChild(root);
-    var M = { pending: [], after: [], refit: [], mode: 'thumb', stub: false, template: spec.template.id, size: [W, H] };
+    // khung sân khấu theo canvas đã phóng (CSS mặc định 1920×1080; dọc 1080×1920 ⇒ ghi đè tại chỗ; 16:9 ⇒ bỏ ghi đè để không đổi gì)
+    if (H > W) { stage.style.width = Math.round(W * SC) + 'px'; stage.style.height = Math.round(H * SC) + 'px'; } else { stage.style.width = ''; stage.style.height = ''; }
+    var root = el('div', 'th-root', 'width:' + W + 'px;height:' + H + 'px;transform:scale(' + SC + ');transform-origin:0 0;--th-u:' + U + ';'); stage.appendChild(root);
+    var M = { pending: [], after: [], refit: [], mode: 'thumb', stub: false, template: spec.template.id, size: [W, H], aspect: spec.template.aspect || '16:9' };
     drawBg(root, spec);
     drawFace(root, spec, M);
     drawSidekick(root, spec, M);

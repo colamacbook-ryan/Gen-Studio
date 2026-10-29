@@ -1,6 +1,8 @@
 // © 2026 Gen Labs — All rights reserved.
 // Gói T (SPEC-0.2.0 §5): ảnh bìa. Thuần (không DOM), chạy Node. Quy cách T1–T11 là DỮ LIỆU ở một chỗ (RULES); mẫu là DỮ LIỆU ở render/thumbs/templates.json.
-//   RULES · MOODS · MOOD_STATE · templates() · template(id) · checkTemplate(t) — bộ kiểm T9 chạy NGAY LÚC NẠP mẫu (CNS-101): mẫu sai ⇒ ném lỗi khi require.
+//   RULES · MOODS · MOOD_STATE · templates(aspect?) · templatesOf(aspect) · template(id) · checkTemplate(t) — bộ kiểm T9 chạy NGAY LÚC NẠP mẫu (CNS-101): mẫu sai ⇒ ném lỗi khi require.
+//   F7 (SPEC-0.2.0-F7 §5.1): quy cách theo TỈ LỆ của mẫu — rulesFor(aspect) (RULES + phần ghi đè dọc, cùng một chỗ ở RULES.by_aspect), aspectOf(t) / canvasOf(t) suy ra lúc đọc (mẫu cũ không khai ⇒ 16:9, 1280×720).
+//   templates() không đối số = các mẫu 16:9 (giữ hợp đồng cũ); templatesOf('*') / templatesOf('9:16') cho phần còn lại.
 //   validateThumbnail(thumbnail, env) → [{path, text}]     — kiểm khô T3, T4, T5, T6 (+ T11 sớm) phía agent/ghi bài, không cần trình duyệt
 //   resolveThumbs(thumbnail, plan, ctx?) → specs[]            — đặc tả bài → phương án đã phân giải cho sân khấu (mỗi spec đưa thẳng vào __still('thumb', spec); renderPlan gọi 2 lần: có chữ / textOff)
 //   assetRefsOf(specs) → [{asset, label}]                     — asset mà các phương án cần (ảnh mặt, logo, hình chủ đạo) để pipeline kiểm quyền + nạp
@@ -10,10 +12,20 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { PlanError } = require('./engine/plan-error');
+const ASPECTS = require('./aspects.js');
 
+// Quy cách theo tỉ lệ (SPEC-0.2.0-F7 §5.1): chỉ GHI ĐÈ những khoá khác 16:9; T2, T4–T7, T10, T11 giữ nguyên.
+//   9:16: T1 720×1280 + 1080×1920 (cạnh dài 1280/1920); T3 ≤ 3 dòng; T8 ≥ 110 px ở bản 1080×1920; T9 lề 60 + trong phần giữa của lưới TikTok (`presets.tiktok.grid_crop`, 3:4 ⇒ 1080×1440, y 240→1680), không có dấu thời lượng.
+const VERTICAL = (() => {
+  const a = ASPECTS.get('9:16'), size = a ? a.size : [1080, 1920];
+  const pr = ASPECTS.presetsOf('9:16').find((p) => p.grid_crop), g = pr ? pr.grid_crop : null;   // [3,4] = rộng:cao của lưới
+  const ch = g ? Math.round(size[0] * g[1] / g[0]) : size[1];
+  return Object.freeze({ sizes: a ? a.thumb_sizes : [[720, 1280], [1080, 1920]], lines_max: 3, font_px_min: 110, margin: 60, no_go: Object.freeze([]), W: size[0], H: size[1],
+    crop: Object.freeze({ x: 0, y: Math.round((size[1] - ch) / 2), w: size[0], h: ch }) });
+})();
 // ---------- quy cách (T1–T11) — MỘT chỗ để đổi khi nền tảng đổi (SPEC §5.11) ----------
 const RULES = Object.freeze({
-  sizes: [[1280, 720], [1920, 1080]],     // T1
+  sizes: ASPECTS.thumbSizes('16:9'),      // T1 — MỘT nguồn: render/aspects.json thumb_sizes (CNS-337)
   max_bytes: 2 * 1024 * 1024,             // T2 (< 2 MB mỗi file) [CHƯA VERIFY giới hạn hiện hành của YouTube]
   words_max: 6, chars_max: 32, lines_max: 2,   // T3
   kicker_words_max: 2, kicker_chars_max: 14,   // T4
@@ -26,7 +38,23 @@ const RULES = Object.freeze({
   diff_min: 0.10, mask_threshold: 24, diff_threshold: 24,   // T11 + mặt nạ chữ
   variants_min: 2, variants_max: 3,
   W: 1280, H: 720,
+  crop: null,                             // phần giữa còn thấy sau khi nền tảng cắt lưới (16:9: không cắt)
+  by_aspect: Object.freeze({ '9:16': VERTICAL }),
 });
+const rulesCache = {};
+// RULES đã trộn theo tỉ lệ (16:9 ⇒ chính RULES, không đổi một byte hành vi cũ). Tỉ lệ lạ ⇒ ném lỗi rõ.
+function rulesFor(aspect) {
+  if (!aspect || aspect === '16:9') return RULES;
+  if (!rulesCache[aspect]) {
+    const o = RULES.by_aspect[aspect];
+    if (!o) throw new PlanError('thumb_aspect', `Ảnh bìa chưa có quy cách cho tỉ lệ "${aspect}".`, { aspect });
+    rulesCache[aspect] = Object.freeze(Object.assign({}, RULES, o, { aspect }));
+  }
+  return rulesCache[aspect];
+}
+const aspectOf = (t) => (t && t.aspect) || '16:9';
+const canvasOf = (t) => (t && Array.isArray(t.canvas) && t.canvas.length === 2 ? t.canvas.slice() : [1280, 720]);
+const rulesOf = (t) => rulesFor(aspectOf(t));
 const MOODS = ['shock', 'smug', 'greedy', 'angry', 'panic', 'sad', 'proud', 'vow', 'excited', 'think'];
 // mood của ảnh bìa → trạng thái Gen-Chibi (engine hiện có 18 trạng thái; gói K/V có thể thêm biến thể)
 const MOOD_STATE = Object.freeze({ shock: 'shock', smug: 'smug', greedy: 'greedy', angry: 'rage', panic: 'panic', sad: 'cry', proud: 'proud', vow: 'vow', excited: 'proud', think: 'think' });
@@ -47,30 +75,49 @@ function contrast(hexA, hexB) { const a = hexToRgb(hexA), b = hexToRgb(hexB); re
 const rect = (b) => ({ x: b.x, y: b.y, w: b.w, h: b.h });
 const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 // rect nằm trong vùng an toàn (lề m); `bleed` = các cạnh được miễn (chỉ hộp mặt)
-function insideSafe(r, m, bleed) {
-  const W = RULES.W, H = RULES.H, bl = bleed || [], e = 0.5;
-  return (bl.includes('left') || r.x >= m - e) && (bl.includes('top') || r.y >= m - e) && (bl.includes('right') || r.x + r.w <= W - m + e) && (bl.includes('bottom') || r.y + r.h <= H - m + e);
+// R = quy cách theo tỉ lệ (mặc định 16:9). Có R.crop (dọc): vùng an toàn = phần giữa của lưới TikTok thụt lề m; bleed trên/dưới KHÔNG được miễn (lưới cắt cạnh trên/dưới), trái/phải vẫn miễn.
+function safeBox(m, R) {
+  R = R || RULES;
+  const y0 = R.crop ? R.crop.y : 0, y1 = R.crop ? R.crop.y + R.crop.h : R.H;
+  return { x0: m, y0: y0 + m, x1: R.W - m, y1: y1 - m };
 }
-function cornerRect(corner, b) {
-  const m = RULES.margin, w = b.w, h = b.h;
-  return { x: corner === 'tr' || corner === 'br' ? RULES.W - m - w : m, y: corner === 'bl' || corner === 'br' ? RULES.H - m - h : m, w, h };
+function insideSafe(r, m, bleed, R) {
+  R = R || RULES;
+  const b = safeBox(m, R), bl = bleed || [], e = 0.5, tb = R.crop ? [] : bl;
+  return (bl.includes('left') || r.x >= b.x0 - e) && (tb.includes('top') || r.y >= b.y0 - e) && (bl.includes('right') || r.x + r.w <= b.x1 + e) && (tb.includes('bottom') || r.y + r.h <= b.y1 + e);
+}
+function cornerRect(corner, b, R) {
+  R = R || RULES;
+  const m = R.margin, w = b.w, h = b.h, s = safeBox(m, R);
+  return { x: corner === 'tr' || corner === 'br' ? R.W - m - w : m, y: corner === 'bl' || corner === 'br' ? s.y1 - h : s.y0, w, h };
 }
 // → [lỗi tiếng Việt]; rỗng = mẫu hợp lệ
 function checkTemplate(t) {
   const e = [], id = (t && t.id) || '?', B = (t && t.boxes) || {};
   if (!t || !/^[a-z0-9][a-z0-9-]*$/.test(t.id || '')) e.push('mẫu thiếu id hợp lệ');
+  // F7: tỉ lệ + canvas (mẫu cũ không khai ⇒ 16:9, 1280×720 — suy ra lúc đọc, KHÔNG ghi vào mẫu cũ)
+  let R = RULES;
+  if (t) {
+    if (t.aspect !== undefined && !RULES.by_aspect[t.aspect] && t.aspect !== '16:9') e.push(`${id}: tỉ lệ "${t.aspect}" chưa có quy cách ảnh bìa`);
+    else {
+      R = rulesOf(t);
+      const cv = canvasOf(t);
+      if (t.canvas !== undefined && !(Array.isArray(t.canvas) && cv[0] === R.W && cv[1] === R.H)) e.push(`${id}: canvas ${JSON.stringify(t.canvas)} không khớp tỉ lệ ${aspectOf(t)} (${R.W}×${R.H})`);
+    }
+  }
   for (const k of ['face', 'headline', 'kicker', 'visual', 'brand']) if (!B[k]) e.push(`${id}: thiếu hộp ${k}`);
   if (e.length) return e;
-  const m = (t.safe && t.safe.margin) || RULES.margin, nogo = (t.safe && t.safe.no_go) || [RULES.no_go];
-  if (m < RULES.margin) e.push(`${id}: lề ${m} < ${RULES.margin}`);
-  if (!nogo.some((z) => z.x === RULES.no_go.x && z.y === RULES.no_go.y && z.w >= RULES.no_go.w && z.h >= RULES.no_go.h)) e.push(`${id}: thiếu vùng cấm góc phải dưới ${RULES.no_go.w}×${RULES.no_go.h}`);
+  const m = (t.safe && t.safe.margin) || R.margin, nogo = (t.safe && t.safe.no_go) || (R.crop ? [] : [RULES.no_go]);
+  if (m < R.margin) e.push(`${id}: lề ${m} < ${R.margin}`);
+  if (!R.crop && !nogo.some((z) => z.x === RULES.no_go.x && z.y === RULES.no_go.y && z.w >= RULES.no_go.w && z.h >= RULES.no_go.h)) e.push(`${id}: thiếu vùng cấm góc phải dưới ${RULES.no_go.w}×${RULES.no_go.h}`);
   const named = ['face', 'sidekick', 'headline', 'kicker', 'visual', 'brand'].filter((k) => B[k]);
   for (const k of named) {
     const r = rect(B[k]), bleed = k === 'face' ? B[k].bleed || [] : [];
     if (![r.x, r.y, r.w, r.h].every(Number.isFinite) || r.w <= 0 || r.h <= 0) { e.push(`${id}.${k}: toạ độ không hợp lệ`); continue; }
     if (k !== 'face' && B[k].bleed) e.push(`${id}.${k}: chỉ hộp mặt được khai bleed (T9)`);
     for (const b of bleed) if (!['top', 'bottom', 'left', 'right'].includes(b)) e.push(`${id}.face: bleed "${b}" không hợp lệ`);
-    if (!insideSafe(r, m, bleed)) e.push(`${id}.${k}: ra ngoài lề ${m} px (T9)`);
+    if (R.crop && bleed.some((b) => b === 'top' || b === 'bottom')) e.push(`${id}.face: bleed trên/dưới vô hiệu ở khung ${R.aspect} (lưới nền tảng cắt cạnh trên/dưới, T9)`);
+    if (!insideSafe(r, m, bleed, R)) e.push(`${id}.${k}: ra ngoài ${R.crop ? `vùng giữa lưới ${R.crop.y}→${R.crop.y + R.crop.h} thụt lề ${m}` : `lề ${m}`} px (T9)`);
     for (const z of nogo) if (hit(r, z)) e.push(`${id}.${k}: chạm vùng cấm dấu thời lượng (T9)`);
   }
   // hộp chữ không giao hộp mặt/sidekick/hình chủ đạo (SPEC §5.11), logo không giao chữ
@@ -78,16 +125,18 @@ function checkTemplate(t) {
   if (hit(rect(B.headline), rect(B.kicker))) e.push(`${id}: hộp headline giao kicker`);
   for (const a of ['face', 'sidekick', 'visual']) for (const b of ['face', 'sidekick', 'visual']) if (a < b && B[a] && B[b] && hit(rect(B[a]), rect(B[b]))) e.push(`${id}: hộp ${a} giao hộp ${b}`);
   for (const a of ['headline', 'kicker', 'visual', 'face']) if (hit(rect(B.brand), rect(B[a]))) e.push(`${id}: hộp brand giao hộp ${a}`);
-  if (B.brand.w > RULES.W * RULES.brand_w_max_ratio + 0.5) e.push(`${id}.brand: rộng ${B.brand.w} > ${Math.floor(RULES.W * RULES.brand_w_max_ratio)} px (T10)`);
+  if (B.brand.w > R.W * R.brand_w_max_ratio + 0.5) e.push(`${id}.brand: rộng ${B.brand.w} > ${Math.floor(R.W * R.brand_w_max_ratio)} px (T10)`);
   if (!CORNERS.includes(B.brand.corner)) e.push(`${id}.brand: corner không hợp lệ`);
-  if (B.headline.font_px_min < RULES.font_px_min) e.push(`${id}.headline: font_px_min ${B.headline.font_px_min} < ${RULES.font_px_min} (T8)`);
-  if ((B.headline.lines_max || 2) > RULES.lines_max) e.push(`${id}.headline: lines_max > ${RULES.lines_max} (T3)`);
-  if (B.face.head_min_h && B.face.head_min_h < RULES.face_h_ratio_min * RULES.H - 1) e.push(`${id}.face: head_min_h < ${Math.round(RULES.face_h_ratio_min * RULES.H)} (T5)`);
+  if (B.headline.font_px_min < R.font_px_min) e.push(`${id}.headline: font_px_min ${B.headline.font_px_min} < ${R.font_px_min} (T8)`);
+  if ((B.headline.lines_max || 2) > R.lines_max) e.push(`${id}.headline: lines_max > ${R.lines_max} (T3)`);
+  if (B.face.head_min_h && B.face.head_min_h < R.face_h_ratio_min * R.H - 1) e.push(`${id}.face: head_min_h < ${Math.round(R.face_h_ratio_min * R.H)} (T5)`);
+  if (B.face.view !== undefined && !(Array.isArray(B.face.view) && B.face.view.length === 4 && B.face.view.every(Number.isFinite) && B.face.view[2] > 0 && B.face.view[3] > 0)) e.push(`${id}.face: view phải là [x, y, rộng, cao] của khung xương`);
+  if (t.ui_scale !== undefined && !(Number.isFinite(t.ui_scale) && t.ui_scale >= 1 && t.ui_scale <= 2)) e.push(`${id}: ui_scale phải trong 1…2`);
   return e;
 }
 
 let _tpl = null;
-function templates() {
+function allTemplates() {
   if (!_tpl) {
     const raw = JSON.parse(fs.readFileSync(path.join(__dirname, 'thumbs', 'templates.json'), 'utf8')).templates;
     const errs = raw.flatMap(checkTemplate);
@@ -97,8 +146,11 @@ function templates() {
   }
   return _tpl;
 }
-const template = (id) => templates().find((t) => t.id === id) || null;
-templates();   // kiểm ngay lúc nạp module (CNS-101)
+// templatesOf(aspect): mẫu của một tỉ lệ ('*' = tất cả). templates() KHÔNG đối số = mẫu 16:9 (hợp đồng cũ: 4 mẫu); dùng templatesOf('*') khi cần đủ.
+const templatesOf = (aspect) => (aspect === '*' ? allTemplates() : allTemplates().filter((t) => aspectOf(t) === aspect));
+const templates = (aspect) => templatesOf(aspect === undefined ? '16:9' : aspect);
+const template = (id) => allTemplates().find((t) => t.id === id) || null;
+allTemplates();   // kiểm ngay lúc nạp module (CNS-101)
 
 // ---------- chữ ----------
 const words = (s) => String(s == null ? '' : s).trim().split(/\s+/).filter(Boolean);
@@ -125,7 +177,7 @@ function validateThumbnail(th, env) {
     const at = `.variants[${i}]`;
     if (!v || typeof v !== 'object' || Array.isArray(v)) { E(at, 'Phương án phải là object.'); return; }
     const tpl = template(v.template);
-    if (!tpl) E(at + '.template', `Mẫu "${v.template}" không có (có: ${templates().map((t) => t.id).join(', ')}).`);
+    if (!tpl) E(at + '.template', `Mẫu "${v.template}" không có (có: ${allTemplates().map((t) => t.id).join(', ')}).`);
     // T3
     if (typeof v.headline !== 'string' || !v.headline.trim()) E(at + '.headline', 'Thiếu tiêu đề (headline).');
     else {
@@ -135,7 +187,7 @@ function validateThumbnail(th, env) {
       if (/[\r\n]/.test(v.headline)) E(at + '.headline', 'Tiêu đề không xuống dòng tay (máy tự ngắt dòng).');
       if (tpl && n <= RULES.words_max && c <= RULES.chars_max) {
         const hb = tpl.boxes.headline;
-        if (estimateLines(v.headline, hb.w, hb.font_px_min) > (hb.lines_max || RULES.lines_max)) E(at + '.headline', `Tiêu đề quá dài cho mẫu ${tpl.id} (tràn ${hb.lines_max || RULES.lines_max} dòng ở cỡ ${hb.font_px_min} px): rút gọn hoặc đổi sang mẫu có hộp chữ rộng hơn.`);
+        if (estimateLines(v.headline, hb.w, hb.font_px_min) > (hb.lines_max || rulesOf(tpl).lines_max)) E(at + '.headline', `Tiêu đề quá dài cho mẫu ${tpl.id} (tràn ${hb.lines_max || rulesOf(tpl).lines_max} dòng ở cỡ ${hb.font_px_min} px): rút gọn hoặc đổi sang mẫu có hộp chữ rộng hơn.`);
       }
       if (v.highlight !== undefined && v.highlight !== null) {
         if (typeof v.highlight !== 'string' || !v.highlight.trim()) E(at + '.highlight', 'highlight phải là một từ của tiêu đề.');
@@ -187,6 +239,19 @@ function validateThumbnail(th, env) {
     // T11 sớm: hai phương án y hệt nhau
     const sig = JSON.stringify([v.template, v.headline, v.highlight || null, v.kicker || null, v.face, v.sidekick || null, v.visual]);
     if (sigs.has(sig)) E(at, `Phương án trùng phương án ${sigs.get(sig)} (T11: khác nhau ≥ ${Math.round(RULES.diff_min * 100)} % pixel).`); else sigs.set(sig, i);
+  });
+  return out;
+}
+
+// F7 §5.1: mẫu ảnh bìa phải CÙNG tỉ lệ với bài. → [{path, text, code:'thumbnail_aspect'}] (rỗng = hợp lệ). Chỉ kiểm mẫu đã biết; mẫu lạ để validateThumbnail báo.
+// Cho server/ops/thumb.js (gói A1) gọi sau khi đã phân giải lv.aspect: checkAspect(thumbnail, aspect).
+function checkAspect(thumbnail, aspect) {
+  const out = [], want = aspect || '16:9';
+  const vs = thumbnail && Array.isArray(thumbnail.variants) ? thumbnail.variants : [];
+  vs.forEach((v, i) => {
+    const tpl = v && template(v.template);
+    if (tpl && aspectOf(tpl) !== want) out.push({ path: `thumbnail.variants[${i}].template`, code: 'thumbnail_aspect',
+      text: `Mẫu "${tpl.id}" là ảnh bìa ${aspectOf(tpl)}, bài này ${want}. Dùng mẫu ${want}: ${templatesOf(want).map((t) => t.id).join(', ') || '(chưa có)'}.` });
   });
   return out;
 }
@@ -255,8 +320,9 @@ function resolveThumbs(thumbnail, plan, ctx) {
     const palette = { bg, text, light: luminance(hexToRgb(bg) || [0, 0, 0]) > 0.3, kickBg: kickOnHl ? tokens.hl : tokens.ink, kickFg: kickOnHl ? tokens.ink : tokens.hl, hl: hlOk || bg, hlMode: hlOk ? 'color' : 'plate', hlPlate: text, shadow: contrast('#000000', bg) > contrast('#FFFFFF', bg) ? '#FFFFFF' : '#05071A',
       ink: tokens.ink, paper: tokens.paper, card: tokens.card, accent: tokens.accent, accent2: tokens.accent2, hlToken: tokens.hl, burst: tokens[tpl.bg && tpl.bg.burst] || tokens.hl, rule: tokens.rule };
     // góc dấu kênh = brand.thumb.corner (mặc định brand là 'tl'); góc dưới-phải là vùng thời lượng, và góc không còn chỗ trong mẫu (đè chữ/mặt/hình) ⇒ giữ góc của mẫu
+    const R = rulesOf(tpl);
     let corner = brand && brand.thumb && CORNERS.includes(brand.thumb.corner) && brand.thumb.corner !== 'br' ? brand.thumb.corner : tpl.boxes.brand.corner;
-    let bb = Object.assign({}, tpl.boxes.brand, cornerRect(corner, tpl.boxes.brand));
+    let bb = Object.assign({}, tpl.boxes.brand, cornerRect(corner, tpl.boxes.brand, R));
     if (['headline', 'kicker', 'visual', 'face', 'sidekick'].some((k) => tpl.boxes[k] && hit(rect(bb), rect(tpl.boxes[k])))) { corner = tpl.boxes.brand.corner; bb = Object.assign({}, tpl.boxes.brand); }
     return {
       index, template: tpl, headline: v.headline.trim(), highlight: v.highlight || null, kicker: v.kicker ? v.kicker.trim() : null,
@@ -294,11 +360,11 @@ function score(contrastV, fontPx, faceHRatio) {
 function evaluateVariant(spec, dom, px, keptBefore) {
   dom = dom || {}; px = px || {};
   const fails = [], F = (rule, text) => fails.push({ rule, text });
-  const tpl = spec.template, B = tpl.boxes, H = dom.headline || {}, vio = [];
-  // T1
+  const tpl = spec.template, B = tpl.boxes, H = dom.headline || {}, vio = [], R = rulesOf(tpl);
+  // T1 — cỡ theo tỉ lệ của mẫu (aspects.thumbSizes): khoá dim1280/dim1920 = cạnh dài 1280/1920
   const okDim = (d, w, h) => Array.isArray(d) && d[0] === w && d[1] === h;
-  if (!okDim(px.dim1280, 1280, 720)) F('T1', `Ảnh 1280 sai kích thước (${(px.dim1280 || []).join('×') || 'không có'}).`);
-  if (!okDim(px.dim1920, 1920, 1080)) F('T1', `Ảnh 1920 sai kích thước (${(px.dim1920 || []).join('×') || 'không có'}).`);
+  if (!okDim(px.dim1280, R.sizes[0][0], R.sizes[0][1])) F('T1', `Ảnh ${R.sizes[0].join('×')} sai kích thước (${(px.dim1280 || []).join('×') || 'không có'}).`);
+  if (!okDim(px.dim1920, R.sizes[1][0], R.sizes[1][1])) F('T1', `Ảnh ${R.sizes[1].join('×')} sai kích thước (${(px.dim1920 || []).join('×') || 'không có'}).`);
   // T2
   if (!px.magic1280 || !px.magic1920) F('T2', 'Tệp không phải JPEG (magic bytes FF D8 FF).');
   if (!(px.bytes1280 < RULES.max_bytes) || !(px.bytes1920 < RULES.max_bytes)) F('T2', `Dung lượng ${Math.max(px.bytes1280 || 0, px.bytes1920 || 0)} byte ≥ 2 MB.`);
@@ -306,7 +372,7 @@ function evaluateVariant(spec, dom, px, keptBefore) {
   const nW = wordCount(spec.headline), nC = spec.headline.length;
   if (nW > RULES.words_max) F('T3', `Tiêu đề ${nW} từ > ${RULES.words_max}.`);
   if (nC > RULES.chars_max) F('T3', `Tiêu đề ${nC} ký tự > ${RULES.chars_max}.`);
-  if (!(H.lines >= 1) || H.lines > (B.headline.lines_max || RULES.lines_max)) F('T3', `Tiêu đề ${H.lines || '?'} dòng > ${B.headline.lines_max || RULES.lines_max}.`);
+  if (!(H.lines >= 1) || H.lines > (B.headline.lines_max || R.lines_max)) F('T3', `Tiêu đề ${H.lines || '?'} dòng > ${B.headline.lines_max || R.lines_max}.`);
   if (H.overflow) F('T3', 'Tiêu đề tràn hộp chữ (rút gọn hoặc đổi mẫu).');
   if (spec.highlight && wordCount(spec.highlight) > 1) F('T3', 'Nhấn quá 1 từ.');
   // T4
@@ -316,7 +382,7 @@ function evaluateVariant(spec, dom, px, keptBefore) {
     if (!K || K.overflow) F('T4', 'Nhãn phụ tràn hộp.');
   }
   // T5
-  const faceM = dom.face || null, headH = faceM && faceM.head_h, faceRatio = headH ? headH / RULES.H : 0;
+  const faceM = dom.face || null, headH = faceM && faceM.head_h, faceRatio = headH ? headH / R.H : 0;
   if (!faceM || faceM.kind === 'placeholder') F('T5', 'Chưa có mặt chính thật (đang là khung giữ chỗ).');
   else {
     if (faceRatio < RULES.face_h_ratio_min - 1e-9) F('T5', `Mặt chính cao ${r1(faceRatio * 100)} % < ${RULES.face_h_ratio_min * 100} % chiều cao ảnh.`);
@@ -336,21 +402,21 @@ function evaluateVariant(spec, dom, px, keptBefore) {
   if (ct === null || ct < RULES.contrast_min) F('T7', `Tương phản chữ/nền ${ct === null ? '?' : r1(ct)}:1 < ${RULES.contrast_min}:1.`);
   // T8
   const fontPx = H.font_px || 0;
-  if (fontPx < RULES.font_px_min) F('T8', `Cỡ chữ tiêu đề ${Math.round(fontPx)} px < ${RULES.font_px_min} px (không đọc được ở 168×94).`);
+  if (fontPx < R.font_px_min) F('T8', `Cỡ chữ tiêu đề ${Math.round(fontPx)} px < ${R.font_px_min} px (không đọc được ở ${R.crop ? 'cỡ kệ Shorts/lưới TikTok' : '168×94'}).`);
   // T9: vùng an toàn + dấu thời lượng
-  const nogo = (tpl.safe && tpl.safe.no_go) || [RULES.no_go], m = (tpl.safe && tpl.safe.margin) || RULES.margin;
+  const nogo = (tpl.safe && tpl.safe.no_go) || (R.crop ? [] : [RULES.no_go]), m = (tpl.safe && tpl.safe.margin) || R.margin;
   const parts = [['headline', rectOf(H), []], ['kicker', rectOf(K), []], ['brand', rectOf(dom.brand), []], ['visual', rectOf(dom.visual), []], ['face', rectOf(faceM), B.face.bleed || []], ['sidekick', rectOf(S), []]];
   for (const [name, r, bleed] of parts) {
     if (!r) continue;
-    if (!insideSafe(r, m, bleed)) vio.push({ part: name, why: 'margin' });
+    if (!insideSafe(r, m, bleed, R)) vio.push({ part: name, why: R.crop && insideSafe(r, m, bleed, Object.assign({}, R, { crop: null })) ? 'grid_crop' : 'margin' });
     if (nogo.some((z) => hit(r, z))) vio.push({ part: name, why: 'yt_duration' });
   }
-  if (vio.length) F('T9', 'Vùng an toàn: ' + vio.map((v) => `${v.part} (${v.why === 'margin' ? 'ngoài lề ' + m + ' px' : 'đè dấu thời lượng'})`).join(', ') + '.');
+  if (vio.length) F('T9', 'Vùng an toàn: ' + vio.map((v) => `${v.part} (${v.why === 'margin' ? 'ngoài lề ' + m + ' px' : v.why === 'grid_crop' ? 'ngoài phần giữa lưới ' + R.crop.y + '→' + (R.crop.y + R.crop.h) + ' (TikTok cắt)' : 'đè dấu thời lượng'})`).join(', ') + '.');
   // T10
   const bm = dom.brand;
   if (!bm) F('T10', 'Thiếu logo/dấu kênh.');
   else {
-    if (bm.w > RULES.W * RULES.brand_w_max_ratio + 0.5) F('T10', `Logo rộng ${Math.round(bm.w)} px > ${Math.floor(RULES.W * RULES.brand_w_max_ratio)} px (12 %).`);
+    if (bm.w > R.W * R.brand_w_max_ratio + 0.5) F('T10', `Logo rộng ${Math.round(bm.w)} px > ${Math.floor(R.W * R.brand_w_max_ratio)} px (12 %).`);
     if (bm.corner !== spec.brand.corner) F('T10', `Logo không ở góc ${spec.brand.corner}.`);
     for (const t of [rectOf(H), rectOf(K)]) if (t && hit(rectOf(bm), t)) { F('T10', 'Logo đè chữ.'); break; }
   }
@@ -381,7 +447,8 @@ function measure(specs, domMeasures, pixels) {
 
 // ---------- gợi ý chữ tất định (tool propose_thumbnail_text; KHÔNG gọi LLM) ----------
 // lesson = { title, lines:[{say, terms[]}], beats:[{block, params}] } → { terms:[…], frames:[{pattern, text, words, chars, ok, free_words?}], limits }
-function proposeText(lesson) {
+function proposeText(lesson, aspect) {
+  const R = rulesFor(aspect);
   const lines = (lesson && lesson.lines) || [], beats = (lesson && lesson.beats) || [], count = new Map();
   const bump = (t, w) => { t = String(t || '').trim(); if (t && wordCount(t) <= 3 && t.length <= 20) count.set(t, (count.get(t) || 0) + w); };
   lines.forEach((l) => (l.terms || []).forEach((t) => bump(t, 2)));
@@ -395,8 +462,8 @@ function proposeText(lesson) {
     // khuôn có chỗ trống: agent điền phần "…"; báo ngân sách từ/ký tự còn lại
     (() => { const fixed = `Đừng … nếu chưa biết ${X}`, fw = wordCount(fixed) - 1; return { pattern: 'Đừng … nếu chưa biết X', text: fixed, words: null, chars: null, ok: null, free_words: Math.max(0, RULES.words_max - fw), free_chars: Math.max(0, RULES.chars_max - (fixed.length - 1)) }; })(),
   ] : [];
-  return { terms, frames, limits: { words_max: RULES.words_max, chars_max: RULES.chars_max, lines_max: RULES.lines_max, kicker_words_max: RULES.kicker_words_max, kicker_chars_max: RULES.kicker_chars_max, moods: MOODS.slice() } };
+  return { terms, frames, limits: { words_max: R.words_max, chars_max: R.chars_max, lines_max: R.lines_max, kicker_words_max: RULES.kicker_words_max, kicker_chars_max: RULES.kicker_chars_max, moods: MOODS.slice() } };
 }
 
-module.exports = { RULES, MOODS, MOOD_STATE, DEFAULT_TOKENS, CORNERS, templates, template, checkTemplate, validateThumbnail, resolveThumbs, assetRefsOf, measure, evaluateVariant, score,
+module.exports = { RULES, rulesFor, checkAspect, rulesOf, aspectOf, canvasOf, safeBox, MOODS, MOOD_STATE, DEFAULT_TOKENS, CORNERS, templates, templatesOf, template, checkTemplate, validateThumbnail, resolveThumbs, assetRefsOf, measure, evaluateVariant, score,
   proposeText, wordCount, contrast, luminance, contrastOfLum, hexToRgb, estimateLines, rect, hit, insideSafe, cornerRect, stub: false };
