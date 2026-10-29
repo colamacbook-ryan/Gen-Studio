@@ -112,3 +112,25 @@ html, body { margin: 0; padding: 0; width: 1920px; height: 1080px; overflow: hid
 .brand-thumb .tt { position: absolute; left: 90px; top: 330px; width: 1240px; font-weight: 800; font-size: 150px; line-height: 1.08; color: var(--v-ink); }
 .brand-thumb .tt .en { font-style: italic; }
 .brand-thumb .bar { position: absolute; left: 90px; bottom: 120px; width: 700px; height: 22px; background: var(--v-accent2); border-radius: 11px; }
+/* F7 — bố cục theo tỉ lệ (SPEC-0.2.0-F7 §4.2–4.3, CNS-335): MỘT bộ quy tắc chung cho mọi tỉ lệ không legacy (9:16; 1:1/4:5 sau này = thêm dữ liệu, không thêm CSS).
+   Chỉ khớp .stage.lay — stage.js gắn lớp này và đặt biến --lay-* từ aspects.layoutVars(plan.layout) SAU nhận diện kênh (CNS-343). 16:9 không có lớp ⇒ mọi quy tắc trên giữ nguyên (M14).
+   Lớp a-<token> (vd a-9x16) chỉ để soi, không có quy tắc. */
+/* trang vở kéo dài ra ngoài hộp world (cùng lưới 64/16 px, cùng lề hồng): cột dọc hẹp nên khung 1080 ở z nhỏ / cú đẩy mở đầu lộ mép world.
+   Lề −16384 px = 256 ô 64 px ⇒ lưới khớp đúng lưới của world. Phần tử giả trong lớp world (không thêm lớp raster); Chromium chỉ raster ô nhìn thấy. */
+.stage.lay .world::before { content: ''; position: absolute; left: -16384px; top: -16384px; right: -16384px; bottom: -16384px; z-index: -1; pointer-events: none; background-color: var(--v-paper);
+  background-image: linear-gradient(90deg, transparent 0 16604px, var(--v-margin) 16604px 16608px, transparent 16608px),
+    linear-gradient(var(--v-rule-strong) 2px, transparent 2px), linear-gradient(90deg, var(--v-rule-strong) 2px, transparent 2px), linear-gradient(var(--v-rule) 1px, transparent 1px);
+  background-size: 100% 100%, 64px 64px, 64px 64px, 16px 16px; }
+.stage.lay .chip-top { display: var(--lay-chip-display); }
+.stage.lay .lower-third { display: var(--lay-lt-display); }
+.stage.lay .actor { bottom: var(--lay-actor-bottom); }
+.stage.lay .sub { left: calc(var(--lay-sub-left) + var(--lay-sub-maxw) / 2); top: var(--lay-sub-top); bottom: auto; max-width: min(var(--sub-maxw), var(--lay-sub-maxw)); box-sizing: border-box; font-size: var(--lay-sub-font); }
+.stage.lay .sub .tr { display: var(--lay-sub-tr-display); }
+.stage.lay .brand-logo { width: min(var(--logo-px), var(--lay-logo-max)); height: min(var(--logo-px), var(--lay-logo-max)); right: auto; bottom: auto; }
+.stage.lay .brand-logo.tl { left: var(--lay-logo-tl-x); top: var(--lay-logo-tl-y); }
+.stage.lay .brand-logo.tr { left: var(--lay-logo-tr-x); top: var(--lay-logo-tr-y); }
+.stage.lay .end-card { left: var(--lay-end-cx); top: var(--lay-end-top); width: max-content; max-width: var(--lay-end-maxw); box-sizing: border-box; white-space: normal; }
+.stage.lay .intro .name { max-width: var(--lay-end-maxw); }
+.stage.lay .brand-thumb .kick { left: var(--lay-sub-left); top: 24%; }
+.stage.lay .brand-thumb .tt { left: var(--lay-sub-left); top: 32%; width: var(--lay-sub-maxw); font-size: 110px; }
+.stage.lay .brand-thumb .bar { left: var(--lay-sub-left); bottom: 36%; width: calc(var(--lay-sub-maxw) * .6); }

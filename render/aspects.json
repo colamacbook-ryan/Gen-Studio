@@ -16,7 +16,7 @@
       "layout": {
         "world": { "cols": 1, "pitch": [0, 2000], "origin": [700, 900], "zone_max_h": 900, "min": [1400, 2400], "pad": [700, 1100] },
         "camera": { "frame_box": [800, 500], "content_center": [476, 650], "z": [0.5, 1.1], "overview_pad_h": 160 },
-        "overview": true,
+        "overview": false,
         "actors": { "scale": 0.8, "x": [40, 680], "bottom": 260 },
         "subtitle": { "top": 960, "left": 72, "max_w": 808, "font_px": 44, "lines_max": 2, "chars_per_line": 30, "paging": true, "show_translation": false },
         "logo": { "tl": [72, 300], "tr": [816, 300], "remap": { "bl": "tl", "br": "tr" } },
