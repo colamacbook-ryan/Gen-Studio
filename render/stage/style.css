@@ -370,3 +370,22 @@ html, body { margin: 0; padding: 0; width: 1920px; height: 1080px; overflow: hid
 .b-cmp .cp-src { position: absolute; left: 0; right: 0; font-size: 36px; font-style: italic; color: var(--v-ink-soft); text-align: center; white-space: nowrap; }
 .actor .pf { position: absolute; inset: 0; }
 .b-sticky .sk-dim { position: absolute; left: 0; top: 0; width: 1920px; height: 1920px; opacity: 0; pointer-events: none; }
+/* 0.2.x clip dài — sàn chữ ≥ 22 px@720 (plan.style.text_floor ⇒ .stage.tf): chữ phụ của khối được nâng cỡ; phụ đề ngắt dòng cân bằng + chữ chưa đọc sáng hơn */
+.stage.tf .sub { text-wrap: balance; }
+.stage.tf .sub .c { opacity: var(--sub-dim, .55); } .stage.tf .sub .c.on { opacity: 1; }
+.stage.tf .b-pipsw .pip-sw.tag { font-size: 40px; }
+.stage.tf .b-chat .cb-app, .stage.tf .b-chat .cb-time { font-size: 40px; }
+.stage.tf .end-card small { font-size: 44px; }
+.stage.tf .b-cmp .cp-src { font-size: 42px; }
+.stage.tf .b-app .ap-lb { font-size: 42px; top: -30px; }
+.stage.tf .b-app .ap-cols { font-size: 46px; }
+.stage.tf .b-app .ap-file { font-size: 44px; }
+.stage.tf .as-pill { font-size: 38px; } .stage.tf .as-bd, .stage.tf .as-dec { font-size: 38px; }
+.stage.tf .as-task span { font-size: 40px; } .stage.tf .as-note { font-size: 38px; }
+.stage.tf .b-quiz .qz-k { font-size: 50px; } .stage.tf .b-quiz .qz-h { font-size: 40px; }
+.stage.tf .b-bars .br-n { font-size: 48px; }
+.stage.tf .b-split .sp-clock { font-size: 40px; height: 60px; line-height: 60px; }
+.stage.tf .b-sticky .sk-r b { font-size: 30px; }
+/* v5 sau critic vòng 4: chữ phụ viết tay đậm màu mực (không xám), tiêu đề giấy nhớ dùng phông chính (Patrick Hand vẽ «g» như «q») */
+.stage.tf .hand { color: var(--v-ink); }
+.stage.tf .b-sticky .sk-h { font-family: var(--f-display); font-weight: 700; font-size: 27px; letter-spacing: -.02em; right: 8px; }

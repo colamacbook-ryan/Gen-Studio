@@ -75,7 +75,10 @@
     // 0.2.x clip dài: cỡ phụ đề theo bài (plan.style.sub_px) + cỡ xuất nhỏ hơn cỡ thiết kế (plan.output) ⇒ CSS zoom cả sân khấu, Chromium vẽ thẳng ở cỡ xuất (chụp 1:1, không clip.scale — L-108)
     if (plan.style.sub_px) { root.style.setProperty('--sub-size', plan.style.sub_px + 'px'); root.style.setProperty('--sub-who-size', Math.round(plan.style.sub_px * 0.92) + 'px'); }
     if (plan.style.sub_maxw) root.style.setProperty('--sub-maxw', plan.style.sub_maxw + 'px');
-    if (plan.output) root.style.zoom = String(plan.output[0] / plan.size[0]);
+    if (plan.style.chip === false) E.chip.style.display = 'none';
+    if (plan.style.sub_dim) root.style.setProperty('--sub-dim', String(plan.style.sub_dim));
+    if (plan.style.text_floor) root.classList.add('tf');   // 0.2.x: sàn chữ (style.css .stage.tf …) + phụ đề ngắt dòng cân bằng
+        if (plan.output) root.style.zoom = String(plan.output[0] / plan.size[0]);
     var reg = registerCast(plan), assets = reg.assets, dir = Dir.makeDirector(plan);
 
     // chip góc trái: tiêu đề bài, hiện khi máy quay rời vùng đầu
@@ -228,6 +231,11 @@
     var ts = t / 1000, outP = S.ov ? U.eio(U.seg(ts, S.ov.t_in / 1000, S.ov.t_in / 1000 + 1.5)) : 0, zoom = r.talking ? 1.05 : 1, tx = 0, ty = outP * 30;
     if (a.side === 0) ty += (1 - U.eb(U.seg(ts, 0.5, 1.1))) * 300; else tx = U.lerp(520, 0, U.eo(U.seg(ts, 0, 0.95)));
     if (r.dx) tx += r.dx;   // 0.2.x: act.move (chạy ra khỏi khung, ló đầu vào)
+    if (S.plan.style.talk_lean_px) {   // 0.2.x: người nói nhích về phía giữa khung (vào 0,35 s, ra 0,45 s sau câu) — hàm thuần của t
+      var ln = S.plan.lines, lean = 0;
+      for (var li = 0; li < ln.length; li++) { var L = ln[li]; if (L.who !== a.id || t < L.a_ms - 200 || t > L.b_ms + 700) continue; lean = Math.max(lean, U.eio(U.seg(t, L.a_ms - 200, L.a_ms + 150)) * (1 - U.eio(U.seg(t, L.b_ms + 250, L.b_ms + 700)))); }
+      tx += (a.side === 0 ? 1 : -1) * S.plan.style.talk_lean_px * lean;
+    }
     var fx = S.actorFx[a.id];
     if (fx && fx.pip > 0) { pipPose(a, fx, tx, ty + a.oy, a.sc * zoom * U.lerp(1, 0.82, outP), r.talking); return; }
     if (a.clipped) { a.el.style.clipPath = ''; a.clipped = false; }

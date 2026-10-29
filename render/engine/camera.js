@@ -22,9 +22,9 @@
   // khung nhìn cho một vùng: canh giữa, zoom vừa đủ (chừa chỗ cho nhân vật ở hai góc dưới và phụ đề)
   // box (0.2.x, tuỳ chọn) = [rộng, cao] khung nội dung — clip dài chừa thêm chỗ cho hai nhân vật lớn + phụ đề to; thiếu ⇒ 1340×660 như cũ
   C.frameOf = function (zone, hint, box) {
-    var bw = box ? box[0] : 1340, bh = box ? box[1] : 660;
-    var z = clamp(Math.min(bw / Math.max(1, zone.w), bh / Math.max(1, zone.h)), 0.7, 1.05);
-    var f = { x: zone.cx, y: zone.cy + FOCUS_DY, z: z };
+    var bw = box ? box[0] : 1340, bh = box ? box[1] : 660, zmax = box && box[2] ? box[2] : 1.05, dy = box && typeof box[3] === 'number' ? box[3] : FOCUS_DY;   // box[2] trần zoom, box[3] lệch tâm dọc (0.2.x)
+    var z = clamp(Math.min(bw / Math.max(1, zone.w), bh / Math.max(1, zone.h)), 0.7, zmax);
+    var f = { x: zone.cx + (box && typeof box[4] === 'number' ? box[4] : 0), y: zone.cy + dy, z: z };   // box[4] lệch tâm ngang (0.2.x: nhường góc phải-trên cho giấy nhớ)
     if (hint) { if (typeof hint.zoom === 'number') f.z = clamp(hint.zoom, 0.3, 2); if (typeof hint.dx === 'number') f.x += hint.dx; if (typeof hint.dy === 'number') f.y += hint.dy; }
     return f;
   };
@@ -82,6 +82,11 @@
     function leave(frame, from) { var d = { x: frame.x, y: frame.y, z: frame.z * DRIFT }; if (from > curT) push(from, d); return d; }   // trôi giữ x,y (aspects.sampleTimes coi đoạn này là máy quay đứng yên)
     for (var i = 1; i < Z.length; i++) {
       var prev = Z[i - 1], tgt = frames[i], dist = Math.hypot(tgt.x - cur.x, tgt.y - cur.y) * Math.max(cur.z, tgt.z);
+      if (o.pace && o.pace.cut && dist > o.pace.cut) {   // cắt cảnh: giữ khung cũ tới 1 khung trước khi khối vào, rồi nhảy thẳng (clip dài: không lia qua giấy trống)
+        var tc = Math.max(Z[i].tIn - 33, curT + 300, prev.tLast + 900);
+        leave(cur, tc - 1); moves.push({ t: tc, dur: 1, dist: dist, cut: true });
+        push(tc, tgt); cur = tgt; curT = tc; continue;
+      }
       var dur = o.pace ? clamp(600 + dist / 2.2, o.pace.min, o.pace.max) : clamp(500 + dist / 2.8, 800, 1700);   // pace (0.2.x clip dài) tuỳ chọn
       var tArr = Z[i].tIn + 150, start = tArr - dur, dMin = Math.max(curT + 300, prev.tLast + 900);
       if (start < dMin) { start = dMin; dur = Math.max(550, tArr - start); tArr = start + dur; }

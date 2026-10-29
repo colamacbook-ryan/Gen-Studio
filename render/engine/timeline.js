@@ -208,15 +208,19 @@ function worldPitch(p) {
   return p;
 }
 // khung nội dung tuỳ chọn của máy quay (clip dài): [rộng 600–1800, cao 400–1000] ⇒ camera.frameOf(zone, hint, box); thiếu ⇒ {} (như cũ)
-// nhịp lia máy quay tuỳ chọn {min_ms, max_ms} (mặc định 800–1700): clip dài lia chậm hơn để chữ không nhoè/nhấp nháy khi lướt qua
+// nhịp lia máy quay tuỳ chọn {min_ms, max_ms, cut_px?} (mặc định 800–1700): clip dài lia chậm hơn để chữ không nhoè/nhấp nháy khi lướt qua;
+// cut_px: quãng đường > cut_px ⇒ CẮT thẳng sang vùng mới đúng lúc khối vào (không lia qua trang giấy trống)
 function panPace(c) {
   if (c === undefined || c === null) return {};
   if (typeof c !== 'object' || !(c.min_ms >= 400 && c.max_ms >= c.min_ms && c.max_ms <= 4000)) throw new PlanError('camera_pace_invalid', 'camera_pace phải là {min_ms ≥ 400, max_ms ≥ min_ms, ≤ 4000}.', { camera_pace: c });
-  return { pace: { min: c.min_ms, max: c.max_ms } };
+  if (c.cut_px !== undefined && !(c.cut_px >= 300 && c.cut_px <= 20000)) throw new PlanError('camera_pace_invalid', 'camera_pace.cut_px phải trong 300–20000.', { camera_pace: c });
+  return { pace: c.cut_px ? { min: c.min_ms, max: c.max_ms, cut: c.cut_px } : { min: c.min_ms, max: c.max_ms } };
 }
 function frameBox(b) {
   if (b === undefined || b === null) return {};
-  if (!Array.isArray(b) || b.length !== 2 || !(b[0] >= 600 && b[0] <= 1800 && b[1] >= 400 && b[1] <= 1000)) throw new PlanError('frame_box_invalid', 'frame_box phải là [rộng 600–1800, cao 400–1000].', { frame_box: b });
+  const ok = Array.isArray(b) && b.length >= 2 && b.length <= 5 && b[0] >= 600 && b[0] <= 1800 && b[1] >= 400 && b[1] <= 1000
+    && (b.length < 3 || (b[2] >= 1.05 && b[2] <= 1.8)) && (b.length < 4 || (b[3] >= -200 && b[3] <= 200)) && (b.length < 5 || (b[4] >= -300 && b[4] <= 300));
+  if (!ok) throw new PlanError('frame_box_invalid', 'frame_box phải là [rộng 600–1800, cao 400–1000, trần zoom 1,05–1,8?, lệch tâm dọc −200–200?, lệch tâm ngang −300–300?].', { frame_box: b });
   return { frame: (q, h) => camera.frameOf(q, h, b) };
 }
 
@@ -291,7 +295,9 @@ function buildLessonPlan(input) {
   // morph: prob-card liền ngay trước (không khối nào chen giữa) → cùng một thẻ
   beats.forEach((b, i) => { const d = registry.get(b.block); const p = beats[i - 1]; if (d.morphs && p && p.block === b.block) b.morphFrom = p.id; });
   const { zones, world } = lay ? layoutLay(beats, lay.world, AD.size, aspect) : layout(beats, worldPitch(input.world_pitch));
-  const duration = Math.round(Math.max(lastEnd + TAIL_MS, end.t_in + endHoldMs));
+  // tail_ms (clip dài, tuỳ chọn 1000–15000): giữ màn kết lâu hơn sau câu cuối; thiếu ⇒ TAIL_MS như cũ
+  if (input.tail_ms !== undefined && !(input.tail_ms >= 1000 && input.tail_ms <= 15000)) throw new PlanError('tail_ms_invalid', 'tail_ms phải trong 1000–15000.', { tail_ms: input.tail_ms });
+  const duration = Math.round(Math.max(lastEnd + (input.tail_ms || TAIL_MS), end.t_in + endHoldMs));
 
   // t_out: chuỗi morph kết thúc khi link kế tiếp vào; còn lại ở lại trang đến hết clip
   beats.forEach((b, i) => { const nx = beats[i + 1]; b.t_out = nx && nx.morphFrom === b.id ? nx.t_in : duration; });
@@ -344,6 +350,16 @@ function buildLessonPlan(input) {
   const os = outputSize(input.output, plan.size); if (os) plan.output = os;
   if (input.style && Number.isFinite(input.style.sub_px)) plan.style.sub_px = Math.max(24, Math.min(80, Math.round(input.style.sub_px)));
   if (input.style && Number.isFinite(input.style.sub_maxw)) plan.style.sub_maxw = Math.max(600, Math.min(1800, Math.round(input.style.sub_maxw)));   // bề rộng tối đa phụ đề (px thiết kế) — lọt giữa hai nhân vật
+  // 0.2.x clip dài (sau critic): chip tiêu đề góc trái (chip:false ⇒ ẩn), độ sáng chữ chưa đọc của phụ đề (sub_dim), cỡ tờ giấy nhớ (sticky_scale),
+  // người nói nghiêng/nhích về phía giữa khung khi nói (talk_lean_px), sàn chữ ≥ 22 px@720 cho chữ phụ của khối 0.2.x (text_floor) — chỉ thêm khoá khi bài khai
+  if (input.style) {
+    const st = input.style, num = (v, a, b) => Number.isFinite(v) && v >= a && v <= b;
+    if (st.chip === false) plan.style.chip = false;
+    if (num(st.sub_dim, 0.3, 1)) plan.style.sub_dim = st.sub_dim;
+    if (num(st.sticky_scale, 1, 1.8)) plan.style.sticky_scale = st.sticky_scale;
+    if (num(st.talk_lean_px, 1, 240)) plan.style.talk_lean_px = Math.round(st.talk_lean_px);
+    if (st.text_floor === true) plan.style.text_floor = true;
+  }
   if (input.style && Number.isFinite(input.style.pose_fade_ms) && input.style.pose_fade_ms > 0) plan.style.pose_fade_ms = Math.min(400, Math.round(input.style.pose_fade_ms));   // hoà tư thế khi đổi động tác (stage.js poseFade)
   if (input.style && Number.isFinite(input.style.sub_page)) plan.style.sub_page = Math.max(20, Math.min(400, Math.round(input.style.sub_page)));   // ký tự tối đa mỗi trang phụ đề
   // F7 §3.2: `layout` (bản phân giải của aspects.json → layout, kèm `safe`) CHỈ khi không legacy ⇒ plan 16:9 không có khoá mới (trùng byte golden)

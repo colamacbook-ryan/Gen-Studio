@@ -82,12 +82,15 @@
       var gone = S.next && t >= (S.next.t_in - ctx.beat.t_in) / 1000;
       el.style.display = gone ? 'none' : '';
       if (gone) return;
-      var nx = 0, ny = 0, sc = 1, rot = -2, op = 1;
-      if (p.action === 'show' || (!S.shown && p.action !== 'hide')) { var q = U.eo(U.seg(t, 0, 0.6)); ny = (1 - q) * -60; rot = -2 + (1 - q) * 6; op = U.clamp(q * 1.6); }
-      if (p.action === 'hide') { var hq = U.eio(U.seg(t, 0, 0.5)); ny = hq * -(G.y + 420); op = 1 - U.seg(t, 0.25, 0.5); }
+      // 0.2.x: plan.style.sticky_scale phóng tờ giấy ở góc (giữ mép phải-trên) — chữ ≥ 22 px@720; ôn bài vẫn về đúng cỡ G.big giữa khung
+      var base = (ctx.plan.style && ctx.plan.style.sticky_scale) || 1, w0 = 330, h0 = HEAD + S.slots * ROW + 18;
+      var bx = -w0 * (base - 1) / 2, by = h0 * (base - 1) / 2;
+      var nx = bx, ny = by, sc = base, rot = -2, op = 1;
+      if (p.action === 'show' || (!S.shown && p.action !== 'hide')) { var q = U.eo(U.seg(t, 0, 0.6)); ny = by + (1 - q) * -60; rot = -2 + (1 - q) * 6; op = U.clamp(q * 1.6); }
+      if (p.action === 'hide') { var hq = U.eio(U.seg(t, 0, 0.5)); ny = by + hq * -(G.y + 420); op = 1 - U.seg(t, 0.25, 0.5); }
       if (p.action === 'review') {
         var bq = U.eio(U.seg(t, 0, 0.8)), w = 330, hgt = HEAD + S.slots * ROW + 18;
-        nx = (G.cx - (G.x + w / 2)) * bq; ny = (G.cy - (G.y + hgt / 2)) * bq; sc = U.lerp(1, G.big, bq); rot = -2 + 2 * bq;
+        nx = U.lerp(bx, G.cx - (G.x + w / 2), bq); ny = U.lerp(by, G.cy - (G.y + hgt / 2), bq); sc = U.lerp(base, G.big, bq); rot = -2 + 2 * bq;
         if (r.dim) r.dim.style.opacity = U.f3(0.88 * bq);   // nền giấy phủ mờ trang vở phía sau ⇒ mắt chỉ còn tờ giấy nhớ (khối/thẻ cũ không lẫn vào)
       }
       var land = p.action === 'add' ? T.fly + 0.7 : -1, bump = land > 0 ? Math.sin(Math.PI * U.seg(t, land, land + 0.35)) : 0;
@@ -106,9 +109,9 @@
       });
       if (p.action === 'add') {
         // chip: hiện to giữa khung → giữ → bay vòng cung vào ô (cỡ và vị trí nội suy cùng một easing ⇒ không trượt)
-        var ap = U.back(U.seg(t, 0, 0.4), 1.4), sx0 = 0, fp = U.eio(U.seg(t, T.fly, T.fly + 0.7)), rowY = G.y + HEAD + r.slot * ROW + ROW / 2, rowX = G.x + 56;
+        var ap = U.back(U.seg(t, 0, 0.4), 1.4), sx0 = 0, fp = U.eio(U.seg(t, T.fly, T.fly + 0.7)), rowY = G.y + h0 / 2 + by + (HEAD + r.slot * ROW + ROW / 2 - h0 / 2) * base, rowX = G.x + w0 / 2 + bx + (56 - w0 / 2) * base;
         var sx = p.from === 'center' ? G.cx : G.nx, sy = p.from === 'center' ? G.cy : G.ny;
-        var x = U.lerp(sx, rowX, fp), y = U.lerp(sy, rowY, fp) - Math.sin(Math.PI * fp) * 120, s = U.lerp(1.9, 1, fp) * U.lerp(0.6, 1, ap);
+        var x = U.lerp(sx, rowX, fp), y = U.lerp(sy, rowY, fp) - Math.sin(Math.PI * fp) * 120, s = U.lerp(1.9, base, fp) * U.lerp(0.6, 1, ap);
         U.setT(r.fly, 'translate(' + U.f3(x) + 'px,' + U.f3(y) + 'px) translate(' + (fp > 0 ? U.f3(-50 * (1 - fp)) : -50) + '%,-50%) scale(' + U.f3(s) + ')', U.f3(U.clamp(ap * 2) * (1 - U.seg(t, land - 0.1, land + 0.1))));
       } else r.fly.style.opacity = 0;
     }

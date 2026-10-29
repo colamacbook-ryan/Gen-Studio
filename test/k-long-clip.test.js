@@ -161,6 +161,15 @@ test('plan: lead_ms, world_pitch (vùng cách xa hơn), camera_pace (lia chậm 
   assert.ok(dur(b) >= 1100, 'lia ≥ min_ms: ' + dur(b));
   assert.throws(() => mk({ world_pitch: [100, 100] }), /world_pitch/);
   assert.throws(() => mk({ camera_pace: { min_ms: 2000, max_ms: 1000 } }), /camera_pace/);
+  // cut_px: quãng xa ⇒ cắt thẳng (2 keyframe cách 1 ms) đúng 1 khung trước khi khối vùng mới vào; không lia qua giấy trống
+  const c = mk({ camera_pace: { min_ms: 700, max_ms: 1200, cut_px: 700 } }), k = c.camera;
+  const cut = k.findIndex((q, i) => i > 0 && Math.abs(q.x - k[i - 1].x) > 100);
+  assert.ok(cut > 0 && k[cut].t - k[cut - 1].t <= 1, 'cắt cảnh: ' + JSON.stringify(k.slice(cut - 1, cut + 1)));
+  assert.equal(k[cut].t, c.beats.find((b) => b.id === 'B2').t_in - 33);
+  assert.throws(() => mk({ camera_pace: { min_ms: 700, max_ms: 1200, cut_px: 10 } }), /cut_px/);
+  // tail_ms: màn kết giữ lâu hơn sau câu cuối
+  const t = mk({ tail_ms: 8000 }); assert.equal(t.duration_ms - a.duration_ms, 8000 - 3600);
+  assert.throws(() => mk({ tail_ms: 50 }), /tail_ms/);
 });
 
 test('sticky-tracker: `slot` đặt cụm vào đúng dòng, cụm không khai slot lấp dòng trống đầu tiên; chỉ dùng với add', () => {
@@ -178,4 +187,38 @@ test('sticky-tracker review: mốc lật ngược thứ tự dòng (ôn khác th
   const T = st.timing({ action: 'review' }, [null, 2.0, 9.0, 4.0, 6.0]);
   assert.deepEqual(T.flips.slice(0, 4), [2.0, 9.0, 4.0, 6.0]);
   assert.deepEqual(st.timing({ action: 'review' }, [null, 0.2, 0.3, 5, 5.1]).flips.slice(0, 4).map((x) => +x.toFixed(2)), [1.6, 1.95, 5, 5.35]);
+});
+
+test('plan v5: frame_box [w,h,trần zoom,lệch dọc,lệch ngang], style chip/sub_dim/sticky_scale/talk_lean_px/text_floor (chỉ khi khai)', () => {
+  const z = { cx: 1000, cy: 600, w: 1000, h: 500 };
+  assert.ok(camera.frameOf(z, null, [1240, 620, 1.4]).z > 1.05, 'trần zoom nâng được');
+  assert.equal(camera.frameOf(z, null, [1240, 620]).z, 1.05, 'thiếu trần ⇒ 1,05 như cũ');
+  const f = camera.frameOf(z, null, [1000, 600, 1.2, 10, 80]);
+  assert.equal(f.x, 1080); assert.equal(f.y, 610);
+  assert.throws(() => plan0({ frame_box: [1000, 600, 3] }), /frame_box/);
+  assert.throws(() => plan0({ frame_box: [1000, 600, 1.2, 10, 900] }), /frame_box/);
+  const p = plan0({ style: { chip: false, sub_dim: 0.8, sticky_scale: 1.25, talk_lean_px: 25, text_floor: true } });
+  assert.deepEqual([p.style.chip, p.style.sub_dim, p.style.sticky_scale, p.style.talk_lean_px, p.style.text_floor], [false, 0.8, 1.25, 25, true]);
+  const q = plan0({ style: { sub_dim: 5, sticky_scale: 9 } });
+  assert.equal('sub_dim' in q.style, false); assert.equal('sticky_scale' in q.style, false); assert.equal('chip' in q.style, false);
+  ['switchboard', 'secretary', 'stove', 'saltpour', 'taster', 'tailor', 'robotdesk'].forEach((n) => assert.ok(icons.has(n), n));
+});
+
+test('sân khấu v5: text_floor ⇒ lớp .tf (sàn chữ), chip ẩn, người nói nhích về giữa khi nói, giấy nhớ phóng theo sticky_scale', { skip: SKIP, timeout: 120000 }, async () => {
+  const beats = BEATS.concat([{ id: 'S0', block: 'sticky-tracker', anchor: { line: 'L1', word: 'Chết' }, params: { action: 'show' } }]);
+  const p = buildPlan({ lesson: { title: 'K', lines: LINES, beats }, clips: clipsOf(LINES), aspect: '16:9', fps: 30, overview: false,
+    style: { chip: false, sub_dim: 0.8, sticky_scale: 1.4, talk_lean_px: 50, text_floor: true } }), errors = [];
+  const st = await openStage({ width: 1920, height: 1080, errors });
+  try {
+    await st.ev('window.__load(' + JSON.stringify(Object.assign({}, p, { fontCss: '' })) + ')');
+    assert.equal(await st.ev('document.getElementById("stage").classList.contains("tf")'), true);
+    assert.equal(await st.ev('document.getElementById("chipTop").style.display'), 'none');
+    const l2 = p.lines[1], nhi = 'document.querySelectorAll(".actor")[0].style.transform';
+    await st.ev('window.__seek(' + (l2.a_ms - 900) + ')'); const before = await st.ev(nhi);
+    await st.ev('window.__seek(' + (l2.a_ms + 400) + ')'); const during = await st.ev(nhi);
+    assert.match(before, /^translate\(0px/); assert.match(during, /^translate\(50px/, 'Nhi (trái) nhích 50 px sang phải khi nói: ' + during);
+    await st.ev('window.__seek(' + (p.lines[0].a_ms + 1500) + ')');
+    assert.match(await st.ev('document.querySelector(".b-sticky .sk-n").style.transform'), /scale\(1\.4\)/);
+    assert.deepEqual(errors, []);
+  } finally { await st.close(); }
 });
