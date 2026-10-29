@@ -2,6 +2,9 @@
 // Xuất khung hình: mở trang sân khấu bằng Chromium headless (CDP thuần), __load(plan), lặp __seek(t) + chụp từng khung JPEG, xuất sfx WAV + ảnh bìa.
 // renderPlan({plan, outDir, chromiumPath?, assetRoot?, ffmpegPath?, onProgress?(0..1), fontCss?}) → {framesPattern, frames, fps, errors:[chuỗi], sfx:{tên: đường dẫn}, cover, thumbs:[…], render_ms, render_fps}
 // openStage(opts) → {page, ev, shot, close} — phần mở Chromium/CDP dùng chung với render/still.js (đường dựng một khung).
+// F7 (SPEC-0.2.0-F7 §4.3–4.4): Chromium mở đúng plan.size; plan có `layout` (tỉ lệ không legacy) ⇒ gọi window.__measure() ở aspects.sampleTimes(plan) ngay sau __seek
+//   của khung gần nhất (không seek thêm — khung chụp không đổi) và trả `measures` = {duration_s, samples:[{t_ms, t_sample, kind, line?, beat?, zone?, cam, els}]} — đúng đầu vào
+//   aspects.safeCheck (G-SAFE). 16:9 không đo, không có khoá `measures`. cover.jpg ở aspects.coverFrameMs(plan); ảnh bìa hạ cỡ theo aspects.thumbSizes (cạnh dài 1280/1920).
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
@@ -9,6 +12,7 @@ const { pathToFileURL } = require('node:url');
 const { spawnSync } = require('node:child_process');
 const chromium = require('./chromium');
 const cdp = require('./cdp');
+const aspects = require('./aspects');
 
 const STAGE = path.join(__dirname, 'stage', 'stage.html');
 const LOCAL_FONTS = path.join(__dirname, 'stage', 'fonts', 'local.css');   // gói F có thể đặt file này (phông cục bộ); không có thì dùng phông hệ thống
@@ -141,29 +145,43 @@ async function renderPlan(opts) {
   }
 
   async function execute() {
-    stage = await openStage({ chromiumPath: opts.chromiumPath, sendTimeoutMs: opts.sendTimeoutMs, errors, holder });
+    const size = Array.isArray(plan.size) ? plan.size : [1920, 1080];
+    stage = await openStage({ chromiumPath: opts.chromiumPath, sendTimeoutMs: opts.sendTimeoutMs, errors, holder, width: size[0], height: size[1] });
     const { ev, shot } = stage;
     await ev('window.__load(' + JSON.stringify(plan2) + ')');
 
     const N = Math.ceil(plan.duration_ms / 1000 * fps), writes = [], t0 = Date.now();
+    // đo vùng an toàn (L-42: ≤ 240 mốc, mỗi mốc ≤ 5 ms ⇒ ≤ 1 % thời gian dựng); mốc gán cho khung gần nhất, đo SAU khi chụp khung đó
+    const marks = plan.layout ? aspects.sampleTimes(plan) : null, samples = [];
+    let mi = 0, measureMs = 0;
     for (let i = 0; i < N; i++) {
-      await ev('window.__seek(' + (i * 1000 / fps) + ')');
+      const tf = i * 1000 / fps;
+      await ev('window.__seek(' + tf + ')');
       const buf = await shot();
       writes.push(fs.promises.writeFile(path.join(framesDir, 'f' + String(i).padStart(5, '0') + '.jpg'), buf));
+      if (marks) {
+        while (mi < marks.length && (marks[mi].t <= tf + 500 / fps || i === N - 1)) {
+          const m0 = Date.now(), mk = marks[mi++], r = await ev('window.__measure()');
+          measureMs += Date.now() - m0;
+          const smp = { t_ms: r.t_ms, t_sample: mk.t, kind: mk.kind };
+          if (mk.line) smp.line = mk.line; if (mk.beat) smp.beat = mk.beat; if (mk.zone) smp.zone = mk.zone;
+          samples.push(Object.assign(smp, { cam: r.cam, els: r.els }));
+        }
+      }
       if (writes.length >= 16) await Promise.all(writes.splice(0));
       if (opts.onProgress && i % 10 === 0) opts.onProgress(i / N);
     }
     await Promise.all(writes);
     const renderMs = Date.now() - t0;
 
-    // ảnh bìa: lúc tiêu đề đã dựng xong (≥ 1,5 s sau beat đầu), nằm trong clip
-    const first = plan.beats.length ? plan.beats[0].t_in : 0, coverT = Math.min(plan.duration_ms - 1, first + 1500);
+    // ảnh bìa: lúc tiêu đề đã dựng xong (≥ 1,5 s sau beat đầu), nằm trong clip — công thức một nguồn ở aspects.coverFrameMs (CNS-337)
+    const coverT = aspects.coverFrameMs(plan);
     await ev('window.__seek(' + coverT + ')');
     const cover = path.join(outDir, 'cover.jpg'); fs.writeFileSync(cover, await shot());
 
     // ảnh bìa theo phương án (plan.thumbs, SPEC-0.2.0 §5.5): ngay trong phiên này, sau vòng khung hình — không mở Chromium lần nữa.
     // Mỗi phương án: __still('thumb', spec) → PNG có chữ; __still('thumb', {...spec, textOff:true}) → PNG không chữ (để cổng đo tương phản); rồi hạ JPEG 1280 q85 (+1920 q85) bằng ffmpeg.
-    const thumbs = await renderThumbs(plan2.thumbs || [], stage, outDir, opts, errors);
+    const thumbs = await renderThumbs(plan2.thumbs || [], stage, outDir, Object.assign({}, opts, { thumbSizes: aspects.thumbSizes(plan.aspect || '16:9') }), errors);
 
     // hiệu ứng âm: dựng offline bằng engine Gen-Chibi (cùng đường với tai nghe)
     const names = [...new Set(plan.cues.map(c => c.name))], sfx = {};
@@ -172,7 +190,9 @@ async function renderPlan(opts) {
       for (const [n, v] of Object.entries(b64)) { const p = path.join(sfxDir, n + '.wav'); fs.writeFileSync(p, Buffer.from(v, 'base64')); sfx[n] = p; }
     }
     if (opts.onProgress) opts.onProgress(1);
-    return { framesPattern: path.join(framesDir, 'f%05d.jpg'), frames: N, fps, errors, sfx, cover, thumbs, render_ms: renderMs, render_fps: +(N / (renderMs / 1000)).toFixed(2) };
+    const out = { framesPattern: path.join(framesDir, 'f%05d.jpg'), frames: N, fps, errors, sfx, cover, thumbs, render_ms: renderMs, render_fps: +(N / (renderMs / 1000)).toFixed(2) };
+    if (marks) { out.measures = { duration_s: +(plan.duration_ms / 1000).toFixed(3), samples }; out.measure_ms = measureMs; out.cover_frame_ms = coverT; }
+    return out;
   }
 }
 
@@ -189,10 +209,12 @@ async function renderThumbs(specs, stage, outDir, opts, errors) {
     fs.writeFileSync(base + '.notext.png', await stage.shot('png'));
     const t = { index: i, spec, measures, png: base + '.png', png_notext: base + '.notext.png', jpg1280: null, jpg1920: null };
     if (opts.ffmpegPath) {
-      for (const [w, key] of [[1280, 'jpg1280'], [1920, 'jpg1920']]) {
-        const f = base + '.' + w + '.jpg';
-        const r = spawnSync(opts.ffmpegPath, ['-v', 'error', '-y', '-i', t.png, '-vf', 'scale=' + w + ':-2:flags=lanczos', '-q:v', '3', f], { encoding: 'utf8' });
-        if (r.status === 0 && fs.existsSync(f)) t[key] = f; else errors.push('thumb ' + (i + 1) + ': ffmpeg hạ ' + w + ' lỗi (' + String(r.stderr || '').slice(0, 120) + ')');
+      // cỡ theo tỉ lệ (aspects.thumbSizes): khoá jpg1280/jpg1920 = CẠNH DÀI 1280/1920 (16:9: rộng 1280/1920 như cũ; 9:16: 720×1280 / 1080×1920)
+      const sizes = opts.thumbSizes || [[1280, 720], [1920, 1080]];
+      for (const [sw, sh] of sizes) {
+        const long = Math.max(sw, sh), key = 'jpg' + long, f = base + '.' + long + '.jpg';
+        const r = spawnSync(opts.ffmpegPath, ['-v', 'error', '-y', '-i', t.png, '-vf', 'scale=' + sw + ':-2:flags=lanczos', '-q:v', '3', f], { encoding: 'utf8' });
+        if (r.status === 0 && fs.existsSync(f)) t[key] = f; else errors.push('thumb ' + (i + 1) + ': ffmpeg hạ ' + long + ' lỗi (' + String(r.stderr || '').slice(0, 120) + ')');
       }
     } else errors.push('thumb ' + (i + 1) + ': thiếu ffmpegPath nên chưa hạ JPEG');
     out.push(t);

@@ -34,21 +34,50 @@
     return { x: (x0 + x1) / 2, y: (y0 + y1) / 2 + 30, z: clamp(Math.min(VIEW.w / w, (VIEW.h - 120) / h), 0.3, 1) };
   };
 
-  // build({zones:[{cx,cy,w,h,x,y,tIn,tLast}], hints:{zoneIdx:{zoom,dx,dy}}, overviewT|null, durationMs}) → {keys, moves}
+  // ---------- bố cục theo tỉ lệ (F7 §4.1) — CHỈ khi plan có `layout` (không legacy); 16:9 đi frameOf/overviewFrame ở trên, không đổi ----------
+  // Khung nhìn một vùng: z = clamp(min(frame_box.w/zone.w, frame_box.h/zone.h), z_min, z_max); tâm vùng đặt ở content_center trên màn
+  // (máy quay {x,y} = điểm thế giới nằm ở GIỮA khung `size`, như stage.js: translate(size/2 − c·z)). lay = layout.camera, size = [w,h] của tỉ lệ.
+  C.frameOfLay = function (zone, hint, lay, size) {
+    var fb = lay.frame_box, cc = lay.content_center, zr = lay.z;
+    var z = clamp(Math.min(fb[0] / Math.max(1, zone.w), fb[1] / Math.max(1, zone.h)), zr[0], zr[1]);
+    if (hint && typeof hint.zoom === 'number') z = clamp(hint.zoom, 0.3, 2);
+    var f = { x: zone.cx - (cc[0] - size[0] / 2) / z, y: zone.cy - (cc[1] - size[1] / 2) / z, z: z };
+    if (hint) { if (typeof hint.dx === 'number') f.x += hint.dx; if (typeof hint.dy === 'number') f.y += hint.dy; }
+    return f;
+  };
+  // toàn cảnh dọc: lùi cho thấy mọi vùng trong khung `size` (chừa overview_pad_h cho phụ đề/nhân vật); không sàn z (cột dài ⇒ z nhỏ — S13 xem, kém thì layout.overview=false)
+  C.overviewFrameLay = function (zones, lay, size) {
+    var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    zones.forEach(function (q) { x0 = Math.min(x0, q.x); y0 = Math.min(y0, q.y); x1 = Math.max(x1, q.x + q.w); y1 = Math.max(y1, q.y + q.h); });
+    var w = x1 - x0 + 360, h = y1 - y0 + 360;
+    return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, z: Math.min(1, size[0] / w, (size[1] - lay.overview_pad_h) / h) };
+  };
+  // tham số cho build() khi plan có layout: thay frameOf/overviewFrame/tâm khung; legacy không truyền ⇒ build() chạy đúng như cũ
+  C.layOpts = function (lay, size) {
+    // zoomed(f, k): đổi z của khung f thành f.z·k mà điểm thế giới ở content_center đứng yên (cú đẩy vào lúc mở đầu) — tâm nội dung lệch tâm khung nên không zoom quanh {x,y}
+    var off = function (f) { return { x: (lay.content_center[0] - size[0] / 2) / f.z, y: (lay.content_center[1] - size[1] / 2) / f.z }; };
+    var zoomed = function (f, k) { var a = off(f), g = { x: 0, y: 0, z: f.z * k }, b = off(g); g.x = f.x + a.x - b.x; g.y = f.y + a.y - b.y; return g; };
+    return { frame: function (q, h) { return C.frameOfLay(q, h, lay, size); }, overview: function (Z) { return C.overviewFrameLay(Z, lay, size); }, center: { x: size[0] / 2, y: size[1] / 2 }, zoomed: zoomed };
+  };
+
+  // build({zones:[{cx,cy,w,h,x,y,tIn,tLast}], hints:{zoneIdx:{zoom,dx,dy}}, overviewT|null, durationMs, frame?, overview?, center?}) → {keys, moves}
   // zone.tIn = mốc vào của beat đầu; zone.tLast = mốc vào của beat cuối (máy quay chưa rời vùng trước tLast + 900 ms).
+  // frame/overview/center/zoomed (F7, C.layOpts): chỉ bố cục không-legacy truyền; thiếu ⇒ frameOf/overviewFrame/(960,540)/zoom quanh {x,y} như 0.1.x.
   C.build = function (o) {
-    var Z = o.zones, keys = [], moves = [];
-    if (!Z.length) return { keys: [{ t: 0, x: 960, y: 540, z: 1 }, { t: o.durationMs, x: 960, y: 540, z: 1 }], moves: [] };
+    var Z = o.zones, keys = [], moves = [], ctr = o.center || { x: 960, y: 540 };
+    if (!Z.length) return { keys: [{ t: 0, x: ctr.x, y: ctr.y, z: 1 }, { t: o.durationMs, x: ctr.x, y: ctr.y, z: 1 }], moves: [] };
     var push = function (t, f) { var last = keys[keys.length - 1]; if (last && t <= last.t) t = last.t + 1; keys.push({ t: Math.round(t), x: +f.x.toFixed(2), y: +f.y.toFixed(2), z: +f.z.toFixed(4) }); };
-    var frames = Z.map(function (q, i) { return C.frameOf(q, o.hints && o.hints[i]); });
+    var frameOf = o.frame || C.frameOf, overviewOf = o.overview || C.overviewFrame;
+    var zoomed = o.zoomed || function (f, k) { return { x: f.x, y: f.y, z: f.z * k }; };
+    var frames = Z.map(function (q, i) { return frameOf(q, o.hints && o.hints[i]); });
     var f0 = frames[0];
-    push(0, { x: f0.x, y: f0.y, z: f0.z * INTRO_Z });
+    push(0, zoomed(f0, INTRO_Z));
     var departMin = 0, cur = f0, curT = 1050;
     // vùng đầu: đẩy ra từ cận cảnh
     var firstMoveStart = Z.length > 1 ? Z[1].tIn : (o.overviewT === null || o.overviewT === undefined ? o.durationMs : o.overviewT);
     var arrive0 = Math.max(400, Math.min(1050, firstMoveStart - 600));
     push(arrive0, f0); curT = arrive0;
-    function leave(frame, from) { var d = { x: frame.x, y: frame.y, z: frame.z * DRIFT }; if (from > curT) push(from, d); return d; }
+    function leave(frame, from) { var d = { x: frame.x, y: frame.y, z: frame.z * DRIFT }; if (from > curT) push(from, d); return d; }   // trôi giữ x,y (aspects.sampleTimes coi đoạn này là máy quay đứng yên)
     for (var i = 1; i < Z.length; i++) {
       var prev = Z[i - 1], tgt = frames[i], dist = Math.hypot(tgt.x - cur.x, tgt.y - cur.y) * Math.max(cur.z, tgt.z);
       var dur = clamp(500 + dist / 2.8, 800, 1700);
@@ -59,7 +88,7 @@
       push(tArr, tgt); cur = tgt; curT = tArr;
     }
     if (o.overviewT !== null && o.overviewT !== undefined) {
-      var ov = C.overviewFrame(Z), start2 = Math.max(o.overviewT, curT + 100), dur2 = 1500;
+      var ov = overviewOf(Z), start2 = Math.max(o.overviewT, curT + 100), dur2 = 1500;
       leave(cur, start2); moves.push({ t: start2, dur: dur2, dist: 99999, overview: true });
       push(start2 + dur2, ov); cur = ov;
     }

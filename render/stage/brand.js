@@ -5,6 +5,8 @@
 //   GSBrand.inkFilter(svg, brand) → svg — thay GC.INK (#2b211d) bằng brand.tokens.ink trong SVG nhân vật; stage.js CHỈ gọi khi chuỗi SVG đổi (CNS-088), không mỗi khung.
 //   GSStill.brand(payload) — xem trước nhận diện (renderStill mode 'brand'): view 'mid' (khung giữa bài: KOL + phụ đề + lower-third) · 'card' (thẻ kết) · 'thumb' (ảnh bìa mẫu).
 // apply(rootEl, brand) không nhận plan, mà logo/lower-third cần plan.assetData/lines ⇒ file này bọc __load để giữ plan hiện hành và bọc __seek để chạy tick(t) (không sửa stage.js).
+// F7 (SPEC-0.2.0-F7 §5.3): plan.layout ≠ null ⇒ góc logo đổi theo layout.logo.remap (bl→tl, br→tr ở 9:16); layout.lower_third === false ⇒ không dựng lower-third;
+//   GSStill.brand nhận payload.aspect + payload.layout/size (route xem trước cấp) ⇒ view 'thumb' dựng khung dọc; view mid/card dựng theo plan đã có layout.
 (function () {
   'use strict';
   var U = window.GSUtil, GC = window.GenChibi;
@@ -37,8 +39,15 @@
     return out;
   }
 
+  // góc logo theo bố cục tỉ lệ (layout.logo.remap); 16:9 / không layout ⇒ giữ nguyên
+  function cornerFor(corner, layout) {
+    var rm = layout && !layout.legacy && layout.logo && layout.logo.remap;
+    return rm && rm[corner] ? rm[corner] : corner;
+  }
+
   function apply(rootEl, brand) {
     if (!brand) return;
+    var lay = plan && plan.layout && !plan.layout.legacy ? plan.layout : null;
     setVars(rootEl, brand);
     rootEl.classList.add('brand');
     if (brand.subtitle && brand.subtitle.position === 'top') rootEl.classList.add('sub-top');
@@ -46,10 +55,10 @@
     var hud = rootEl.querySelector('#hud') || rootEl, p = plan || {}, st = { brand: brand, lt: null, ltEl: null, ltSched: [], ltKey: '', intro: null, ready: [] };
     var url = logoUrl(brand, p);
     if (url && brand.logo.show.indexOf('video') >= 0) {
-      var im = mk('img', 'brand-logo ' + brand.logo.corner); im.alt = ''; im.src = url; hud.appendChild(im);
+      var im = mk('img', 'brand-logo ' + cornerFor(brand.logo.corner, lay)); im.alt = ''; im.src = url; hud.appendChild(im);
       if (im.decode) st.ready.push(im.decode().catch(function () { console.error('brand: logo không giải mã được'); }));
     }
-    if (brand.lower_third && brand.lower_third.enabled) {
+    if (brand.lower_third && brand.lower_third.enabled && !(lay && lay.lower_third === false)) {
       st.ltSched = ltSchedule(brand, p);
       st.ltEl = mk('div', 'lower-third ' + brand.lower_third.style); hud.appendChild(st.ltEl);
     }
@@ -137,13 +146,18 @@
     var root = document.getElementById('stage'), brand = payload.brand;
     root.innerHTML = '';
     setVars(root, brand); root.classList.add('brand');
+    var lay = payload.layout && !payload.layout.legacy && Array.isArray(payload.size) && window.GSStageLayout ? payload.layout : null;
+    if (lay) return window.GSStageLayout.load().then(function () { window.GSStageLayout.apply(root, { layout: lay, size: payload.size, aspect: payload.aspect }); return thumbBody(root, brand, payload, lay); });
+    return thumbBody(root, brand, payload, null);
+  }
+  function thumbBody(root, brand, payload, lay) {
     var box = mk('div', 'brand-thumb'), th = brand.thumb || {};
     box.appendChild(mk('div', 'kick ' + (th.kicker_style === 'plain' ? 'plain' : 'plate'), payload.kicker || 'Bài 12 · Nhập môn A.I.'));
     box.appendChild(mk('div', 'tt', payload.title || 'Vì sao A.I. sai mà vẫn tự tin?'));
     box.appendChild(mk('div', 'bar'));
     var url = logoUrl(brand, payload), done = [];
     if (url && brand.logo.show.indexOf('thumb') >= 0) {
-      var im = mk('img', 'brand-logo ' + (th.corner || brand.logo.corner)); im.alt = ''; im.src = url; box.appendChild(im);
+      var im = mk('img', 'brand-logo ' + cornerFor(th.corner || brand.logo.corner, lay)); im.alt = ''; im.src = url; box.appendChild(im);
       if (im.decode) done.push(im.decode().catch(function () {}));
     }
     root.appendChild(box);

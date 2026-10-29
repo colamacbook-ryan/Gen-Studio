@@ -12,6 +12,7 @@ const camera = require('./camera');
 const CP = require('./cursor-path');
 const mockUi = require('../blocks/mock-ui');
 const { PlanError } = require('./plan-error');
+const aspects = require('../aspects');
 
 const PACE = { full: { lead: 1100, gap: 500, tail: 2600, hold: 5000, endHold: 2400 }, trailer: { lead: 400, gap: 200, tail: 1800, hold: 2600, endHold: 2200 } };
 const FIT = { x0: 336, y0: 36, x1: 1880, y1: 900 };
@@ -140,6 +141,9 @@ function anchorAt(line, anchor) {
 }
 
 function buildTutorialPlan(input) {
+  // F7 §5.2: tutorial chỉ dựng ở tỉ lệ có `tutorial` trong `kinds` (0.2.0: chỉ 16:9) — lưới an toàn thứ hai sau aspects.resolve lúc nộp bài
+  const asp = input.aspect || '16:9', ad = aspects.get(asp);
+  if (!ad || ad.kinds.indexOf('tutorial') < 0) throw new PlanError('aspect_kind_unsupported', aspects.TUTORIAL_BLOCKED, { aspect: asp, kind: 'tutorial' });
   const lesson = input.lesson || {}, fps = input.fps || 30;
   const variant = input.variant || lesson.variant || 'full';
   if (!['full', 'trailer'].includes(variant)) throw new PlanError('tutorial_variant', `variant phải là full hoặc trailer (đang "${variant}").`);
