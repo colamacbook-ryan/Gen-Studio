@@ -6,7 +6,7 @@
 // Khung mẫu dùng nội dung mẫu + nhân vật mặc định (cast.defaults) — xem trước là để thấy BỘ NHẬN DIỆN, không phải bài thật.
 // mode=thumb (gói T): GET ?mode=thumb&lesson=LS-…[&version=N][&variant=0][&w=640] · POST {mode:'thumb', lesson, variant | spec (phương án nháp), w?} — JPEG một phương án ảnh bìa, cùng đường phân giải với tool preview_thumbnail.
 // Các mode khác (frame, cast…) do gói khác thêm sau khi gộp, không trùng (method, pattern).
-// F7 (SPEC-0.2.0-F7 §3.6, §5.3): `aspect` (query/body; tỉ lệ đang bật trong render/aspects.json, mặc định "16:9"; mode thumb: mặc định = spec.aspect của phương án) ⇒ JPEG đúng tỉ lệ,
+// F7 (SPEC-0.2.0-F7 §3.6, §5.3): `aspect` (query/body; tỉ lệ đang bật trong render/aspects.json, mặc định "16:9"; mode thumb: mặc định = spec.template.aspect của phương án) ⇒ JPEG đúng tỉ lệ,
 //   `w` = chiều rộng, cạnh dài ≤ 1920 (9:16: w ≤ 1080). Brand mid/card: bài mẫu dựng ở tỉ lệ đó (logo bl/br đổi tl/tr, không lower-third ở 9:16); thumb: khung dọc + vị trí theo layout.
 'use strict';
 const brandMod = require('../../render/brand.js');
@@ -46,7 +46,7 @@ function register(add, rctx) {
     const w = q.w === undefined ? 640 : Math.round(Number(q.w));
     const num = (v) => (v === undefined || v === '' ? undefined : Number(v));
     const spec = resolvePreview(db, { lesson: q.lesson, version: num(q.version), variant: num(q.variant), spec: q.spec }, { need, fail, chanData: (ch) => { const v = db.json(db.get('SELECT data FROM channel_versions WHERE entity_id=? AND version=?', ch.id, ch.current_version)); return (v && v.data) || {}; } }).resolve();
-    const A = aspectReq(q.aspect, spec && spec.aspect);
+    const A = aspectReq(q.aspect, spec && spec.template && spec.template.aspect);
     if (!Number.isFinite(w) || w < W_MIN || w > A.wMax) throw fail('invalid', `w phải trong ${W_MIN}..${A.wMax}.`);
     let r;
     try {

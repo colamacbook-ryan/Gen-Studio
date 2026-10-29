@@ -51,7 +51,7 @@ function launch(opts) {
   let tail = '';
   const close = () => new Promise(res => {
     const done = () => { try { fs.rmSync(dataDir, { recursive: true, force: true }); } catch (e) { /* tạm */ } res(); };
-    if (proc.exitCode !== null) return done();
+    if (proc.exitCode !== null || proc.signalCode !== null) return done();   // đã thoát (kể cả bị SIGKILL: exitCode null, signalCode đặt) ⇒ 'exit' không phát lại, đừng chờ
     proc.once('exit', done); proc.kill('SIGKILL');
   });
   return new Promise((resolve, reject) => {

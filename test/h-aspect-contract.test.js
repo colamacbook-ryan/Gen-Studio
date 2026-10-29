@@ -125,6 +125,11 @@ test('resolve §3.3: thứ tự lesson → lệnh → (version trước) → kê
   assert.deepEqual(R({ previous: { aspect: '9:16' }, channelData: { default_aspect: '16:9' } }), { aspect: '9:16', source: 'lesson', warnings: [], inherited: true });
   assert.deepEqual(R({ previous: { aspect: null }, channelData: { default_aspect: '9:16' } }), { aspect: '16:9', source: 'lesson', warnings: [], inherited: true });
   assert.deepEqual(R({ previous: { aspect: '16:9' }, workOrder: { aspect: '9:16' } }), { aspect: '9:16', source: 'work_order', warnings: [] });
+  // update_lesson gửi tỉ lệ khác version trước, lệnh không đặt ⇒ aspect_mismatch; trùng thì qua; lệnh có aspect thắng (đã ở trên)
+  assert.equal(codeOf(() => R({ lesson: { aspect: '9:16' }, previous: { aspect: '16:9' } })), 'aspect_mismatch');
+  assert.equal(codeOf(() => R({ lesson: { aspect: '9:16' }, previous: { aspect: null } })), 'aspect_mismatch', 'NULL cũ = 16:9');
+  try { R({ lesson: { aspect: '16:9' }, previous: { aspect: '9:16' } }); assert.fail('phải ném'); } catch (e) { assert.equal(e.text_human, 'Bài đã dựng khung 9:16; muốn đổi khung cần chủ xưởng tạo lệnh mới (ví dụ "Tạo lệnh bản dọc").'); }
+  assert.deepEqual(R({ lesson: { aspect: '9:16' }, previous: { aspect: '9:16' } }), { aspect: '9:16', source: 'lesson', warnings: [] });
   // lỗi
   assert.equal(codeOf(() => R({ lesson: { aspect: '16:9' }, workOrder: { aspect: '9:16', display_id: 'WO-0031' } })), 'aspect_mismatch');
   try { R({ lesson: { aspect: '16:9' }, workOrder: { aspect: '9:16', display_id: 'WO-0031' } }); } catch (e) { assert.equal(e.text_human, 'Lệnh WO-0031 yêu cầu 9:16, bài gửi 16:9.'); assert.deepEqual(e.detail, { work_order: 'WO-0031', expected: '9:16', got: '16:9' }); }

@@ -41,7 +41,9 @@ function tools(ctx) {
         if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw fail('invalid', 'payload phải là object.');
         if (JSON.stringify(payload).length > MAX_PAYLOAD_BYTES) throw fail('payload_too_large', 'payload quá lớn (tối đa 256 KB).');
         const pa = payload.plan && typeof payload.plan === 'object' && typeof payload.plan.aspect === 'string' ? payload.plan.aspect : null;
-        const aspect = a.aspect === undefined ? (pa || '16:9') : a.aspect, ad = aspects.get(aspect), on = aspects.list({ enabledOnly: true }).map((x) => x.id);
+        // thứ tự: agent gửi → payload.plan.aspect → (mode thumb) payload.template.aspect → '16:9' (mẫu ảnh bìa dọc tự mở khung 1080×1920 như render/still.js aspectOf)
+        const ta = a.mode === 'thumb' && payload.template && typeof payload.template === 'object' && typeof payload.template.aspect === 'string' ? payload.template.aspect : null;
+        const aspect = a.aspect === undefined ? (pa || ta || '16:9') : a.aspect, ad = aspects.get(aspect), on = aspects.list({ enabledOnly: true }).map((x) => x.id);
         if (!ad || !ad.enabled) throw fail('invalid', `Tỉ lệ "${aspect}" không được hỗ trợ (đang bật: ${on.join(', ')}).`, { code: 'aspect_unsupported', enabled: on });
         if (pa && pa !== aspect) throw fail('invalid', `aspect ${aspect} khác tỉ lệ của payload.plan (${pa}).`, { code: 'still_size' });
         const [SW, SH] = ad.size, k = 1280 / Math.max(SW, SH);
@@ -51,8 +53,15 @@ function tools(ctx) {
         if (payload.assetRefs !== undefined && !Array.isArray(payload.assetRefs)) throw fail('invalid', 'payload.assetRefs phải là mảng.');
         if (limited(c.agent.id)) throw fail('rate_limited', `Dựng ảnh xem trước quá nhiều (tối đa ${RATE_MAX}/phút). Thử lại sau ít phút.`);
         const body = Object.assign({}, payload, payload.assetRefs ? { assetRefs: mapRefs(payload.assetRefs) } : {});
+        // cỡ + bố cục KHÔNG do agent đặt (size [1e9,1e9], layout lạ): gỡ rồi lấy lại từ render/aspects.json theo `aspect`, giống routes/preview.js (16:9 legacy ⇒ không thêm gì)
+        const lay = ad.layout && !ad.layout.legacy ? Object.assign({}, ad.layout, { safe: ad.safe }) : null;
+        delete body.size; if (typeof body.layout !== 'string') delete body.layout;   // 'sheet'|'solo' của mode cast là chuỗi hợp lệ, cast-sheet tự kiểm
+        if (lay && a.mode === 'brand') Object.assign(body, { aspect, size: ad.size, layout: lay });
         delete body.assetData; delete body.fontCss;   // agent không tự nhét dữ liệu đã phân giải / CSS vào sân khấu (kể cả trong payload.plan của mode frame)
-        if (body.plan && typeof body.plan === 'object' && !Array.isArray(body.plan)) { body.plan = Object.assign({}, body.plan); delete body.plan.assetData; delete body.plan.fontCss; }
+        if (body.plan && typeof body.plan === 'object' && !Array.isArray(body.plan)) { body.plan = Object.assign({}, body.plan); delete body.plan.assetData; delete body.plan.fontCss;
+          delete body.plan.size; delete body.plan.layout;
+          if (lay) { body.plan.size = ad.size.slice(); body.plan.layout = lay; }
+        }
         const still = (ctx.deps && ctx.deps.still) || require('../../render/still.js');
         let r;
         try {

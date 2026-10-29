@@ -141,7 +141,7 @@ async function renderPlan(opts) {
     try { if (holder.client) holder.client.close(); } catch (x) { /* đã đóng */ }
     if (holder.ch) holder.ch.close().catch(() => {}); fail(e);
   };
-  const alive = () => { clearTimeout(stall); stall = setTimeout(() => kill('Dựng khung hình bị treo: ' + Math.round(stallMs / 1000) + ' giây không ra khung mới.'), stallMs); };
+  const alive = () => { if (dead) return; clearTimeout(stall); stall = setTimeout(() => kill('Dựng khung hình bị treo: ' + Math.round(stallMs / 1000) + ' giây không ra khung mới.'), stallMs); };
   deadline = setTimeout(() => kill('Dựng khung hình quá hạn tổng ' + Math.round(limitMs / 1000) + ' giây.'), limitMs);
   try {
     const run = execute();

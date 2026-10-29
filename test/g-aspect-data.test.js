@@ -116,7 +116,7 @@ test('mặc định kênh (default_aspect, bí danh cũ `aspect`) → bài khôn
   } finally { t.clean(); }
 });
 
-test('update_lesson: version cũ NULL (bài 0.1.x) ⇒ coi là 16:9 và GHI "16:9"; ghi rõ tỉ lệ mới trên bài cũ thì theo lời gửi', () => {
+test('update_lesson: version cũ NULL (bài 0.1.x) ⇒ coi là 16:9 và GHI "16:9"; gửi tỉ lệ khác bài cũ (lệnh không đặt) ⇒ aspect_mismatch', () => {
   const t = tmpDb();
   try {
     const b = basics(t.write, t.db);
@@ -128,8 +128,11 @@ test('update_lesson: version cũ NULL (bài 0.1.x) ⇒ coi là 16:9 và GHI "16:
     t.write(b.o, 'channel.update', { channel: b.ch.display_id, data: { default_aspect: '9:16' } });   // mặc định kênh 9:16 không kéo bài cũ sang dọc
     const r2 = t.write(b.o, 'lesson.submit', body(b, { lesson: r.lesson.display_id }));
     assert.equal(verOf(t.db, r.lesson.display_id).aspect, '16:9'); assert.equal(r2.aspect.inherited, true);
-    const r3 = t.write(b.o, 'lesson.submit', body(b, { lesson: r.lesson.display_id, aspect: '9:16' }));
-    assert.equal(r3.aspect.value, '9:16'); assert.equal(r3.aspect.source, 'lesson');
+    // gửi tỉ lệ khác bài cũ khi lệnh không đặt ⇒ aspect_mismatch (đổi khung = chủ xưởng tạo lệnh mới); gửi trùng tỉ lệ cũ vẫn được
+    const e3 = errs(() => t.write(b.o, 'lesson.submit', body(b, { lesson: r.lesson.display_id, aspect: '9:16' })));
+    assert.ok(e3 && e3.code === 'invalid'); assert.equal(e3.detail.errors[0].code, 'aspect_mismatch');
+    assert.match(e3.detail.errors[0].text, /Bài đã dựng khung 16:9; muốn đổi khung cần chủ xưởng tạo lệnh mới \(ví dụ "Tạo lệnh bản dọc"\)\./);
+    assert.equal(t.write(b.o, 'lesson.submit', body(b, { lesson: r.lesson.display_id, aspect: '16:9' })).aspect.value, '16:9');
   } finally { t.clean(); }
 });
 

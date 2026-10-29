@@ -114,6 +114,11 @@
       }
       if (source === 'lesson' && !inherited && woAspect && woAspect !== cand)
         throw AspectError('aspect_mismatch', 'Lệnh ' + (woName || '') + ' yêu cầu ' + woAspect + ', bài gửi ' + cand + '.', { work_order: woName, expected: woAspect, got: cand });
+      // update_lesson: bài đã dựng khung X, lệnh không đặt tỉ lệ, agent gửi tỉ lệ khác ⇒ chặn (đổi khung = lệnh mới của chủ xưởng); lệnh có aspect thắng như cũ
+      if (source === 'lesson' && !inherited && !woAspect && o.previous) {
+        var was = given(o.previous.aspect) ? o.previous.aspect : '16:9';
+        if (was !== cand) throw AspectError('aspect_mismatch', 'Bài đã dựng khung ' + was + '; muốn đổi khung cần chủ xưởng tạo lệnh mới (ví dụ "Tạo lệnh bản dọc").', { previous: was, got: cand });
+      }
       if (def(cand).kinds.indexOf(kind) < 0) {
         if (source === 'lesson' || source === 'work_order')
           throw AspectError('aspect_kind_unsupported', kind === 'tutorial' ? TUTORIAL_BLOCKED : 'Loại bài "' + kind + '" chưa dựng được ở tỉ lệ ' + cand + '.', { aspect: cand, kind: kind, source: source });

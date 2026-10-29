@@ -45,7 +45,7 @@ const enabledIds = () => A.list({ enabledOnly: true }).map((a) => a.id);
 const SCHEMA = {
   aspect: {
     type: ['string', 'null'],
-    description: 'Tỉ lệ khung của bài ("16:9" video dài, "9:16" clip dọc cho Shorts/Reels/TikTok). KHÔNG bắt buộc: bỏ trống thì theo lệnh sản xuất (get_task → aspect), rồi theo mặc định kênh. Lệnh đã chỉ định tỉ lệ thì bài không được gửi tỉ lệ khác (aspect_mismatch). Xem get_capabilities → aspects (cỡ, nền tảng, vùng an toàn, khối và mẫu ảnh bìa hỗ trợ).',
+    description: 'Tỉ lệ khung của bài ("16:9" video dài, "9:16" clip dọc cho Shorts/Reels/TikTok). KHÔNG bắt buộc: bỏ trống thì theo lệnh sản xuất (get_task → aspect), rồi theo mặc định kênh. Lệnh đã chỉ định tỉ lệ thì bài không được gửi tỉ lệ khác (aspect_mismatch); update_lesson cũng không được đổi tỉ lệ so với version trước (đổi khung cần lệnh mới của chủ xưởng). Xem get_capabilities → aspects (cỡ, nền tảng, vùng an toàn, khối và mẫu ảnh bìa hỗ trợ).',
   },
 };
 
@@ -80,6 +80,7 @@ function softWarnings(aspect, lines) {
   return out;
 }
 
+const PER_RUN_MAX = 20;   // = trần per_run của server/scheduler.js parseSchedule
 // kiểm giá trị tỉ lệ ở dữ liệu kênh (default_aspect, schedule.mix) — dữ liệu người gọi gửi, trước khi lưu
 function checkChannelAspect(err, data) {
   if (!data || typeof data !== 'object') return;
@@ -101,6 +102,8 @@ function checkChannelAspect(err, data) {
       seen.add(m.aspect); sum += m.n;
     }
     const per = sc.per_run === undefined ? 1 : Number(sc.per_run);
+    // scheduler.parseSchedule kẹp per_run ≤ 20 ⇒ mix với per_run > 20 sẽ bị scheduler bỏ lặng lẽ: từ chối ngay lúc lưu
+    if (per > PER_RUN_MAX) throw err('schedule_per_run_max', `Lịch trộn tỉ lệ (schedule.mix): per_run tối đa ${PER_RUN_MAX} lệnh mỗi lần (đang đặt ${per}). Giảm per_run hoặc bỏ mix.`, { field: 'schedule.per_run', max: PER_RUN_MAX });
     if (sum !== per) throw bad(`tổng n (${sum}) phải bằng per_run (${per}).`);
   }
 }
