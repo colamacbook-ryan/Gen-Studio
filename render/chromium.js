@@ -34,6 +34,11 @@ const ARGS = ['--headless=new', '--remote-debugging-port=0', '--no-sandbox', '--
   // sân khấu không được ra mạng (spec §8.1): mọi request đi qua proxy chết, chỉ loopback (cổng CDP) được bỏ qua
   '--proxy-server=127.0.0.1:9', '--proxy-bypass-list=<-loopback>'];
 
+// Chromium KHÔNG tự chết khi tiến trình Node thoát (đã thử: node thoát ⇒ chrome còn sống, cha = 1). Mọi tiến trình đã mở còn sống bị SIGKILL ở 'exit'
+// (vd Chromium "ấm" của still.js có hẹn giờ unref, tiến trình test/CLI thoát trước khi hết 60 s) — không để Chromium mồ côi ăn CPU của lần chạy sau.
+const LIVE = new Set();
+process.on('exit', () => { for (const p of LIVE) { try { p.kill('SIGKILL'); } catch (e) { /* đã thoát */ } } });
+
 // Chạy Chromium; URL WebSocket lấy từ stderr dòng "DevTools listening on ws://…".
 function launch(opts) {
   const bin = find(opts && opts.path);
@@ -42,6 +47,7 @@ function launch(opts) {
   const args = ARGS.concat(['--user-data-dir=' + dataDir], (opts && opts.args) || []);
   const niceN = opts && Number.isInteger(opts.nice) && opts.nice > 0 && which('nice');
   const proc = niceN ? spawn('nice', ['-n', String(opts.nice), bin].concat(args), { stdio: ['ignore', 'ignore', 'pipe'] }) : spawn(bin, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+  LIVE.add(proc); proc.once('exit', () => LIVE.delete(proc));
   let tail = '';
   const close = () => new Promise(res => {
     const done = () => { try { fs.rmSync(dataDir, { recursive: true, force: true }); } catch (e) { /* tạm */ } res(); };
@@ -61,4 +67,4 @@ function launch(opts) {
   });
 }
 
-module.exports = { find, launch, ARGS };
+module.exports = { find, launch, ARGS, live: () => LIVE.size };

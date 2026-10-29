@@ -127,26 +127,37 @@ async function renderPlan(opts) {
   const plan2 = Object.assign({}, plan, { assetData: resolveAssets(plan, errors, opts.assetRoot, { ffmpegPath: opts.ffmpegPath }), fontCss });
 
   const holder = {};
-  let stage = null, deadline = null;
-  // hạn tổng: max(120 s, 5× độ dài clip); quá hạn → đóng Chromium và ném lỗi có mã, không để pipeline treo mãi
-  const limitMs = opts.deadlineMs || Math.max(120000, 5 * plan.duration_ms);
-  const expired = new Promise((_, reject) => {
-    deadline = setTimeout(() => {
-      const e = new Error('Dựng khung hình quá hạn ' + Math.round(limitMs / 1000) + ' giây.'); e.code = 'render_timeout';
-      try { if (holder.client) holder.client.close(); } catch (x) { /* đã đóng */ }
-      if (holder.ch) holder.ch.close().catch(() => {}); reject(e);
-    }, limitMs);
-  });
+  let stage = null, deadline = null, stall = null, fail = null;
+  // Hai hạn (A-INT, nguyên nhân gốc lỗi render_timeout 120 s khi chạy cả bộ test):
+  //  • TREO (stallMs, mặc định 60 s, tính từ khi sân khấu mở): không ra thêm khung/ảnh bìa nào trong 60 s ⇒ treo ⇒ đóng Chromium + render_timeout. Mỗi bước tiến đặt lại đồng hồ.
+  //  • TỔNG (deadlineMs, mặc định max(10 phút, 20× độ dài clip)): chặn trên tuyệt đối cho bản dựng chạy rất chậm nhưng vẫn tiến.
+  // Hạn cũ max(120 s, 5× độ dài) gần bằng chi phí thật (đo 2026-10-29 trên máy 4 nhân: một mình 4,4× thời lượng ≈ 74 s cho clip 16,7 s; 3 bản dựng song song 6–7× ≈ 105–117 s)
+  // nên máy bận là trượt dù không treo. Treo thật vẫn bị bắt trong ≤ 60 s (và từng lệnh CDP vẫn có sendTimeoutMs riêng).
+  const limitMs = opts.deadlineMs || Math.max(600000, 20 * plan.duration_ms), stallMs = opts.stallMs || 60000;
+  const expired = new Promise((_, reject) => { fail = reject; });
+  let dead = null;   // đã quá hạn: execute() dừng ở bước kế tiếp và tự đóng Chromium nếu nó vừa mở xong (trước đây mở muộn hơn hạn ⇒ Chromium mồ côi)
+  const kill = (msg) => {
+    const e = new Error(msg); e.code = 'render_timeout'; dead = e;
+    try { if (holder.client) holder.client.close(); } catch (x) { /* đã đóng */ }
+    if (holder.ch) holder.ch.close().catch(() => {}); fail(e);
+  };
+  const alive = () => { clearTimeout(stall); stall = setTimeout(() => kill('Dựng khung hình bị treo: ' + Math.round(stallMs / 1000) + ' giây không ra khung mới.'), stallMs); };
+  deadline = setTimeout(() => kill('Dựng khung hình quá hạn tổng ' + Math.round(limitMs / 1000) + ' giây.'), limitMs);
   try {
-    return await Promise.race([execute(), expired]);
+    const run = execute();
+    run.catch(() => {});   // sau khi quá hạn, lỗi muộn của execute() (CDP đã đóng, thư mục đã dọn) không thành unhandledRejection
+    return await Promise.race([run, expired]);
   } finally {
-    clearTimeout(deadline);
+    clearTimeout(deadline); clearTimeout(stall);
     if (stage) await stage.close(); else { if (holder.client) holder.client.close(); if (holder.ch) await holder.ch.close(); }
   }
 
   async function execute() {
     const size = Array.isArray(plan.size) ? plan.size : [1920, 1080];
-    stage = await openStage({ chromiumPath: opts.chromiumPath, sendTimeoutMs: opts.sendTimeoutMs, errors, holder, width: size[0], height: size[1] });
+    const st = await openStage({ chromiumPath: opts.chromiumPath, sendTimeoutMs: opts.sendTimeoutMs, errors, holder, width: size[0], height: size[1] });
+    if (dead) { await st.close().catch(() => {}); throw dead; }
+    stage = st;
+    alive();   // đồng hồ treo chạy từ khi sân khấu mở (mở Chromium có hạn riêng GS_CHROMIUM_START_MS, từng lệnh CDP có sendTimeoutMs)
     const { ev, shot } = stage;
     await ev('window.__load(' + JSON.stringify(plan2) + ')');
 
@@ -155,6 +166,7 @@ async function renderPlan(opts) {
     const marks = plan.layout ? aspects.sampleTimes(plan) : null, samples = [];
     let mi = 0, measureMs = 0;
     for (let i = 0; i < N; i++) {
+      if (dead) throw dead;
       const tf = i * 1000 / fps;
       await ev('window.__seek(' + tf + ')');
       const buf = await shot();
@@ -169,6 +181,7 @@ async function renderPlan(opts) {
         }
       }
       if (writes.length >= 16) await Promise.all(writes.splice(0));
+      alive();
       if (opts.onProgress && i % 10 === 0) opts.onProgress(i / N);
     }
     await Promise.all(writes);
@@ -181,7 +194,9 @@ async function renderPlan(opts) {
 
     // ảnh bìa theo phương án (plan.thumbs, SPEC-0.2.0 §5.5): ngay trong phiên này, sau vòng khung hình — không mở Chromium lần nữa.
     // Mỗi phương án: __still('thumb', spec) → PNG có chữ; __still('thumb', {...spec, textOff:true}) → PNG không chữ (để cổng đo tương phản); rồi hạ JPEG 1280 q85 (+1920 q85) bằng ffmpeg.
-    const thumbs = await renderThumbs(plan2.thumbs || [], stage, outDir, Object.assign({}, opts, { thumbSizes: aspects.thumbSizes(plan.aspect || '16:9') }), errors);
+    alive();
+    const thumbs = await renderThumbs(plan2.thumbs || [], stage, outDir, Object.assign({}, opts, { thumbSizes: aspects.thumbSizes(plan.aspect || '16:9'), onStep: alive }), errors);
+    alive();
 
     // hiệu ứng âm: dựng offline bằng engine Gen-Chibi (cùng đường với tai nghe)
     const names = [...new Set(plan.cues.map(c => c.name))], sfx = {};
@@ -202,6 +217,7 @@ async function renderThumbs(specs, stage, outDir, opts, errors) {
   if (!specs.length) return out;
   const dir = path.join(outDir, 'thumbs'); fs.mkdirSync(dir, { recursive: true });
   for (let i = 0; i < specs.length; i++) {
+    if (opts.onStep) opts.onStep();   // đồng hồ treo của renderPlan: mỗi phương án là một bước tiến
     const spec = specs[i], base = path.join(dir, 't' + (i + 1));
     const measures = await stage.ev('window.__still("thumb", ' + JSON.stringify(spec) + ')');
     fs.writeFileSync(base + '.png', await stage.shot('png'));

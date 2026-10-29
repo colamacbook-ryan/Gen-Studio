@@ -121,6 +121,8 @@ html, body { margin: 0; padding: 0; width: 1920px; height: 1080px; overflow: hid
   background-image: linear-gradient(90deg, transparent 0 16604px, var(--v-margin) 16604px 16608px, transparent 16608px),
     linear-gradient(var(--v-rule-strong) 2px, transparent 2px), linear-gradient(90deg, var(--v-rule-strong) 2px, transparent 2px), linear-gradient(var(--v-rule) 1px, transparent 1px);
   background-size: 100% 100%, 64px 64px, 64px 64px, 16px 16px; }
+/* nền giấy của chính .world bị ::before phủ kín (cùng lưới, cùng lề) ⇒ bỏ để không vẽ hai lần mỗi khung: M17 đo cùng bài 7,1–7,4 → 8,4 fps (= 16:9), A-INT */
+.stage.lay .world { background: none; }
 .stage.lay .chip-top { display: var(--lay-chip-display); }
 .stage.lay .lower-third { display: var(--lay-lt-display); }
 .stage.lay .actor { bottom: var(--lay-actor-bottom); }
