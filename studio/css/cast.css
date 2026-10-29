@@ -1,3 +1,45 @@
 /* © 2026 Gen Labs — All rights reserved.
-   Kiểu của gói UI-L1 — màn Nhân vật. STUB do P0b tạo (đã nối sẵn trong studio/index.html để gói không phải sửa index.html); gói UI-L1 thêm quy tắc vào đây.
-   Dùng token của styles.css (var(--…)); không tự đặt màu hex mới ngoài token. */
+   Kiểu của gói UI-L1 — màn Nhân vật: Inspector trạng thái chốt, bảng nhân vật, kiểm công thức, chọn giọng. Chỉ dùng token của styles.css (var(--…)). */
+.cast-grid-host{flex:1;min-width:0;display:flex}
+.cast-chan{width:240px}
+.cast-head{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.cast-name{display:flex;align-items:baseline;gap:8px;font-size:14px;font-weight:600}
+.cast-line{display:flex;align-items:center;gap:8px}
+.cast-note{margin:0;color:var(--tx2);line-height:1.45}
+.cast-valid{display:flex;align-items:center;gap:4px;margin:0 0 4px}
+.cast-valid .ico{width:14px;height:14px}
+.cast-bad{margin:4px 0}
+.cast-issues{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:12px}
+.cast-issues li{display:grid;grid-template-columns:minmax(72px,max-content) 1fr;gap:8px;color:var(--tx)}
+.cast-issues .mono{color:var(--tx2);font-size:11px;word-break:break-all}
+.cast-issues.tone-danger li .mono{color:var(--danger)}
+.cast-issues.tone-warn li .mono{color:var(--warn)}
+.cast-acts{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0}
+
+/* bảng nhân vật */
+.cast-sheet{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.cast-sheet-btn{padding:0;border:1px solid var(--b1);border-radius:4px;background:var(--sunken);cursor:zoom-in;width:100%}
+.cast-sheet-img{width:100%;display:block;border-radius:4px}
+.cast-sheet-big{width:min(1600px,88vw);display:block;border-radius:4px}
+.overlay .dialog:has(.cast-sheet-big){width:auto;max-width:92vw}
+.cast-prog{width:100%;display:flex;flex-direction:column;gap:6px;padding:12px 0}
+.cast-prog .bar{display:block;height:2px;width:100%;background:linear-gradient(90deg,transparent,var(--ember),transparent);background-size:40% 100%;background-repeat:no-repeat;animation:castbar 1.2s linear infinite}
+@keyframes castbar{from{background-position:-40% 0}to{background-position:140% 0}}
+
+/* giọng */
+.cast-voice{display:flex;flex-direction:column;gap:8px}
+.cast-voice .row{display:flex;gap:8px}
+.vp-label{padding:0 6px;font-size:12px}
+.voice-pick{display:flex;flex-direction:column;max-height:280px;overflow:auto;border:1px solid var(--b1);border-radius:4px}
+.vp-item{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;height:28px;padding:0 8px;background:transparent;border:0;border-bottom:1px solid var(--b1);color:var(--tx);text-align:left}
+.vp-item:last-child{border-bottom:0}
+.vp-item:hover:not(:disabled){background:var(--raised)}
+.vp-item.on{background:var(--ember-soft);box-shadow:inset 2px 0 0 var(--ember)}
+.vp-item:disabled{cursor:default}
+
+/* công thức */
+.swatches{display:flex;flex-wrap:wrap;gap:6px}
+.sw-chip{display:inline-flex;align-items:center;gap:4px}
+.sw-chip i{width:14px;height:14px;border-radius:3px;border:1px solid var(--b2);display:inline-block}
+.sw-chip i.ref{background:repeating-linear-gradient(45deg,var(--raised) 0 3px,var(--b2) 3px 5px)}
+.cast-voice .asp-seg{align-self:flex-start}
