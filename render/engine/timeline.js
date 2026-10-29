@@ -54,8 +54,9 @@ function anchorTime(line, anchor) {
 }
 
 // Kiểm neo khi nộp bài (Gen gọi): trả mảng lỗi chữ tiếng Việt, rỗng = ổn. Không cần clip giọng.
+// Gồm cả mốc neo chữ trong params của khối có `cues` (quiz, compare-split, agent-steps…): line = mã câu hoặc số thứ tự câu.
 function validateAnchors(lesson) {
-  const errs = [], byId = {}; (lesson.lines || []).forEach(l => { byId[l.id] = l; });
+  const errs = [], byId = {}, lines = lesson.lines || []; lines.forEach(l => { byId[l.id] = l; });
   (lesson.beats || []).forEach((b, i) => {
     ['anchor', 'anchor2'].forEach(k => {
       if (k === 'anchor2' && !b[k]) return;
@@ -63,8 +64,27 @@ function validateAnchors(lesson) {
       if (!line) return errs.push('beat ' + (b.id || i + 1) + ': ' + k + ' trỏ tới câu không có (' + (a && a.line) + ')');
       try { anchorIndex(line, a); } catch (e) { errs.push('beat ' + (b.id || i + 1) + ': ' + e.text_human); }
     });
+    const def = registry.get(b.block);
+    if (!def || !def.cues || !b.params) return;
+    def.cues(b.params).forEach((c, j) => {
+      if (!c || typeof c !== 'object') return;
+      const line = typeof c.line === 'number' ? lines[c.line] : byId[c.line];
+      if (!line) return errs.push('beat ' + (b.id || i + 1) + ': mốc ' + (j + 1) + ' trỏ tới câu không có (' + c.line + ')');
+      try { anchorIndex(line, c); } catch (e) { errs.push('beat ' + (b.id || i + 1) + ': mốc ' + (j + 1) + ': ' + e.text_human); }
+    });
   });
   return errs;
+}
+
+// ---------- mốc trong khối (cue) ----------
+// Khối khai `cues(params) → [cue | undefined]` (thứ tự cố định do khối quy định). cue = số giây sau lúc khối vào, hoặc neo chữ {line, word|word_index, offset_s?}
+// → ms TUYỆT ĐỐI (null = không khai ⇒ khối tự dùng nhịp mặc định). Neo chữ dùng đúng anchorTime như neo beat (mốc từng chữ của giọng thật).
+function cueAbsMs(c, tIn, byId, lines, beatId) {
+  if (c === undefined || c === null) return null;
+  if (typeof c === 'number') return tIn + Math.round(c * 1000);
+  const line = typeof c.line === 'number' ? lines[c.line] : byId[c.line];
+  if (!line) throw new PlanError('anchor_line', 'Mốc trong beat ' + beatId + ' neo vào câu không có (' + c.line + ').', { beat: beatId, line: c.line });
+  return anchorTime(line, c).t + Math.round((c.offset_s || 0) * 1000);
 }
 
 function buildLines(lesson, clips, fps, leadMs) {
@@ -213,6 +233,8 @@ function buildLessonPlan(input) {
     const at = anchorTime(line, b.anchor);
     const out = { id: b.id || 'BT-auto-' + (i + 1), block: b.block, params: b.params === undefined ? {} : b.params, anchor: b.anchor, line: line.id, t_anchor: at.t, t_in: at.t };
     if (b.anchor2) { const l2 = byId[b.anchor2.line]; if (!l2) throw new PlanError('anchor_line', 'anchor2 của beat ' + out.id + ' trỏ tới câu không có.', { beat: out.id }); out.t_peak = Math.max(at.t, anchorTime(l2, b.anchor2).t); }
+    const def = registry.get(b.block);
+    if (def.cues) out._cuesAbs = def.cues(out.params).map(c => cueAbsMs(c, at.t, byId, lines, out.id));
     out._order = i; return out;
   }).sort((p, q) => p.t_in - q.t_in || p._order - q._order);
 
@@ -256,7 +278,11 @@ function buildLessonPlan(input) {
   const cues = [];
   beats.forEach(b => {
     const d = registry.get(b.block), peakMs = b.t_peak !== undefined ? b.t_peak - b.t_in : Math.round((b.morphFrom && d.peakMorph ? d.peakMorph : d.peak || 0.4) * 1000);
-    registry.sfxOf(b.block, b.params, !!b.morphFrom).forEach(s => cues.push({ t_ms: Math.max(0, Math.round(b.t_in + (s.at === 'peak' ? peakMs : 0) + (s.dt || 0))), name: s.name, vol: s.vol === undefined ? 0.4 : s.vol }));
+    // mốc trong khối: ms tính từ t_in CUỐI (sau khi khối mở đầu bị kéo về đầu clip); không âm
+    if (b._cuesAbs) b.cues_ms = b._cuesAbs.map(x => x === null ? null : Math.max(0, x - b.t_in));
+    // khối có nhịp riêng (sfxTimed): âm theo đúng lịch khối tự tính từ params + cue — cùng hàm với draw, không lệch hình/tiếng
+    if (d.sfxTimed) d.sfxTimed(b.params, b.cues_ms ? b.cues_ms.map(x => x === null ? null : x / 1000) : null).forEach(s => cues.push({ t_ms: Math.max(0, Math.round(b.t_in + s.t * 1000)), name: s.name, vol: s.vol === undefined ? 0.4 : s.vol }));
+    else registry.sfxOf(b.block, b.params, !!b.morphFrom).forEach(s => cues.push({ t_ms: Math.max(0, Math.round(b.t_in + (s.at === 'peak' ? peakMs : 0) + (s.dt || 0))), name: s.name, vol: s.vol === undefined ? 0.4 : s.vol }));
     b.peak_ms = peakMs;
   });
   cam.moves.forEach(m => { if (!m.overview && m.dist > 500) cues.push({ t_ms: Math.round(m.t + 50), name: 'whoosh', vol: 0.35 }); });
@@ -270,6 +296,7 @@ function buildLessonPlan(input) {
     const o = { id: b.id, block: b.block, params: b.params, anchor: b.anchor, line: b.line, t_in: b.t_in, t_anchor: b.t_anchor, t_out: b.t_out, peak_ms: b.peak_ms, slot: b.slot, zone: b.zone };
     if (b.t_peak !== undefined) o.t_peak = b.t_peak;
     if (b.morphFrom) o.morphFrom = b.morphFrom;
+    if (b.cues_ms) o.cues_ms = b.cues_ms;   // chỉ khối khai `cues` ⇒ plan cũ không có khoá mới (golden 16:9 trùng byte)
     return o;
   });
   const plan = {

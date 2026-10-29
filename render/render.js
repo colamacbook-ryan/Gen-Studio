@@ -13,6 +13,7 @@ const { spawnSync } = require('node:child_process');
 const chromium = require('./chromium');
 const cdp = require('./cdp');
 const aspects = require('./aspects');
+const registry = require('./blocks/registry');
 
 const STAGE = path.join(__dirname, 'stage', 'stage.html');
 const LOCAL_FONTS = path.join(__dirname, 'stage', 'fonts', 'local.css');   // gói F có thể đặt file này (phông cục bộ); không có thì dùng phông hệ thống
@@ -69,6 +70,8 @@ function resolveAssets(plan, errors, assetRoot, opts) {
   };
   (plan.assetRefs || []).forEach((r, i) => { const o = typeof r === 'string' ? { asset: r } : r || {}; one(o.asset, o.label || 'assetRefs[' + i + ']', o.maxPx); });
   plan.beats.filter(b => b.block === 'illustration').forEach(b => one(b.params.asset, 'illustration ' + b.id));
+  // khối 0.2.x khai assetsOf(params) (compare-split, morph…): ảnh ngoài bộ biểu tượng — cùng luật đọc như trên
+  plan.beats.forEach(b => { const d = registry.get(b.block); if (d && d.assetsOf) d.assetsOf(b.params || {}).forEach(a => one(a, b.block + ' ' + b.id)); });
   return data;
 }
 

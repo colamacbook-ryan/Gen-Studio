@@ -16,11 +16,12 @@ const { buildPlan } = require('../render/engine/timeline');
 const fx = require('./h-fixtures');
 const ROOT = path.join(__dirname, '..');
 const INDEX = JSON.parse(fs.readFileSync(path.join(ROOT, 'render/blocks/index.json'), 'utf8'));
+const { LONG_BLOCKS } = require('./k-blocks-list');
 const NINE = ['title', 'concept-chip', 'token-row', 'prob-card', 'stamp', 'takeaway', 'lesson-map', 'end-card', 'illustration'];
 const SIX_TUT = ['screen', 'cursor', 'focus', 'callout', 'keystroke', 'mock-ui'];
 
 test('index.json: 9 khối MVP + 6 khối tutorial (gói U đã bật — cắt F4 = tắt lại), mỗi mục có file tồn tại', () => {
-  assert.deepEqual(INDEX.filter(e => e.enabled).map(e => e.name), NINE.concat(SIX_TUT));
+  assert.deepEqual(INDEX.filter(e => e.enabled).map(e => e.name), NINE.concat(SIX_TUT, LONG_BLOCKS));
   assert.deepEqual(INDEX.filter(e => SIX_TUT.includes(e.name)).map(e => e.name), SIX_TUT);
   INDEX.forEach(e => {
     assert.ok(fs.existsSync(path.join(ROOT, 'render/blocks', e.file)), e.file);
@@ -31,9 +32,9 @@ test('index.json: 9 khối MVP + 6 khối tutorial (gói U đã bật — cắt 
 });
 
 test('registry: names/list/validate suy ra từ index.json; không truyền kind = bài thường (API 0.1.x); khối tutorial chỉ nhận ở bài tutorial', () => {
-  assert.deepEqual(reg.names(), NINE);
-  assert.deepEqual(reg.list().map(b => b.name), NINE);
-  assert.equal(reg.all().length, 15);
+  assert.deepEqual(reg.names(), NINE.concat(LONG_BLOCKS));
+  assert.deepEqual(reg.list().map(b => b.name), NINE.concat(LONG_BLOCKS));
+  assert.equal(reg.all().length, 15 + LONG_BLOCKS.length);
   SIX_TUT.forEach(n => {
     assert.ok(reg.get(n), n + ' nạp được');
     assert.equal(reg.isEnabled(n), true); assert.equal(reg.isEnabled(n, 'lesson'), false); assert.equal(reg.isEnabled(n, 'tutorial'), true);

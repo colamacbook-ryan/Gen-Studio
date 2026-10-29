@@ -100,6 +100,7 @@
       return u;
     };
 
+    var actorFx = {};   // {[actorId]: {pip 0..1, cx, cy, r}} — xoá mỗi __seek trước khi vẽ khối (tua ngược vẫn tất định)
     // chuỗi morph: beat có morphFrom dùng chung phần tử của beat đầu chuỗi
     var byId = {}; plan.beats.forEach(function (b) { byId[b.id] = b; });
     var headOf = function (b) { while (b.morphFrom) b = byId[b.morphFrom]; return b; };
@@ -107,14 +108,17 @@
     var recs = [];
     Object.keys(chains).forEach(function (hid) {
       var head = byId[hid], def = B.get(head.block), list = chains[hid];
-      var chain = list.map(function (b) { return { beat: b, params: b.params, t: (b.t_in - head.t_in) / 1000, peak: b.peak_ms / 1000 }; });
+      var chain = list.map(function (b) { return { beat: b, params: b.params, t: (b.t_in - head.t_in) / 1000, peak: b.peak_ms / 1000, cues: b.cues_ms ? b.cues_ms.map(function (x) { return x === null ? null : x / 1000; }) : null }; });
       var ctx = { beat: head, slot: head.slot, plan: plan, chain: chain, peak: chain[0].peak, terms: terms, zones: plan.style.zones, world: world, hud: E.hud, assetUrl: assetUrl,
         layers: { full: E.full, track: E.track, hud: E.hud, pip: E.pip } };
       ctx.aspect = plan.aspect || '16:9';   // F7 §4.5: khối đọc được tỉ lệ (không bắt buộc dùng)
+      ctx.cues = chain[0].cues;              // mốc trong khối (giây sau lúc vào; null = mặc định) — khối có `cues` (0.2.x)
+      ctx.actorFx = actorFx;                 // khối lái nhân vật (pip-swap) ghi {pip, cx, cy, r} mỗi khung; drawActor đọc
       var parent = def.place === 'fullbleed' ? E.full : def.place === 'track' ? E.track : E.world;   // fullbleed/track không chịu máy quay
       var el = def.mount(parent, head.params, ctx);
       var last = chain[chain.length - 1];
-      recs.push({ head: head, def: def, el: el, ctx: ctx, settleAt: def.settle === undefined ? Infinity : last.t + def.settle, drawnSettled: false, shown: null });
+      var settle = def.settleFor ? def.settleFor(head.params, ctx) : def.settle;   // khối có nhịp theo params/cue tự tính lúc lắng (L-42: sau đó không vẽ lại)
+      recs.push({ head: head, def: def, el: el, ctx: ctx, settleAt: settle === undefined ? Infinity : last.t + settle, drawnSettled: false, shown: null });
     });
     recs.sort(function (a, b) { return a.head.t_in - b.head.t_in; });
     var impacts = plan.beats.filter(function (b) { return B.get(b.block).impact !== undefined; }).map(function (b) { return b.t_in + B.get(b.block).impact * 1000; });
@@ -125,7 +129,7 @@
       return { line: l, html: html };
     });
     var br = plan.style.brand, brandInk = br && br.tokens && /^#[0-9a-fA-F]{6}$/.test(String(br.tokens.ink || '')) ? br.tokens.ink : null;
-    S = { plan: plan, E: E, ink: inkFilter, brandInk: brandInk, recs: recs, dir: dir, actors: actors, assets: assets, subs: subs, curSub: null, subC: [], subOn: -1, chipT: chipT, ov: ov, impacts: impacts, firstSeek: true };
+    S = { actorFx: actorFx, plan: plan, E: E, ink: inkFilter, brandInk: brandInk, recs: recs, dir: dir, actors: actors, assets: assets, subs: subs, curSub: null, subC: [], subOn: -1, chipT: chipT, ov: ov, impacts: impacts, firstSeek: true };
     if (plan.layout) {   // F7: tâm khung + phụ đề lật trang
       var ls = plan.layout.subtitle || {};
       S.half = [plan.size[0] / 2, plan.size[1] / 2]; S.lastT = 0;
@@ -208,7 +212,22 @@
     if (a.mode === 'pip') { a.el.style.transform = 'scale(' + (0.52 * a.sc * (r.talking ? 1.04 : 1)) + ')'; return; }   // PiP: không chạy vào/ra theo máy quay
     var ts = t / 1000, outP = S.ov ? U.eio(U.seg(ts, S.ov.t_in / 1000, S.ov.t_in / 1000 + 1.5)) : 0, zoom = r.talking ? 1.05 : 1, tx = 0, ty = outP * 30;
     if (a.side === 0) ty += (1 - U.eb(U.seg(ts, 0.5, 1.1))) * 300; else tx = U.lerp(520, 0, U.eo(U.seg(ts, 0, 0.95)));
+    var fx = S.actorFx[a.id];
+    if (fx && fx.pip > 0) { pipPose(a, fx, tx, ty + a.oy, a.sc * zoom * U.lerp(1, 0.82, outP), r.talking); return; }
+    if (a.clipped) { a.el.style.clipPath = ''; a.clipped = false; }
     a.el.style.transform = 'translate(' + tx + 'px,' + (ty + a.oy) + 'px) scale(' + (a.sc * zoom * U.lerp(1, 0.82, outP)) + ')';
+  }
+
+  // PiP tròn do khối pip-swap lái (0.2.x): nội suy từ chỗ đứng sân khấu tới vòng tròn {cx, cy, r} (toạ độ khung), vòng cắt thu theo log (không pop).
+  // Hộp nhân vật 450×540, gốc biến đổi = giữa đáy; mốc đáy-giữa khi ở PiP = (cx, cy + r·1,03), cỡ = 0,52·r/140 (khớp .pip của tutorial.css: r 140 ⇒ 0,52).
+  // L-42: mỗi khung chỉ đổi transform + clip-path của MỘT phần tử nhân vật.
+  function pipPose(a, fx, tx0, ty0, sc0, talking) {
+    var k = fx.pip, ox = (typeof a.ox === 'number' ? a.ox : (a.side === 0 ? -40 : 1500)) + 225, oy = (S.half ? S.half[1] * 2 : 1080) + 34;
+    var s1 = 0.52 * fx.r / 140 * (talking ? 1.03 : 1), bx = U.lerp(ox + tx0, fx.cx, k), by = U.lerp(oy + ty0, fx.cy + fx.r * 1.03, k), s = U.lerp(sc0, s1, k);
+    a.el.style.transform = 'translate(' + U.f3(bx - ox) + 'px,' + U.f3(by - oy) + 'px) scale(' + U.f3(s) + ')';
+    // bán kính vòng cắt (khung) đi theo log: 1700 px (phủ cả khung) → r; đổi sang toạ độ cục bộ của hộp (trước biến đổi)
+    var R = Math.exp(U.lerp(Math.log(1700), Math.log(fx.r), k)), lx = (fx.cx - bx) / s + 225, ly = (fx.cy - by) / s + 540;
+    a.el.style.clipPath = 'circle(' + U.f3(R / s) + 'px at ' + U.f3(lx) + 'px ' + U.f3(ly) + 'px)'; a.clipped = true;
   }
 
   window.__seek = function (tMs) {
@@ -218,6 +237,7 @@
     else E.world.style.transform = 'translate(' + (960 - c.x * c.z) + 'px,' + (540 - c.y * c.z) + 'px) scale(' + c.z + ')';
     var amp = 0, dt = 0; S.impacts.forEach(function (ti) { var d = (tMs - ti) / 350; if (d > 0 && d < 1) { amp = (1 - d) * 14; dt = tMs - ti; } });
     E.shake.style.transform = amp ? 'translate(' + (Math.sin(dt * 0.09) * amp) + 'px,' + (Math.cos(dt * 0.073) * amp * 0.6) + 'px)' : '';
+    for (var fk in S.actorFx) delete S.actorFx[fk];
     S.recs.forEach(function (r) {
       var tl = (tMs - r.head.t_in) / 1000, vis = tl >= 0;
       if (vis !== r.shown) { r.el.style.visibility = vis ? 'visible' : 'hidden'; r.shown = vis; }
