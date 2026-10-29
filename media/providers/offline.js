@@ -11,7 +11,7 @@ const { viNumbers } = require('../vi-numbers');
 
 const DEFAULT_URL = 'http://voice:7491';
 const TTS_TIMEOUT_MS = 190000;    // sidecar tự cắt ở 180 s (GS_VOICE_TIMEOUT_S); chờ dư 10 s để nhận 504 rõ ràng
-const JUDGE_TIMEOUT_MS = 130000;
+const JUDGE_TIMEOUT_MS = 190000;  // như TTS: sidecar tự cắt ở 180 s. Trước là 130 s ⇒ máy bận (W3, load 11 trên 4 vCPU) client bỏ trước, sidecar vẫn giữ khoá ⇒ mọi lần thử lại đều 503 busy ⇒ chặn oan
 const PROBE_TIMEOUT_MS = 10000;
 const MAX_MATCH_DIST = 0.15;      // cùng ngưỡng G-SCRIPT (media/gates/voice.js scriptMaxDist)
 const NEXT_STEP = 'Chạy trên máy chủ: genstudio voice pull (tải model, bật dịch vụ giọng offline), rồi bấm Quét lại ở màn Nhà cung cấp.';
@@ -67,12 +67,31 @@ async function call(base, method, path, { body, timeoutMs, expect = 'json' } = {
     const msg = (j && j.error && typeof j.error.message === 'string' ? j.error.message : buf.toString('utf8', 0, 200)).slice(0, 300);
     const detail = `HTTP ${res.status} ${code}: ${msg}`;
     if (res.status === 503 && code === 'not_ready') throw new ProviderError('transient', 'Dịch vụ giọng offline chưa sẵn sàng (model chưa tải hoặc đang nạp). ' + NEXT_STEP, { detail, retryAfterSec: parseInt(res.headers.get('retry-after'), 10) || null });
-    if (res.status === 503 || res.status === 504 || res.status >= 500) throw new ProviderError('transient', 'Dịch vụ giọng offline đang bận hoặc lỗi tạm thời.', { detail, retryAfterSec: parseInt(res.headers.get('retry-after'), 10) || null });
+    if (res.status === 503 || res.status === 504 || res.status >= 500) {
+      const pe = new ProviderError('transient', 'Dịch vụ giọng offline đang bận hoặc lỗi tạm thời.', { detail, retryAfterSec: parseInt(res.headers.get('retry-after'), 10) || null });
+      pe.busy = res.status === 503 && code === 'busy';
+      throw pe;
+    }
     if (code === 'unknown_model') throw new ProviderError('bad_output', 'Model giọng offline đã đổi. Mở Nhà cung cấp, bấm Quét lại.', { detail });
     throw new ProviderError('bad_output', 'Dịch vụ giọng offline từ chối yêu cầu.', { detail });
   }
   if (expect === 'wav') return { buf, headers: res.headers };
   try { return JSON.parse(buf.toString('utf8')); } catch { throw new ProviderError('bad_output', 'Dịch vụ giọng offline trả dữ liệu không phải JSON.', { detail: buf.toString('utf8', 0, 200) }); }
+}
+
+// Sidecar chỉ làm một việc nặng mỗi lúc; việc quá giờ vẫn giữ khoá tới khi xong. Pipeline chỉ có một worker ⇒ "busy" nghĩa là việc cũ đang chạy nốt:
+// chờ theo Retry-After trong cùng hạn giờ của lần gọi thay vì thử lại 1 s / 2 s rồi chặn bản dựng (W3).
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function callWhenFree(base, method, path, opts) {
+  const deadline = Date.now() + opts.timeoutMs;
+  for (;;) {
+    try { return await call(base, method, path, Object.assign({}, opts, { timeoutMs: Math.max(1, deadline - Date.now()) })); }
+    catch (e) {
+      const wait = Math.min(30, Math.max(1, (e && e.retryAfterSec) || 5)) * 1000;
+      if (!(e && e.busy) || Date.now() + wait >= deadline) throw e;
+      await sleep(wait);
+    }
+  }
 }
 
 async function health(base, timeoutMs = PROBE_TIMEOUT_MS) {
@@ -86,7 +105,7 @@ async function tts({ url, model, voice, text, style, timeoutMs = TTS_TIMEOUT_MS 
   const h = await health(url, timeoutMs);
   if (!h.ready) throw new ProviderError('transient', 'Dịch vụ giọng offline chưa sẵn sàng (' + String(h.state) + '). ' + NEXT_STEP, { detail: String(h.detail || h.state).slice(0, 300) });
   const id = resolveVoice(voice, liveVoices(h));
-  const r = await call(url, 'POST', '/tts', { body: { model, voice: id, text, ...(style ? { style: String(style).slice(0, 160) } : {}) }, timeoutMs, expect: 'wav' });
+  const r = await callWhenFree(url, 'POST', '/tts', { body: { model, voice: id, text, ...(style ? { style: String(style).slice(0, 160) } : {}) }, timeoutMs, expect: 'wav' });
   const raw = r.buf;
   let parsed;
   try {
@@ -146,7 +165,7 @@ function scoreAsr({ transcript, words }, { script, terms }) {
 async function judge({ url, model, wav: wavBuf, script, terms = [], timeoutMs = JUDGE_TIMEOUT_MS }) {
   const b = Buffer.from(wavBuf);
   if (!wav.isRiff(b)) throw new ProviderError('bad_output', 'Âm thanh đưa giám khảo không phải WAV.');
-  const r = await call(url, 'POST', '/judge', { body: { model, wav_b64: b.toString('base64'), lang: 'vi' }, timeoutMs });
+  const r = await callWhenFree(url, 'POST', '/judge', { body: { model, wav_b64: b.toString('base64'), lang: 'vi' }, timeoutMs });
   if (!r || typeof r.transcript !== 'string' || !Array.isArray(r.words)) throw new ProviderError('bad_output', 'Giám khảo offline trả sai hình dạng.', { detail: JSON.stringify(r).slice(0, 200) });
   return scoreAsr(r, { script, terms });
 }
@@ -173,4 +192,4 @@ function bind(config = {}) {
   };
 }
 
-module.exports = { bind, tts, judge, probe, scoreAsr, viNumbers, resolveVoice, findTerm, VOICES, PREFERRED, GEMINI_MAP, DEFAULT_URL };
+module.exports = { bind, tts, judge, probe, scoreAsr, viNumbers, TTS_TIMEOUT_MS, JUDGE_TIMEOUT_MS, resolveVoice, findTerm, VOICES, PREFERRED, GEMINI_MAP, DEFAULT_URL };

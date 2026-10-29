@@ -27,7 +27,7 @@ const VOICES = [{ id: 'DoanTrang', name: 'Đoan Trang', gender: 'female' }, { id
 function fakeSidecar(opts = {}) {
   const said = new Map();
   const calls = { tts: [], judge: [] };
-  const state = { ready: opts.ready !== false, state: opts.ready === false ? 'missing' : 'ready', mode: opts.mode || 'ok' };
+  const state = { ready: opts.ready !== false, state: opts.ready === false ? 'missing' : 'ready', mode: opts.mode || 'ok', busy: opts.busy || 0 };
   const srv = http.createServer((req, res) => {
     const chunks = []; req.on('data', (c) => chunks.push(c));
     req.on('end', () => {
@@ -40,6 +40,11 @@ function fakeSidecar(opts = {}) {
       let body = {};
       try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return send(400, { error: { code: 'bad_request', message: 'json' } }); }
       if (!state.ready) return send(503, { error: { code: 'not_ready', message: 'chưa tải model' } });
+      if (state.busy > 0 && (req.url === '/tts' || req.url === '/judge')) {   // việc cũ còn giữ khoá (sidecar: 503 busy + Retry-After)
+        state.busy--; calls.busyHits = (calls.busyHits || 0) + 1;
+        const b = Buffer.from(JSON.stringify({ error: { code: 'busy', message: 'Đang xử lý một yêu cầu khác.' } }));
+        res.writeHead(503, { 'Content-Type': 'application/json', 'Content-Length': b.length, 'Retry-After': '1' }); return res.end(b);
+      }
       if (req.url === '/tts') {
         calls.tts.push(body);
         if (state.mode === 'garbage') return send(200, Buffer.from('ID3\x04not a wav at all'), 'audio/wav');
@@ -295,4 +300,22 @@ test('scoreAsr: số viết bằng chữ số trong lời chép khớp kịch b�
   assert.equal(v('1.000 người, năm 2026'), 'một nghìn người, năm hai nghìn không trăm hai mươi sáu');
   assert.equal(v('0,5 giây'), 'không phẩy năm giây');
   assert.equal(v('1000000'), 'một triệu');
+});
+
+// W3 (cài thật, máy bận): giám khảo whisper vượt hạn client 130 s ⇒ client bỏ, sidecar vẫn giữ khoá ⇒ 2 lần thử lại (1 s, 2 s) đều 503 busy ⇒ bản dựng 9:16 bị chặn provider_transient.
+test('offline: sidecar bận (503 busy) ⇒ chờ theo Retry-After trong hạn giờ rồi chạy tiếp; bận mãi ⇒ transient', async () => {
+  assert.ok(offline.JUDGE_TIMEOUT_MS >= offline.TTS_TIMEOUT_MS, 'client giám khảo không được bỏ trước khi sidecar tự cắt (180 s)');
+  const sc = await fakeSidecar({ busy: 2 });
+  try {
+    const t0 = Date.now();
+    const r = await offline.tts({ url: sc.url, model: 'vieneu-v3-turbo-fp32', voice: 'DoanTrang', text: 'Xin chào các bạn' });
+    assert.ok(r.duration_ms > 0);
+    assert.equal(sc.calls.busyHits, 2);
+    assert.ok(Date.now() - t0 >= 1900, 'đã chờ Retry-After');
+    sc.state.busy = 1;
+    const j = await offline.judge({ url: sc.url, model: 'faster-whisper-small', wav: r.wav, script: 'Xin chào các bạn' });
+    assert.equal(typeof j.matches, 'boolean');
+    sc.state.busy = 1000;
+    await assert.rejects(offline.tts({ url: sc.url, model: 'vieneu-v3-turbo-fp32', voice: 'DoanTrang', text: 'x', timeoutMs: 1500 }), (e) => e.name === 'ProviderError' && e.code === 'transient' && /busy/.test(e.detail));
+  } finally { await sc.close(); }
 });
