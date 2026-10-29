@@ -62,11 +62,11 @@
         (BADGE[s.result] ? '<span class="as-bd r-' + s.result + '"></span>' : '') +
         (s.result === 'await' ? '<span class="as-btns"><span class="as-b ok">Duyệt</span><span class="as-b no">Từ chối</span></span><span class="as-dec"></span>' : '') + '</div>';
     });
-    return h + '<span class="as-cur">' + '<svg viewBox="0 0 40 48" width="48" height="58"><path d="M4 2 L4 38 L14 29 L21 45 L28 42 L21 26 L35 26 Z" fill="#fff" stroke="#1D2A6E" stroke-width="3.5" stroke-linejoin="round"/></svg><b>Bạn</b></span></div>';
+    return h + '<span class="as-cur">' + '<svg viewBox="0 0 40 48" width="48" height="58"><path d="M4 2 L4 38 L14 29 L21 45 L28 42 L21 26 L35 26 Z" style="fill:var(--v-card);stroke:var(--v-ink)" stroke-width="3.5" stroke-linejoin="round"/></svg><b>Bạn</b></span></div>';
   }
   function refs(w, p) {
     w.querySelector('.as-ti').textContent = p.title === undefined ? 'Trợ lý Agent' : p.title;
-    var tk = w.querySelector('.as-task span'); if (tk) tk.textContent = p.task;
+    var tk = w.querySelector('.as-task span'); if (tk) { tk.textContent = p.task || ''; if (!p.task) tk.style.visibility = 'hidden'; }   // bảng đôi (K19): giữ chỗ để hai bên thẳng hàng
     var rows = [].slice.call(w.querySelectorAll('.as-r')).map(function (r, i) {
       var s = p.steps[i]; r.querySelector('.as-tx').textContent = s.text;
       var tool = r.querySelector('.as-tool'); if (s.tool) tool.textContent = s.tool; else tool.style.display = 'none';
@@ -102,12 +102,12 @@
       // nền hàng: vàng nhạt khi chạy, viền cam (dừng) / vàng (chờ duyệt) sau kết quả
       op(o.bg, Math.max(run, r === 'done' ? 0 : done * (1 - dq)));
       op(o.note, s.note ? done : 0); op(o.tool, s.tool ? (s.note ? 1 - done : 1) : 0);
-      if (o.bd) { var bq = U.back(U.seg(t, b, b + 0.4), 1.5); U.setT(o.bd, 'scale(' + U.f3(U.lerp(0.5, 1, bq)) + ')', U.f3(U.clamp(bq * 2) * (1 - dq))); }
+      if (o.bd) { var bq = U.back(U.seg(t, b, b + 0.4), 1.5); U.setTV(o.bd, 'scale(' + U.f3(U.lerp(0.5, 1, bq)) + ')', U.f3(U.clamp(bq * 2) * (1 - dq))); }
       if (o.btns) {
         var nb = U.eo(U.seg(t, b + 0.2, b + 0.6)); U.setT(o.btns, 'translateY(' + U.f3((1 - nb) * 16) + 'px)', U.f3(nb * (1 - dq)));
         var press = T.dec >= 0 ? Math.sin(Math.PI * U.seg(t, T.dec - 0.08, T.dec + 0.16)) : 0, tgt = p.decision === 'reject' ? o.bno : o.bok;
         if (tgt) tgt.style.transform = 'scale(' + U.f3(1 - 0.1 * press) + ')';
-        if (o.dec) U.setT(o.dec, 'scale(' + U.f3(U.lerp(0.7, 1, U.back(dq, 1.5))) + ')', U.f3(dq));
+        if (o.dec) U.setTV(o.dec, 'scale(' + U.f3(U.lerp(0.7, 1, U.back(dq, 1.5))) + ')', U.f3(dq));
       }
     });
     // con trỏ "Bạn": lướt từ góc dưới phải tới nút trong 0,8 s trước khi bấm, nhấn, rồi mờ đi
@@ -116,7 +116,7 @@
       var tx = row.r.offsetLeft + row.btns.offsetLeft + btn.offsetLeft + btn.offsetWidth * 0.55, ty = row.r.offsetTop + row.btns.offsetTop + btn.offsetTop + btn.offsetHeight * 0.6;
       var mq = U.eio(U.seg(t, T.dec - 0.9, T.dec - 0.05)), cx = U.lerp(R.w.offsetWidth + 80, tx, mq), cy = U.lerp(R.w.offsetHeight + 60, ty, mq) - Math.sin(Math.PI * mq) * 40;
       var pr = Math.sin(Math.PI * U.seg(t, T.dec - 0.08, T.dec + 0.16));
-      U.setT(R.cur, 'translate(' + U.f3(cx) + 'px,' + U.f3(cy) + 'px) scale(' + U.f3(1 - 0.12 * pr) + ')', U.f3(U.win(t, T.dec - 0.95, T.dec + 1.1, 0.25, 0.4)));
+      U.setTV(R.cur, 'translate(' + U.f3(cx) + 'px,' + U.f3(cy) + 'px) scale(' + U.f3(1 - 0.12 * pr) + ')', U.f3(U.win(t, T.dec - 0.95, T.dec + 1.1, 0.25, 0.4)));
     } else R.cur.style.opacity = 0;
   }
 

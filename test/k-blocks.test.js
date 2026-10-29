@@ -9,7 +9,7 @@ const U = require('../render/blocks/util');
 const icons = require('../render/blocks/icons');
 const { buildPlan, validateAnchors } = require('../render/engine/timeline');
 const { clipsOf } = require('../tools/blocks-preview');
-const { LONG_BLOCKS } = require('./k-blocks-list');
+const { LONG_BLOCKS, LONG_BLOCKS_916 } = require('./k-blocks-list');
 
 const lesson = (lines, beats, extra) => Object.assign({ lesson: { title: 'K', lines, beats }, clips: clipsOf(lines), fps: 30 }, extra || {});
 const L = (id, who, say) => ({ id, who, say });
@@ -30,10 +30,10 @@ test('bộ biểu tượng: tên duy nhất, SVG thuần (không script/thuộc 
   assert.equal(icons.svg('không-có'), ''); assert.equal(icons.has('__proto__'), false);
 });
 
-test('mọi khối 0.2.x: có trong sổ (lesson, 16:9 + 9:16), schema object, footprint cả hai tỉ lệ, sfx tĩnh hợp lệ', () => {
+test('mọi khối 0.2.x: có trong sổ (lesson; 9:16 theo LONG_BLOCKS_916), schema object, footprint cả hai tỉ lệ, sfx tĩnh hợp lệ', () => {
   for (const n of LONG_BLOCKS) {
     const d = reg.get(n); assert.ok(d, n); assert.equal(d.schema.type, 'object'); assert.equal(d.schema.additionalProperties, false, n);
-    assert.ok(reg.isEnabled(n, 'lesson'), n);
+    assert.ok(reg.isEnabled(n, 'lesson'), n); assert.equal(reg.supports(n, '9:16'), LONG_BLOCKS_916.includes(n), n + ' 9:16');
     for (const a of reg.aspectsOf(n)) { const fp = d.footprint(a); assert.ok(d.place === 'hud' ? fp.w === 0 : fp.w > 0 && fp.h > 0, n + ' ' + a); }
     (d.sfx || []).forEach((s) => assert.ok(['in', 'peak'].includes(s.at) && s.name));
   }
@@ -155,4 +155,64 @@ test('morph: biểu tượng hoặc asset, lịch theo cue, footprint ≤ khung 
   assert.match(reg.validate('morph', { items: [{ from: 'key' }] }).errors.join(), /to: còn thiếu/);
   assert.deepEqual(d.assetsOf(p), ['media/k.png']); assert.deepEqual(d.timing(p, [2.5]), { at: 2.5, dur: 0.6 }); assert.equal(d.timing(p, null).at, 1);
   assert.ok(zoomOf(d.footprint('16:9', { items: [{}, {}, {}] })) >= 1);
+});
+
+// ---------- pip-swap ----------
+test('pip-swap: chuỗi theo host (trạng thái trước + mốc beat kế), cửa sổ phóng ×1,3 theo khối pipBoost, chỉ 16:9', () => {
+  const d = reg.get('pip-swap');
+  assert.ok(reg.validate('pip-swap', { to: 'pip', name: 'Gen' }).ok); assert.match(reg.validate('pip-swap', { to: 'góc' }).errors.join(), /to/);
+  assert.equal(reg.validate('pip-swap', { to: 'pip' }, 'lesson', '9:16').ok, false);
+  const lines = [L('L1', 'CM-0001', 'Một hai ba bốn năm sáu bảy tám chín mười mười một mười hai')];
+  const beats = [{ id: 'P1', block: 'pip-swap', anchor: { line: 'L1', word_index: 0 }, params: { to: 'pip' } },
+    { id: 'C1', block: 'concept-chip', anchor: { line: 'L1', word_index: 1 }, params: { text: 'Agent' } },
+    { id: 'K1', block: 'checklist-card', anchor: { line: 'L1', word_index: 3 }, params: { items: ['a', 'b'] } },
+    { id: 'C2', block: 'concept-chip', anchor: { line: 'L1', word_index: 7 }, params: { text: 'Tool' } },
+    { id: 'P2', block: 'pip-swap', anchor: { line: 'L1', word_index: 9 }, params: { to: 'stage' } }];
+  const plan = buildPlan(lesson(lines, beats)), B = (id) => plan.beats.find((b) => b.id === id);
+  const c1 = d.chainOf(plan, B('P1'), 'CM-0001'), c2 = d.chainOf(plan, B('P2'), 'CM-0001');
+  assert.equal(c1.from, 0); assert.equal(+c1.next.toFixed(3), (B('P2').t_in - B('P1').t_in) / 1000); assert.equal(c2.from, 1); assert.equal(c2.next, Infinity);
+  assert.deepEqual(d.boostWins(plan), [[B('K1').t_in / 1000, B('C2').t_in / 1000]], 'phóng từ lúc thẻ vào tới khi máy quay sang vùng kế');
+  assert.ok(plan.beats.filter((b) => b.block === 'pip-swap').every((b) => b.zone === null));
+});
+
+// ---------- chat-bubble ----------
+test('chat-bubble: validate, rung theo cue (2 lần mặc định), đặt "over" (không có khối trước ⇒ vùng mới)', () => {
+  const d = reg.get('chat-bubble');
+  assert.ok(reg.validate('chat-bubble', { from: 'Chị Hạnh (Sếp)', text: 'Em gửi chưa?', app: 'Zalo' }).ok);
+  for (const [p, re] of [[{}, /from: còn thiếu/], [{ from: 'a', kind: 'fax' }, /kind/], [{ from: 'a', shake: 5 }, /tối đa 3/], [{ from: 'a', avatar: 'ABCD' }, /3 ký tự/]]) assert.match(reg.validate('chat-bubble', p).errors.join(), re);
+  assert.deepEqual(d.timing({ from: 'a' }, null).shakes, [0.5, 1.25]); assert.deepEqual(d.timing({ from: 'a', shake: 1 }, [2]).shakes, [2]);
+  assert.equal(d.place, 'over');
+  const plan = buildPlan(lesson([L('L1', 'CM-0001', 'Sếp nhắn tin cho em này')], [{ id: 'B1', block: 'chat-bubble', anchor: { line: 'L1', word: 'Sếp' }, params: { from: 'Sếp' } }]));
+  assert.ok(plan.beats.find((b) => b.id === 'B1').zone, 'không có khối trước ⇒ có vùng riêng');
+});
+
+// ---------- title num (K13) ----------
+test('title: num/kicker (bumper) thêm chiều cao; không num ⇒ footprint như cũ; kicker cần num', () => {
+  const d = reg.get('title');
+  assert.ok(reg.validate('title', { text: 'Đưa chìa khoá nào?', num: 1, kicker: 'CỬA' }).ok);
+  assert.match(reg.validate('title', { text: 'x', kicker: 'CỬA' }).errors.join(), /chỉ dùng kèm num/);
+  assert.match(reg.validate('title', { text: 'x', num: 100 }).errors.join(), /tối đa 99/);
+  assert.equal(d.footprint('16:9', { text: 'Tiêu đề', num: 2 }).h - d.footprint('16:9', { text: 'Tiêu đề' }).h, 250);
+});
+
+// ---------- split-compare-run ----------
+test('split-compare-run: hai bên cùng đồng hồ (cue tách đúng bên), lỗi bên nào báo đúng bên, chỉ 16:9, chữ mono ≥ 22 px@720', () => {
+  const d = reg.get('split-compare-run');
+  const p = { left: { steps: [{ text: 'a', tool: 'x.y' }, { text: 'b' }] }, right: { steps: [{ text: 'a' }, { text: 'b', result: 'await' }], decision: 'approve', decide_at: 6 } };
+  assert.ok(reg.validate('split-compare-run', p).ok, reg.validate('split-compare-run', p).errors.join());
+  assert.match(reg.validate('split-compare-run', { left: { steps: [{ text: 'a' }], decision: 'approve' }, right: { steps: [{ text: 'b' }] } }).errors.join(), /params\.left\.decision/);
+  assert.deepEqual(d.cues(p), [undefined, undefined, undefined, undefined, undefined, 6]);
+  assert.equal(reg.supports('split-compare-run', '9:16'), false);
+  const s = d.sfxTimed(p, [null, null, null, null, null, 6]); assert.equal(s.filter((x) => x.name === 'slide-up').length, 1, 'một tiếng mở cho cả màn'); assert.ok(s.some((x) => x.name === 'tick' && Math.abs(x.t - 6.1) < 1e-9), 'bấm ở cue 6 s nhưng không sớm hơn 0,6 s sau khi nút hiện (5,5 + 0,6)');
+  const G = d.layout(p), fp = d.footprint('16:9', p); assert.equal(G.L.H, G.R.H, 'hai bảng cao bằng nhau');
+  assert.ok(G.L.mfs * zoomOf(fp) * 2 / 3 >= 22, 'mono ' + G.L.mfs * zoomOf(fp) * 2 / 3);
+});
+
+// ---------- bars ----------
+test('bars: 2–3 thanh, nhãn "thời gian minh hoạ" mặc định, lịch mọc theo cue', () => {
+  const d = reg.get('bars');
+  assert.ok(reg.validate('bars', { bars: [{ label: 'Tự gửi', value: 2 }, { label: 'Chờ duyệt', value: 30, text: '30 giây' }] }).ok);
+  assert.match(reg.validate('bars', { bars: [{ label: 'a', value: 1 }] }).errors.join(), /ít nhất 2/);
+  assert.match(reg.validate('bars', { bars: [{ label: 'a', value: 0 }, { label: 'b', value: 1 }] }).errors.join(), /tối thiểu/);
+  assert.deepEqual(d.timing({ bars: [{}, {}] }, [2]).grow, [2, 2.3]);
 });

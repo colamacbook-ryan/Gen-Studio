@@ -219,11 +219,11 @@
   }
 
   // PiP tròn do khối pip-swap lái (0.2.x): nội suy từ chỗ đứng sân khấu tới vòng tròn {cx, cy, r} (toạ độ khung), vòng cắt thu theo log (không pop).
-  // Hộp nhân vật 450×540, gốc biến đổi = giữa đáy; mốc đáy-giữa khi ở PiP = (cx, cy + r·1,03), cỡ = 0,52·r/140 (khớp .pip của tutorial.css: r 140 ⇒ 0,52).
-  // L-42: mỗi khung chỉ đổi transform + clip-path của MỘT phần tử nhân vật.
+  // Hộp nhân vật 450×540, gốc biến đổi = giữa đáy; khung PiP = đầu + vai: tâm đầu (cục bộ 225, 290 — dáng chibi mặc định) đặt hơi dưới tâm vòng (cy + 0,12 r),
+  // cỡ 0,65·r/112,5 (đầu ≈ rộng bằng bán kính). L-42: mỗi khung chỉ đổi transform + clip-path của MỘT phần tử nhân vật.
   function pipPose(a, fx, tx0, ty0, sc0, talking) {
     var k = fx.pip, ox = (typeof a.ox === 'number' ? a.ox : (a.side === 0 ? -40 : 1500)) + 225, oy = (S.half ? S.half[1] * 2 : 1080) + 34;
-    var s1 = 0.52 * fx.r / 140 * (talking ? 1.03 : 1), bx = U.lerp(ox + tx0, fx.cx, k), by = U.lerp(oy + ty0, fx.cy + fx.r * 1.03, k), s = U.lerp(sc0, s1, k);
+    var s1 = 0.65 * fx.r / 112.5 * (talking ? 1.03 : 1), bx = U.lerp(ox + tx0, fx.cx, k), by = U.lerp(oy + ty0, fx.cy + fx.r * 0.12 + 250 * s1, k), s = U.lerp(sc0, s1, k);
     a.el.style.transform = 'translate(' + U.f3(bx - ox) + 'px,' + U.f3(by - oy) + 'px) scale(' + U.f3(s) + ')';
     // bán kính vòng cắt (khung) đi theo log: 1700 px (phủ cả khung) → r; đổi sang toạ độ cục bộ của hộp (trước biến đổi)
     var R = Math.exp(U.lerp(Math.log(1700), Math.log(fx.r), k)), lx = (fx.cx - bx) / s + 225, ly = (fx.cy - by) / s + 540;

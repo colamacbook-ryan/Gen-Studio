@@ -15,7 +15,7 @@
     var v = aspect === '9:16', n = p.panels.length, gap = v ? 70 : 90;
     var pw = n === 2 ? (v ? 470 : 610) : (v ? 760 : 900), W = n * pw + (n - 1) * gap;
     var per = [0, 0]; (p.steps || []).forEach(function (s) { if (s.panel < n) per[s.panel]++; });
-    var rows = Math.max(per[0], per[1]), sfs = v ? 40 : 46, rowH = Math.round(sfs * 1.5), tfs = v ? 42 : 48;
+    var rows = Math.max(per[0], per[1]), sfs = v ? 44 : 46, rowH = Math.round(sfs * 1.5), tfs = v ? 42 : 48;
     var H = v ? 600 : 640, artOf = function (k) { return Math.round(Math.max(v ? 150 : 180, Math.min(v ? 270 : 320, H - 48 - (tfs * 1.3 + 8) - k * (rowH + 28) - 20))); };
     return { v: v, n: n, pw: pw, W: W, H: H, gap: gap, sfs: sfs, tfs: tfs, rowH: rowH, art: artOf(rows), arts: [artOf(per[0]), artOf(per[1])], lfs: v ? 44 : 52 };
   }
@@ -97,10 +97,10 @@
         F.hl.style.opacity = U.f3(act * (1 - U.seg(t, T.label, T.label + 0.4)));
         if (p.panels[i].label) {
           var lq = U.seg(t, T.label + i * 0.18, T.label + i * 0.18 + 0.32);
-          U.setT(F.lb, 'translateX(-50%) rotate(' + U.f3(-6 + 3 * U.eo(lq)) + 'deg) scale(' + U.f3(U.lerp(1.9, 1, U.eo(lq))) + ')', U.f3(U.clamp(lq * 3)));
+          U.setTV(F.lb, 'translateX(-50%) rotate(' + U.f3(-6 + 3 * U.eo(lq)) + 'deg) scale(' + U.f3(U.lerp(1.9, 1, U.eo(lq))) + ')', U.f3(U.clamp(lq * 3)));
         }
       });
-      r.steps.forEach(function (s, j) { var q = U.back(U.seg(t, T.steps[j], T.steps[j] + 0.45), 1.3); U.setT(s.e, 'translateY(' + U.f3((1 - q) * 30) + 'px) scale(' + U.f3(U.lerp(0.85, 1, q)) + ')', U.f3(U.clamp(U.seg(t, T.steps[j], T.steps[j] + 0.25)))); });
+      r.steps.forEach(function (s, j) { var q = U.back(U.seg(t, T.steps[j], T.steps[j] + 0.45), 1.3); U.setTV(s.e, 'translateY(' + U.f3((1 - q) * 30) + 'px) scale(' + U.f3(U.lerp(0.85, 1, q)) + ')', U.f3(U.clamp(U.seg(t, T.steps[j], T.steps[j] + 0.25)))); });
       if (r.vs) { var vq = U.back(U.seg(t, 0.35, 0.8), 1.6); U.setT(r.vs, 'translate(-50%,-50%) rotate(' + U.f3((1 - vq) * -20) + 'deg) scale(' + U.f3(vq) + ')', U.f3(U.clamp(vq * 2))); }
     }
   };

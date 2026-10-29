@@ -2,7 +2,7 @@
 // Khối `checklist-card` (K8): thẻ vàng «Bạn làm gì · n» gồm 1–5 dòng, tick lần lượt theo từ khoá (dấu tick vẽ dần, ô nảy nhẹ, dòng vừa tick có vạch dạ quang quét qua).
 // Tham số: { items: string[1–5] (mỗi dòng ≤ 36 ký tự, kịch bản: ≤ 6 từ), title?: ≤24 (mặc định "Bạn làm gì"), num?: 1–99 (⇒ "Bạn làm gì · 1"),
 //   icon?: tên biểu tượng (mặc định hand), tick_at?: cue[] (mốc tick từng dòng; thiếu ⇒ 1,3 s + 1,0 s/dòng) }
-// Nền var(--v-hl) (mặc định #FFD84A ≈ #FFD23F của kịch bản; nhận diện kênh đổi được), chữ mực đậm 52 px thế giới (≥ 30 px@720 sau zoom).
+// Nền var(--v-hl) (mặc định FFD84A ≈ FFD23F của kịch bản; nhận diện kênh đổi được), chữ mực đậm 52 px thế giới (≥ 30 px@720 sau zoom).
 // Khi thẻ đang hiện, PiP tròn của host (khối pip-swap) tự phóng ×1,3 (cờ pipBoost).
 // Ngân sách (L-42): ≤ 8 phần tử động (thẻ, ≤ 5 dòng, tick đang vẽ, vạch quét); chỉ transform/opacity + dashoffset; lắng sau tick cuối 1 s.
 (function (root) {
@@ -36,7 +36,7 @@
       var L = lay(p, ctx.aspect), box = U.box(ctx.slot, 'b-check' + (L.v ? ' v' : ''));
       var h = '<div class="ck-c"><div class="ck-h" style="height:' + L.head + 'px"><span class="ck-ic">' + I.svg(p.icon || 'hand', 54) + '</span><b></b></div>';
       p.items.forEach(function (x, i) {
-        h += '<div class="ck-r" style="font-size:' + L.fs + 'px;min-height:' + L.rows[i] + 'px"><span class="ck-bx"><i></i><svg viewBox="0 0 64 64"><path d="M14 33 L27 46 L51 18" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></span>' +
+        h += '<div class="ck-r" style="font-size:' + L.fs + 'px;min-height:' + L.rows[i] + 'px"><span class="ck-bx"><i></i><svg viewBox="0 0 64 64"><path d="M14 33 L27 46 L51 18" fill="none" style="stroke:var(--v-on-ink)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></span>' +
           '<span class="ck-t"><i class="ck-m"></i><span></span></span></div>';
       });
       box.innerHTML = h + '</div>';

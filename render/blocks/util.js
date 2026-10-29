@@ -27,6 +27,8 @@
   U.el = function (tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; };
   U.box = function (slot, cls) { var e = U.el('div', 'w ' + cls); e.style.left = slot.x + 'px'; e.style.top = slot.y + 'px'; e.style.width = slot.w + 'px'; e.style.height = slot.h + 'px'; return e; };
   U.setT = function (e, tx, op) { e.style.transform = tx; if (op !== undefined) e.style.opacity = op; };
+  // như setT nhưng phần tử trong suốt hoàn toàn thì ẩn hẳn (visibility) ⇒ đo vùng an toàn/cỡ chữ (G-SAFE) không tính chữ đang thu nhỏ mà chưa hiện; chỉ khối 0.2.x dùng
+  U.setTV = function (e, tx, op) { e.style.transform = tx; e.style.opacity = op; e.style.visibility = +op <= 0.001 ? 'hidden' : ''; };
   U.dash = function (p, v) { p.style.strokeDashoffset = 1 - v; };
   // chia chữ thành 1–2 dòng cân bằng
   U.balance = function (text, maxLine) {

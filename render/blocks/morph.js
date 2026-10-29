@@ -1,6 +1,6 @@
 // © 2026 Gen Labs — All rights reserved.
 // Khối `morph` (K4): vật đời thường biến thành phần tử UI/sơ đồ (chìa khoá → icon công cụ, thước dây → kẹp giấy, điện thoại → phong bì…), 1–3 cặp cùng lúc (lệch 0,12 s).
-// Trước biến: vật lớn trên nền tròn giấy, thở nhẹ. Lúc biến (mặc định 0,6 s): vật thu nhỏ + xoay + mờ, vòng sóng loé, đích nảy ra thành ô UI bo góc (hoặc hình trơn), nhãn lật theo trục X.
+// Trước biến: vật lớn trên nền tròn giấy, thở nhẹ. Lúc biến (mặc định 0,6 s): vật thu nhỏ + xoay + mờ, vòng sóng loé, đích nảy ra thành ô UI bo góc (hoặc hình trơn), nhãn đổi bằng mờ chéo.
 // Tham số: { items: [{ from: biểu tượng | asset, to: biểu tượng | asset, from_label?: ≤18, to_label?: ≤18 }] (1–3), at?: cue (lúc bắt đầu biến; mặc định 1,0 s),
 //   dur_s?: 0,3–2 (mặc định 0,6), style?: tile (mặc định, đích là ô UI) | plain }
 // 9:16: cùng bố cục, ô 230 px, nhãn 40 px. Ngân sách (L-42): mỗi cặp 4 phần tử động (vật, sóng, đích, nhãn) ⇒ ≤ 8 với 2 cặp, 3 cặp chỉ trong 0,6 s biến; chỉ transform/opacity.
@@ -59,10 +59,10 @@
         U.setT(C.disc, 'translate(-50%,-50%) scale(' + U.f3(U.lerp(0.6, 1, inq) * (1 - 0.25 * U.eio(U.seg(k, 0.2, 0.7)))) + ')', U.f3(U.clamp(inq * 2) * (1 - U.eio(U.seg(k, 0.3, 0.8)))));
         var wk = U.seg(k, 0.25, 1);
         U.setT(C.wave, 'translate(-50%,-50%) scale(' + U.f3(U.lerp(0.5, 1.35, U.eo(wk))) + ')', U.f3(wk > 0 && wk < 1 ? 0.9 * (1 - wk) : 0));
-        // nhãn: lật trục X, đổi chữ ở 90° (hai lớp chữ, mỗi lớp chỉ hiện ở nửa của nó ⇒ không nhảy)
-        var lk = U.seg(k, 0.3, 0.8), angA = lk < 0.5 ? lk * 180 : 90, angB = lk < 0.5 ? 90 : (1 - lk) * 180, lin = U.eo(U.seg(t, 0.2 + i * 0.1, 0.6 + i * 0.1));
-        U.setT(C.la, 'translateX(-50%) rotateX(' + U.f3(angA) + 'deg)', U.f3(C.hasA ? lin * (lk < 0.5 ? 1 : 0) : 0));
-        U.setT(C.lb, 'translateX(-50%) rotateX(' + U.f3(angB) + 'deg)', U.f3(C.hasB ? (lk >= 0.5 ? 1 : 0) : 0));
+        // nhãn: mờ chéo + trượt dọc 14 px ở cỡ thật (không lật trục X — chữ không bị ép dẹt giữa chừng, cổng G-SAFE đo được mọi khung)
+        var lk = U.eio(U.seg(k, 0.3, 0.8)), lin = U.eo(U.seg(t, 0.2 + i * 0.1, 0.6 + i * 0.1));
+        U.setTV(C.la, 'translateX(-50%) translateY(' + U.f3(-14 * lk) + 'px)', U.f3(C.hasA ? lin * (1 - lk) : 0));
+        U.setTV(C.lb, 'translateX(-50%) translateY(' + U.f3(14 * (1 - lk)) + 'px)', U.f3(C.hasB ? lk : 0));
       });
     }
   };

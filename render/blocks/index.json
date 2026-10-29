@@ -19,5 +19,9 @@
   { "name": "sticky-tracker", "file": "sticky-tracker.js", "kinds": ["lesson"], "agent": true, "enabled": true, "aspects": ["16:9", "9:16"] },
   { "name": "agent-steps", "file": "agent-steps.js", "kinds": ["lesson"], "agent": true, "enabled": true, "aspects": ["16:9", "9:16"] },
   { "name": "checklist-card", "file": "checklist-card.js", "kinds": ["lesson"], "agent": true, "enabled": true, "aspects": ["16:9", "9:16"] },
-  { "name": "morph", "file": "morph.js", "kinds": ["lesson"], "agent": true, "enabled": true, "aspects": ["16:9", "9:16"] }
+  { "name": "morph", "file": "morph.js", "kinds": ["lesson"], "agent": true, "enabled": true, "aspects": ["16:9", "9:16"] },
+  { "name": "pip-swap", "file": "pip-swap.js", "kinds": ["lesson"], "agent": true, "enabled": true, "aspects": ["16:9"] },
+  { "name": "chat-bubble", "file": "chat-bubble.js", "kinds": ["lesson"], "agent": true, "enabled": true, "aspects": ["16:9", "9:16"] },
+  { "name": "split-compare-run", "file": "split-compare-run.js", "kinds": ["lesson"], "agent": true, "enabled": true, "aspects": ["16:9"] },
+  { "name": "bars", "file": "bars.js", "kinds": ["lesson"], "agent": true, "enabled": true, "aspects": ["16:9", "9:16"] }
 ]

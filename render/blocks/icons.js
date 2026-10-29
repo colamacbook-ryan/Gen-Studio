@@ -24,8 +24,8 @@
     user: '<circle class="t" cx="60" cy="40" r="22"/><path class="b" d="M18 108 a42 38 0 0 1 84 0 Z"/>',
     boss: '<circle class="t" cx="60" cy="40" r="22"/><path class="i" d="M38 36 a22 22 0 0 1 44 0 q-14 -10 -44 0 Z"/><path class="g" d="M18 108 a42 38 0 0 1 84 0 Z"/><path class="r" d="M55 70 h10 l4 26 l-9 10 l-9 -10 Z"/>',
     shirt: '<path class="r" d="M40 14 L14 30 L24 54 L34 50 V106 H86 V50 L96 54 L106 30 L80 14 q-20 16 -40 0 Z"/><circle class="w" cx="46" cy="68" r="6"/><circle class="w" cx="72" cy="82" r="6"/><circle class="w" cx="60" cy="98" r="5"/>',
-    check: '<circle class="l" cx="60" cy="60" r="46"/><path class="n" stroke="#fff" stroke-width="11" d="M38 62 L54 78 L84 44"/>',
-    cross: '<circle class="r" cx="60" cy="60" r="46"/><path class="n" stroke="#fff" stroke-width="11" d="M42 42 L78 78 M78 42 L42 78"/>',
+    check: '<circle class="l" cx="60" cy="60" r="46"/><path class="n" style="stroke:var(--v-on-ink)" stroke-width="11" d="M38 62 L54 78 L84 44"/>',
+    cross: '<circle class="r" cx="60" cy="60" r="46"/><path class="n" style="stroke:var(--v-on-ink)" stroke-width="11" d="M42 42 L78 78 M78 42 L42 78"/>',
     warning: '<path class="y" d="M60 12 L110 100 H10 Z"/><path class="n" stroke-width="9" d="M60 44 V70"/><circle class="i" cx="60" cy="86" r="6"/>',
     hand: '<path class="t" d="M34 64 V34 a7 7 0 0 1 14 0 V56 V22 a7 7 0 0 1 14 0 V56 V26 a7 7 0 0 1 14 0 V58 V40 a7 7 0 0 1 14 0 V78 a32 32 0 0 1 -32 32 h-4 a26 26 0 0 1 -22 -12 L18 74 a7 7 0 0 1 12 -8 Z"/>',
     bell: '<path class="y" d="M30 84 V56 a30 30 0 0 1 60 0 V84 l10 10 H20 Z"/><path class="n" d="M50 102 a10 10 0 0 0 20 0"/><circle class="i" cx="60" cy="18" r="6"/>',
@@ -38,7 +38,7 @@
     spark: '<path class="y" d="M60 8 L72 48 L112 60 L72 72 L60 112 L48 72 L8 60 L48 48 Z"/>',
     loop: '<path class="n" stroke-width="10" d="M88 44 A32 32 0 1 0 92 70"/><path class="i" d="M76 40 L100 30 L98 56 Z"/>',
     money: '<rect class="l" x="8" y="30" width="104" height="60" rx="8"/><circle class="w" cx="60" cy="60" r="16"/><path class="n" d="M22 44 v32 M98 44 v32"/>',
-    question: '<circle class="b" cx="60" cy="60" r="48"/><path class="n" stroke="#fff" stroke-width="11" d="M44 46 a16 16 0 1 1 22 15 q-6 3 -6 12"/><circle cx="60" cy="90" r="6" fill="#fff" stroke="none"/>'
+    question: '<circle class="b" cx="60" cy="60" r="48"/><path class="n" style="stroke:var(--v-on-ink)" stroke-width="11" d="M44 46 a16 16 0 1 1 22 15 q-6 3 -6 12"/><circle cx="60" cy="90" r="6" style="fill:var(--v-on-ink)" stroke="none"/>'
   };
   var NAMES = Object.keys(P);
   var I = {

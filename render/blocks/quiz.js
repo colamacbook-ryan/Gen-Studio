@@ -71,7 +71,7 @@
         '<div class="qz-g" style="grid-template-columns:repeat(' + L.cols + ',1fr);gap:' + L.gap + 'px">';
       (p.options || []).forEach(function (o, i) {
         h += '<div class="qz-o" style="font-size:' + L.ofs + 'px;min-height:' + L.rowH[Math.floor(i / L.cols)] + 'px"><i class="qz-ok"></i><b class="qz-l">' + LET[i] + '</b>' +
-          '<svg class="qz-tk" viewBox="0 0 60 60"><path d="M14 31 L26 43 L47 18" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg>' +
+          '<svg class="qz-tk" viewBox="0 0 60 60"><path d="M14 31 L26 43 L47 18" fill="none" style="stroke:var(--v-on-ink)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg>' +
           '<span class="qz-t"></span></div>';
       });
       h += '</div>';
@@ -105,7 +105,7 @@
         var a = 0.45 + i * 0.12, q = U.back(U.seg(t, a, a + 0.5), 1.1), e = U.clamp(U.seg(t, a, a + 0.3));
         var right = !P.open && i === p.answer, wrong = !P.open && !right;
         var sc = U.lerp(0.92, 1, q) * (right ? 1 + 0.04 * U.back(rv, 2.2) : wrong ? 1 - 0.03 * rve : 1);
-        U.setT(o.o, 'translateY(' + U.f3((1 - q) * 40 + (wrong ? rve * 6 : 0)) + 'px) scale(' + U.f3(sc) + ')', U.f3(e * (wrong ? 1 - 0.62 * rve : 1)));
+        U.setTV(o.o, 'translateY(' + U.f3((1 - q) * 40 + (wrong ? rve * 6 : 0)) + 'px) scale(' + U.f3(sc) + ')', U.f3(e * (wrong ? 1 - 0.62 * rve : 1)));
         o.ok.style.opacity = right ? U.f3(rve) : 0;
         if (right) { o.l.style.opacity = U.f3(1 - rve); o.tk.style.opacity = U.f3(rve); U.dash(o.tp, U.eo(U.seg(t, P.reveal + 0.15, P.reveal + 0.55))); }
       });
@@ -113,14 +113,14 @@
       if (r.c) {
         // đồng hồ: vào trước count 0,35 s; vòng cạn đều theo giây; mỗi số mờ-vào/mờ-ra 0,14 s (không nhảy); tan khi lật
         var ci = U.back(U.seg(t, P.count - 0.35, P.count + 0.05), 1.3), co = U.eio(U.seg(t, P.reveal, P.reveal + 0.35));
-        U.setT(r.c, 'scale(' + U.f3(U.lerp(0.5, 1, ci) * U.lerp(1, 0.7, co)) + ')', U.f3(U.clamp(ci * 2) * (1 - co)));
+        U.setTV(r.c, 'scale(' + U.f3(U.lerp(0.5, 1, ci) * U.lerp(1, 0.7, co)) + ')', U.f3(U.clamp(ci * 2) * (1 - co)));
         r.pr.style.strokeDashoffset = U.f3(U.clamp((t - P.count) / Math.max(0.001, P.reveal - P.count)));
         var N = r.ds.length;
         r.ds.forEach(function (d, j) {
           var a = P.count + j * (P.reveal - P.count) / N, b = a + (P.reveal - P.count) / N, w = U.win(t, a - 0.07, b + 0.07, 0.14, 0.14);
           if (j === 0) w = U.win(t, P.count - 0.35, b + 0.07, 0.3, 0.14);
           var pop = U.eo(U.seg(t, a - 0.07, a + 0.25));
-          U.setT(d, 'translate(-50%,-50%) scale(' + U.f3(U.lerp(1.3, 1, pop)) + ')', U.f3(w));
+          U.setTV(d, 'translate(-50%,-50%) scale(' + U.f3(U.lerp(1.3, 1, pop)) + ')', U.f3(w));
         });
       }
     }

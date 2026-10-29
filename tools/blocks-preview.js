@@ -76,6 +76,27 @@ const DEMOS = {
     beats: [{ id: 'B1', block: 'morph', anchor: { line: 'L1', word: 'Mỗi' }, params: { at: { line: 'L1', word: 'biến' }, items: [
       { from: 'key', to: 'envelope', from_label: 'chìa 1', to_label: 'Đọc thư' }, { from: 'key', to: 'calendar', from_label: 'chìa 2', to_label: 'Xem lịch' }, { from: 'key', to: 'send', from_label: 'chìa 3', to_label: 'Gửi thư' }] } }],
     at: [0.9, 1.25, 3.4] },
+  'pip-swap': { lines: [L('L1', 'CM-0001', 'Giờ mình nhường màn hình cho phần so sánh nhé.'), L('L2', 'CM-0001', 'Bạn làm gì? Hỏi agent cầm chìa nào, rồi tắt quyền gửi.'), L('L3', 'CM-0001', 'Xong rồi, mình quay lại đây.')],
+    beats: [{ id: 'B1', block: 'pip-swap', anchor: { line: 'L1', word: 'nhường' }, params: { to: 'pip', name: 'Gen' } },
+      { id: 'B2', block: 'compare-split', anchor: { line: 'L1', word: 'so' }, params: { panels: [{ title: 'Tổng đài viên', art: 'headset' }, { title: 'Thư ký', art: 'keys', tone: 'warm' }] } },
+      { id: 'B3', block: 'checklist-card', anchor: { line: 'L2', word: 'Bạn' }, params: { num: 1, items: ['Hỏi agent cầm chìa nào', 'Tắt quyền Gửi'] } },
+      { id: 'B4', block: 'pip-swap', anchor: { line: 'L3', word: 'quay' }, params: { to: 'stage' } }],
+    main: 'B1', at: [0.25, 1.5, 6.4] },
+  'chat-bubble': { lines: [L('L1', 'CM-0002', 'Ơ, sếp nhắn: em gửi báo giá cho anh Tuấn chưa?'), L('L2', 'CM-0002', 'Chết, khách gọi đến hỏi sao giá lại khác!')],
+    beats: [{ id: 'B1', block: 'chat-bubble', anchor: { line: 'L1', word: 'sếp' }, params: { from: 'Chị Hạnh (Sếp)', app: 'Zalo', time: '09:12', text: 'Em gửi báo giá cho anh Tuấn Minh Phát chưa? Chiều chị họp với khách.' } },
+      { id: 'B2', block: 'chat-bubble', anchor: { line: 'L2', word: 'khách' }, params: { kind: 'call', from: 'Anh Tuấn Hoàng Long', text: 'Khách hàng · đang gọi…', tone: 'urgent', avatar: 'TL' } }],
+    main: 'B1', at: [0.35, 1.0, 6.2] },
+  'title-num': { lines: [L('L1', 'CM-0001', 'Cửa thứ nhất: đưa chìa khoá nào cho agent?')],
+    beats: [{ id: 'B1', block: 'title', anchor: { line: 'L1', word: 'thứ' }, params: { num: 1, kicker: 'CỬA', text: 'Đưa chìa khoá nào?', highlight: ['chìa khoá'] } }],
+    at: [0.2, 0.55, 2.0] },
+  'split-compare-run': { lines: [L('L1', 'CM-0001', 'Bên trái là lệnh cũ, bên phải là lệnh mới. Cùng chạy một lúc nhé.'), L('L2', 'CM-0002', 'Bên trái cứ thế gửi luôn, bên phải thì dừng lại hỏi file!')],
+    beats: [{ id: 'B1', block: 'split-compare-run', anchor: { line: 'L1', word: 'Bên' }, params: {
+      left: { title: 'Báo cáo tuần', steps: [{ text: 'Mở bảng doanh số', tool: 'sheet.mo' }, { text: 'Cộng tổng 4 tuần', tool: 'sheet.tinh' }, { text: 'Gửi giám đốc', tool: 'mail.gui', note: 'Thiếu Cần Thơ!' }], step_s: 2.4 },
+      right: { title: 'Soát rồi báo', steps: [{ text: 'Mở bảng doanh số', tool: 'sheet.mo' }, { text: 'Soát ô trống', tool: 'sheet.soat', note: 'Tuần 4 Cần Thơ trống' }, { text: 'Hỏi bạn file thiếu', result: 'stop', note: 'Chờ Tuan4.xlsx' }], step_s: 2.4 } } }],
+    at: [1.2, 4.2, 8.4] },
+  bars: { lines: [L('L1', 'CM-0001', 'Agent tự gửi chỉ mất hai giây, chờ bạn duyệt thì thêm nửa phút. Đáng mà!')],
+    beats: [{ id: 'B1', block: 'bars', anchor: { line: 'L1', word: 'Agent' }, params: { title: 'Nhanh hơn chưa chắc tốt hơn', bars: [{ label: 'Agent tự gửi', value: 2, text: '2 giây', tone: 'bad' }, { label: 'Chờ bạn duyệt', value: 30, text: '30 giây', tone: 'good' }] } }],
+    at: [0.5, 1.2, 3.4] },
 };
 
 function sheet(frames, out, labels) {
