@@ -1,0 +1,108 @@
+/* © 2026 Gen Labs — All rights reserved.
+   UI-0 — thành phần tỉ lệ khung dùng chung (components/aspect.js). Token của styles.css; không màu hex mới ngoài token.
+   Chữ ký thị giác: hình chữ nhật đúng tỉ lệ (glyph). Dọc (9:16) dùng sắc --info để nhận ra trong lưới mà không cần đọc số. */
+.ar-glyph{flex:0 0 auto;display:block}
+.ar-glyph rect{fill:none;stroke:currentColor;stroke-width:1.5}
+
+/* badge */
+.ar-badge{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px;border:1px solid var(--b2);border-radius:4px;font-size:12px;color:var(--tx2);white-space:nowrap;vertical-align:middle}
+.ar-badge .mono{color:var(--tx)}
+.ar-badge.vertical{border-color:color-mix(in srgb,var(--info) 55%,var(--b2));color:var(--info)}
+.ar-badge.vertical .ar-glyph rect{fill:color-mix(in srgb,var(--info) 18%,transparent)}
+
+/* bộ chọn (segmented, radio thật) */
+.ar-picker{display:flex;flex-direction:column;gap:8px;min-width:0}
+.ar-seg{display:inline-flex;align-self:flex-start;max-width:100%;border:1px solid var(--b2);border-radius:6px;background:var(--sunken);padding:2px;gap:2px;flex-wrap:wrap}
+.ar-opt{position:relative;display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px;border-radius:4px;color:var(--tx2);cursor:pointer;white-space:nowrap;font-size:12px}
+.ar-opt input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.ar-opt:hover{color:var(--tx);background:var(--raised)}
+.ar-opt.on{background:var(--raised);color:var(--tx);box-shadow:inset 0 0 0 1px var(--b2)}
+.ar-opt.on .ar-glyph{color:var(--ember)}
+.ar-opt.inherit .ar-opt-label{font-style:normal}
+.ar-opt.off{opacity:.45;cursor:not-allowed}
+.ar-opt:has(input:focus-visible){outline:2px solid var(--ember);outline-offset:1px}
+.ar-static{display:inline-flex;align-items:center;gap:8px}
+.ar-notes{display:flex;flex-direction:column;gap:4px}
+.ar-reason{color:var(--warn);margin:0;max-width:60ch}
+
+/* danh sách preset */
+.ar-presets{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.ar-presets li{display:flex;align-items:center;gap:8px;min-height:24px;font-size:12px;border-bottom:1px solid var(--b1)}
+.ar-presets li:last-child{border-bottom:0}
+.ar-p-name{flex:0 0 120px;color:var(--tx)}
+.ar-p-max{color:var(--tx2);font-variant-numeric:tabular-nums}
+.ar-presets.compact{gap:0}
+.ar-presets.compact li{border:0;min-height:22px}
+.ar-presets.compact .ar-p-name{flex:0 0 auto;color:var(--tx2)}
+.ar-unverified{display:inline-flex;align-items:center;height:18px;padding:0 6px;border:1px dashed var(--warn);border-radius:4px;color:var(--warn);font-size:11px}
+
+/* khung xem trước + ảnh nhỏ */
+.ar-frame{position:relative;background:var(--sunken);border:1px solid var(--b1);border-radius:4px;overflow:hidden;max-width:100%}
+.ar-frame>img,.ar-frame>video{width:100%;height:100%;object-fit:cover;display:block}
+.ar-thumb{display:inline-grid;place-items:center;flex:0 0 auto}
+.ar-thumb-box{display:grid;place-items:center;background:var(--sunken);border:1px solid var(--b2);border-radius:3px;overflow:hidden;color:var(--tx3)}
+.ar-thumb-box img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* lớp phủ vùng an toàn: đặt trong .ar-frame (absolute, phủ kín) */
+.ar-safe{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.ar-safe-mask{fill:rgba(229,96,77,.16)}
+.ar-safe-hard{fill:none;stroke:var(--danger);stroke-width:1.5;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
+.ar-safe-soft{fill:none;stroke:var(--warn);stroke-width:1;stroke-dasharray:2 3;vector-effect:non-scaling-stroke}
+
+/* chip vừa/quá thời lượng */
+.ar-fit{display:flex;flex-wrap:wrap;gap:4px}
+
+/* ===== UI-L5R3 dùng chung file này (gói không có CSS riêng; index.html đã nối aspect.css) =====
+   Kênh: bảng cấu hình dưới lưới + tab Định dạng (views/channel-tabs/format.js) · Quyền dùng asset trong Inspector (views/lists.js). */
+.ar-slot{min-height:28px}
+.insp-aspect{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.ch-sheet{margin:0 16px;background:var(--surface);border:1px solid var(--b1);border-radius:6px;min-width:0}
+.ch-sheet:empty{display:none}
+.ch-sheet-head{display:flex;align-items:center;gap:12px;height:44px;padding:0 16px;border-bottom:1px solid var(--b1)}
+.ch-sheet-head h2{font-size:14px}
+.ch-tabs{padding:0 16px}
+.ch-tab-body{padding:16px}
+.fmt{display:flex;flex-direction:column;gap:16px}
+.fmt-cols{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px}
+.fmt-sec{display:flex;flex-direction:column;gap:8px;min-width:0}
+.fmt-sec+.fmt-sec{border-left:1px solid var(--b1);padding-left:16px}
+.fmt>.fmt-sec{border-left:0;padding-left:0;border-top:1px solid var(--b1);padding-top:16px}
+.fmt-sec-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.fmt-sec-head h3{margin:0;font-size:13px;font-weight:600}
+.fmt-sec-head .check{margin-left:auto}
+.fmt-mix{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.fmt-count{display:inline-flex;align-items:center;gap:8px}
+.fmt-counts{display:flex;gap:24px;flex-wrap:wrap;padding:8px 12px;border:1px solid var(--b1);border-radius:6px;background:var(--sunken)}
+.fmt-num{width:64px;text-align:center;appearance:textfield;-moz-appearance:textfield}
+.fmt-num::-webkit-inner-spin-button,.fmt-num::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.fmt-sum{margin:0}.fmt-sum.ok{color:var(--ok)}.fmt-sum.bad{color:var(--warn)}
+.fmt-summary{margin:0;padding:8px 12px;border:1px solid var(--b1);border-radius:4px;background:var(--sunken)}
+.fmt-summary strong{font-weight:600;color:var(--tx)}
+.fmt-frames{display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap}
+.fmt-frame{margin:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px;opacity:.6}
+.fmt-frame .ar-frame{flex:0 0 auto}
+.fmt-frame.on{opacity:1}
+.fmt-frame.on .ar-frame{border-color:var(--ember)}
+.fmt-frame figcaption{display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:240px}
+.fmt-legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0}
+.fmt-key{display:inline-block;width:16px;height:0;border-top:1.5px dashed var(--danger)}
+.fmt-key.soft{border-top:1px dotted var(--warn);margin-left:8px}
+.fmt-table{display:flex;flex-direction:column;border:1px solid var(--b1);border-radius:6px;overflow:auto}
+.fmt-tr{display:grid;grid-template-columns:150px 96px 130px 170px minmax(120px,1fr) 150px;min-height:28px;align-items:center;border-bottom:1px solid var(--b1);min-width:816px}
+.fmt-tr:last-child{border-bottom:0}
+.fmt-tr>span{padding:0 8px;border-right:1px solid var(--b1);height:100%;display:flex;align-items:center;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.fmt-tr>span:last-child{border-right:0}
+.fmt-th{background:var(--sunken);font-size:12px;color:var(--tx2);font-weight:500}
+.fmt-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px}
+.fmt-loading{padding:16px 0}
+@media (max-width:1100px){.fmt-cols{grid-template-columns:1fr}.fmt-sec+.fmt-sec{border-left:0;padding-left:0}}
+
+/* Quyền dùng asset (L5) */
+.insp-rights{display:flex;flex-direction:column;gap:6px;padding-bottom:12px;margin-bottom:4px;border-bottom:1px solid var(--b1)}
+.insp-rights .btn{align-self:flex-start}
+.attest-set{border:0;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:8px}
+.attest-basis{align-items:flex-start;gap:8px}
+.attest-basis>span{display:flex;flex-direction:column}
+.attest-pii{margin-bottom:12px;padding:8px;border:1px dashed var(--warn);border-radius:4px}
+.attest-effects{margin:0;padding-left:20px;color:var(--tx2)}
+.attest-set input,.attest-pii input,.fmt input[type=checkbox]{accent-color:var(--ember)}
