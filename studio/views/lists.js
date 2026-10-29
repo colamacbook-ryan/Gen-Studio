@@ -10,6 +10,7 @@ import { buildHash, toText } from '../components/util.js';
 import { authCard, typeCodeNotice } from './authorize.js';
 import { pageHeader } from '../components/shell.js';
 import { onDebounced } from '../components/bus.js';
+import { ensureOffline, offlineStatus, PULL_CMD } from './voice-offline.js';
 
 const idOf = (row) => toText(row.display_id || row.id || Object.values(row)[0]);
 const btn = (label, onclick, cls = 'btn', ic) => h('button', { type: 'button', class: cls, onclick }, ic ? icon(ic) : null, label);
@@ -236,11 +237,26 @@ export function providerForm(onDone, resultView) {
 }
 export const providers = gridView({
   grid: 'providers', title: 'nav.providers', desc: 'prov.desc', empty: 'prov.empty',
-  headerActions: (ctx, reload) => [btn(t('prov.new'), () => providerForm(() => { toast(t('common.saved'), 'ok'); reload(); }), 'btn primary', 'plus')],
-  inspector: (row, ctx, reload, cols) => h('div', null, fieldList(row, cols),
-    btn(t('prov.scan'), async (e) => {
+  headerActions: (ctx, reload) => [btn(t('prov.new'), () => providerForm(() => { toast(t('common.saved'), 'ok'); reload(); }), 'btn primary', 'plus'),
+    // giọng offline (gói L): tạo hàng giọng + giám khảo vendor offline (không khoá) nếu chưa có
+    btn(t('voff.enable'), async (e) => { const b = e.currentTarget; b.disabled = true; try { await ensureOffline(); toast(t('common.saved'), 'ok'); reload(); } catch (ex) { toast(ex.text_human || ex.detail, 'danger'); } b.disabled = false; }, 'btn')],
+  inspector: (row, ctx, reload, cols) => {
+    const scanBox = h('div');
+    // offline: trạng thái sidecar từ lần quét gần nhất; chưa sẵn sàng ⇒ lệnh cần chạy trên máy chủ
+    if (row.vendor === 'offline' && row.service_state) { const st = offlineStatus({ service: { state: row.service_state } }); if (st) scanBox.append(st); }
+    // bật/tắt hàng (vd có cả Gemini lẫn offline: pipeline dùng hàng ĐANG BẬT có ID nhỏ nhất cho từng việc)
+    const on = row.enabled === true || row.enabled === 1;
+    const toggle = btn(t(on ? 'voff.disable_row' : 'voff.enable_row'), async (e) => {
       const b = e.currentTarget; b.disabled = true;
-      try { await post('/api/providers/' + encodeURIComponent(idOf(row)) + '/scan', {}); toast(t('prov.scanned'), 'ok'); reload(); } catch (ex) { toast(ex.text_human || ex.detail, 'danger'); }
+      try { await post('/api/providers', { provider: idOf(row), enabled: on ? 0 : 1 }); toast(t('common.saved'), 'ok'); reload(); } catch (ex) { toast(ex.text_human || ex.detail, 'danger'); }
       b.disabled = false;
-    })),
+    });
+    return h('div', null, fieldList(row, cols), scanBox, toggle,
+      btn(t('prov.scan'), async (e) => {
+        const b = e.currentTarget; b.disabled = true;
+        try { await post('/api/providers/' + encodeURIComponent(idOf(row)) + '/scan', {}); toast(t('prov.scanned'), 'ok'); reload(); }
+        catch (ex) { clear(scanBox); scanBox.append(errorBanner(ex)); if (row.vendor === 'offline') scanBox.append(connectCard(PULL_CMD)); }
+        b.disabled = false;
+      }));
+  },
 });

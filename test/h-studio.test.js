@@ -15,7 +15,7 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
 test('i18n tách theo gói UI: module nào cũng {vi,en} cùng bộ khoá, KHÔNG trùng khoá giữa module; cửa cũ i18n.js giữ nguyên API', async () => {
   const idx = await load('i18n/index.js'), old = await load('i18n.js');
-  assert.deepEqual(Object.keys(idx.MODULES), ['core', 'ov', 'brand', 'cast', 'review', 'lessons', 'lists']);
+  assert.deepEqual(Object.keys(idx.MODULES), ['core', 'ov', 'brand', 'cast', 'review', 'lessons', 'lists', 'voice']);
   const seen = new Map();
   for (const [name, m] of Object.entries(idx.MODULES)) {
     assert.deepEqual(Object.keys(m.vi).sort(), Object.keys(m.en).sort(), name + ': vi và en cùng bộ khoá');
