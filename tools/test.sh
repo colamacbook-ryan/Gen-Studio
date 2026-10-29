@@ -11,7 +11,7 @@ grep -q "All rights reserved" LICENSE && ! grep -qi "apache license" LICENSE && 
 [[ "$(cat VERSION)" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && ok "VERSION hợp lệ ($(cat VERSION))" || bad "VERSION phải dạng x.y.z"
 grep -q "^## $(cat VERSION) " CHANGELOG.md && ok "CHANGELOG có mục cho VERSION" || bad "CHANGELOG thiếu mục ## $(cat VERSION)"
 # không secret trong repo (khoá Google kiểu AIza…/AQ.…, khoá OpenAI/Anthropic, private key)
-if git ls-files -z | xargs -0 grep -nE 'AIza[0-9A-Za-z_-]{30,}|AQ\.[A-Za-z0-9_-]{30,}|sk-(ant-)?[A-Za-z0-9_-]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----' -- 2>/dev/null | grep -v '^tools/test.sh:'; then bad "phát hiện chuỗi giống secret"; else ok "không có secret"; fi
+if git ls-files -z | xargs -0 grep -nE 'AIza[0-9A-Za-z_-]{30,}|AQ\.[A-Za-z0-9_-]{30,}|(^|[^A-Za-z0-9])sk-(ant-)?[A-Za-z0-9_-]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----' -- 2>/dev/null | grep -v '^tools/test.sh:'; then bad "phát hiện chuỗi giống secret"; else ok "không có secret"; fi
 # .env không được commit
 git ls-files | grep -qE '(^|/)\.env$' && bad ".env bị commit" || ok ".env không bị commit"
 # link tương đối trong tài liệu phải tồn tại
