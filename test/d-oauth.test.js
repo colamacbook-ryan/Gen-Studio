@@ -823,7 +823,7 @@ test('migration 0002: tiền kiểm oauth_grants rỗng; nâng DB tạo từ 000
     assert.equal(db.get("SELECT COUNT(*) AS n FROM audit_log WHERE id='au'").n, 1);
     db.run("INSERT INTO audit_log(id,workspace_id,display_id,ts,actor,entry,action) VALUES('au2','w','AU-0002','2026-01-01','client:x','oauth','x')");
     assert.throws(() => db.run("UPDATE audit_log SET action='y'"), /chỉ thêm/); assert.throws(() => db.run('DELETE FROM audit_log'), /chỉ thêm/);
-    assert.equal(db.get('SELECT COUNT(*) AS n FROM schema_migrations').n, 2);
+    assert.equal(db.get('SELECT COUNT(*) AS n FROM schema_migrations').n, 5);   // 0001 + 0002 + 0003 (v0.2.0) + 0004 (gói V: cast_members.origin) + 0005 (F7: aspect)
     assert.equal(dbm.migrate(db).length, 0, 'chạy lại không làm gì');
     db.close();
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }

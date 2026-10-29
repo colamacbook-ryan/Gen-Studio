@@ -2,6 +2,8 @@
 # studio: dữ liệu + dựng hình. agent: container riêng, KHÔNG thấy dữ liệu (chỉ nói chuyện với studio qua /mcp và /oauth/*).
 # Agent luôn chạy (trạng thái unpaired). Chủ xưởng bấm "Bật agent nội bộ" trên giao diện → runner tự xin quyền (ghép thiết bị) → bấm Duyệt.
 # Token tay (nâng cao, cho agent ngoài): `genstudio token create`. Runner KHÔNG đọc token từ .env.
+# voice (tuỳ chọn, profile `voice`): giọng offline không cần khoá — bật bằng `install.sh --voice-offline` hoặc `genstudio voice pull`
+# (ghi COMPOSE_PROFILES=voice vào .env). Chỉ ở mạng nội bộ `voice` cùng studio: không cổng ra máy chủ, không egress, không thấy /data.
 services:
   studio:
     build:
@@ -20,9 +22,10 @@ services:
       GS_LANG: "${GS_LANG:-vi}"
       # bí mật ghép nội bộ: chỉ studio + agent nhận (biến môi trường, không phải mount dữ liệu); chỉ dùng được trong cửa sổ ghép do chủ xưởng mở
       GS_PAIRING_SECRET: "${GS_PAIRING_SECRET:-}"
+      GS_VOICE_URL: http://voice:7491
     volumes:
       - ./data:/data
-    networks: [gs]
+    networks: [gs, voice]
 
   agent:
     build:
@@ -45,9 +48,50 @@ services:
       - agent-state:/agent-state   # token ghép thiết bị (token.json, mode 0600) — chỉ container agent thấy
     networks: [gs]
 
+  voice:
+    build:
+      context: .
+      dockerfile: Dockerfile.voice
+    image: gen-studio/voice:${GS_VERSION:-local}
+    profiles: [voice]
+    restart: unless-stopped
+    command: [serve]
+    environment:
+      GS_VOICE_PRECISION: "${GS_VOICE_PRECISION:-fp32}"
+      GS_VOICE_JUDGE: "${GS_VOICE_JUDGE:-small}"
+      GS_VOICE_THREADS: "${GS_VOICE_THREADS:-4}"
+    volumes:
+      - voice-models:/models:ro
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: "${GS_VOICE_MEM:-3g}"
+    networks: [voice]
+
+  # một lần: tải model (ghim revision + sha256) vào volume voice-models — `genstudio voice pull`. Cần mạng ra huggingface.co.
+  voice-pull:
+    image: gen-studio/voice:${GS_VERSION:-local}
+    profiles: [voice-pull]
+    command: [pull]
+    environment:
+      GS_VOICE_PRECISION: "${GS_VOICE_PRECISION:-fp32}"
+      GS_VOICE_JUDGE: "${GS_VOICE_JUDGE:-small}"
+    volumes:
+      - voice-models:/models
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks: [gs]
+
 networks:
   gs: {}
+  # studio ↔ voice: internal ⇒ không ra Internet; agent KHÔNG ở mạng này
+  voice:
+    internal: true
 
 volumes:
   agent-home: {}
   agent-state: {}
+  voice-models: {}

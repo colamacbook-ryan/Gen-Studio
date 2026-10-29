@@ -9,9 +9,11 @@ const grids = require('./grids.js');
 const events = require('./events.js');
 const state = require('./state.js');
 const { isLoopbackUri } = require('./write.js');
+const aspects = require('../render/aspects.js');
 
 const J = grids.J;
-const STATUS = { invalid: 400, unauthorized: 401, forbidden: 403, not_found: 404, conflict: 409, rate_limited: 429, master_key_mismatch: 500, payload_too_large: 413, bad_gateway: 502 };
+const STATUS = { invalid: 400, unauthorized: 401, forbidden: 403, not_found: 404, conflict: 409, rate_limited: 429, master_key_mismatch: 500, payload_too_large: 413, bad_gateway: 502,
+  aspect_unsupported: 400, aspect_kind_unsupported: 400, aspect_mismatch: 409 };   // F7: lỗi tỉ lệ có mã riêng (text_human tiếng Việt)
 
 // Lỗi → {code, text_human, detail} (không stack trace cho người dùng)
 function errBody(e) {
@@ -52,12 +54,16 @@ function need(db, table, ref, what, extra) {
   if (!r) throw fail('not_found', 'Không tìm thấy ' + what + ' "' + ref + '".');
   return r;
 }
-const GATE_ORDER = ['G-WAV', 'G-SCRIPT', 'G-PRON', 'G-LOUD', 'G-SYNC', 'G-MOTION', 'G-FRAMES', 'G-MUX'];
+const { gatesFor } = require('../media/gates/index.js');
+// Danh sách cổng của một Render = cổng áp cho loại bài + dữ liệu bài (media/gates GATES, SPEC §2.5), theo thứ tự GATES; cổng chưa chạy = 'pending'.
+// Cổng đã có kết quả nhưng không còn nằm trong danh sách áp (bài đổi loại) vẫn được hiện ở cuối để không giấu kết quả.
 function latestGates(db, render) {
+  const lv = db.get('SELECT kind, thumbnail FROM lesson_versions WHERE id=?', render.lesson_version_id) || {};
+  const ids = gatesFor(lv.kind, lv);
   const m = {};
   db.all("SELECT * FROM gate_results WHERE subject_kind='render' AND subject_id=? ORDER BY created_at, rowid", render.id)
     .forEach(g => { m[g.gate] = db.json(g); });
-  return GATE_ORDER.map(g => m[g] ? { gate: g, result: m[g].result, measure: m[g].measure, attempt: m[g].attempt } : { gate: g, result: 'pending', measure: null, attempt: 0 });
+  return ids.concat(Object.keys(m).filter(g => !ids.includes(g))).map(g => m[g] ? { gate: g, result: m[g].result, measure: m[g].measure, attempt: m[g].attempt } : { gate: g, result: 'pending', measure: null, attempt: 0 });
 }
 function assetUrl(db, ref) {
   if (!ref) return null;
@@ -75,16 +81,32 @@ function castNames(db, plan) {
   return out;
 }
 function renderView(db, r) {
-  const lv = db.get('SELECT lv.version, lv.work_order_id, l.display_id AS lesson, l.title FROM lesson_versions lv JOIN lessons l ON l.id=lv.lesson_id WHERE lv.id=?', r.lesson_version_id) || {};
+  const lv = db.get('SELECT lv.version, lv.work_order_id, lv.kind, lv.aspect, l.display_id AS lesson, l.title FROM lesson_versions lv JOIN lessons l ON l.id=lv.lesson_id WHERE lv.id=?', r.lesson_version_id) || {};
   const outputs = r.outputs || {};
   const media = { asset_id: null };
-  Object.keys(outputs).forEach(k => { const u = assetUrl(db, outputs[k]); media[k] = u; if (k === 'mp4' && u) media.asset_id = u.replace('/media/', ''); });
+  Object.keys(outputs).forEach(k => {
+    if (k === 'thumbs' && Array.isArray(outputs[k])) {   // 0.2.0: outputs.thumbs = [{variant, w1280, w1920, pass, score}] → URL từng ảnh
+      media.thumbs = outputs[k].map(x => ({ variant: x.variant, pass: x.pass, score: x.score, w1280: assetUrl(db, x.w1280), w1920: assetUrl(db, x.w1920) }));
+      return;
+    }
+    if (typeof outputs[k] !== 'string') return;
+    const u = assetUrl(db, outputs[k]); media[k] = u; if (k === 'mp4' && u) media.asset_id = u.replace('/media/', '');
+  });
   const manifest = r.manifest || null;
+  // F7 §3.6: tỉ lệ + cỡ + khung bìa + độ vừa từng nền tảng. Bài cũ (aspect NULL, manifest cũ) = 16:9.
+  const aspect = (manifest && manifest.aspect) || lv.aspect || '16:9';
+  const ag = aspects.get(aspect);
+  const size = (manifest && manifest.size) || (ag && ag.size) || null;
+  if (typeof outputs.cover_frame_ms === 'number') media.cover_frame_ms = outputs.cover_frame_ms;
+  const durMs = Number.isFinite(r.duration_ms) ? r.duration_ms : (manifest && manifest.plan && manifest.plan.duration_ms);
   return {
+    fit: aspects.fit(aspect, Number.isFinite(durMs) ? durMs / 1000 : undefined),
     render: {
+      aspect, size,
       display_id: r.display_id, state: r.state, version: lv.version, lesson_display_id: lv.lesson, lesson_title: lv.title,
       state_changed_at: r.state_changed_at, waiting_until: r.waiting_until, blocked_reason: r.blocked_reason || null,
-      progress: r.progress, duration_ms: r.duration_ms, frames: r.frames,
+      progress: r.progress, duration_ms: r.duration_ms, frames: r.frames, kind: lv.kind || 'lesson',
+      awaiting_review_at: r.awaiting_review_at || null, thumbnail_pick: r.thumbnail_pick || null,
     },
     manifest, plan: manifest && manifest.plan ? manifest.plan : null, cast: castNames(db, manifest && manifest.plan),
     gates: latestGates(db, r), notes: reviewNotes(db, r), outputs, media,
@@ -95,8 +117,12 @@ function lessonDoc(db, lesson, version) {
   if (!lv) throw fail('not_found', 'Bài ' + lesson.display_id + ' không có version ' + version + '.');
   const lines = db.all('SELECT ln.*, cm.display_id AS who_display, cm.name AS who_name FROM lines ln LEFT JOIN cast_members cm ON cm.id=ln.cast_member_id WHERE ln.lesson_version_id=? ORDER BY ln.ord', lv.id);
   const beats = db.all('SELECT * FROM beats WHERE lesson_version_id=? ORDER BY ord', lv.id);
+  // cột mở rộng 0003 (kind luôn có; thumbnail/variant/screens/host/music chỉ khi khác rỗng) — update_lesson/UI đọc lại đúng bản đã nộp
+  const extra = { kind: lv.kind || 'lesson' };
+  if (lv.aspect != null) extra.aspect = lv.aspect;   // F7: chỉ khi đã ghi (bài cũ NULL = 16:9)
+  for (const k of ['variant', 'thumbnail', 'screens', 'host', 'music']) if (lv[k] != null) extra[k] = J(lv[k]);
   return {
-    version: lv.version, state: lv.state, note: lv.note, camera_hints: J(lv.camera_hints), work_order_id: lv.work_order_id, submitted_by: lv.submitted_by, created_at: lv.created_at,
+    ...extra, version: lv.version, state: lv.state, note: lv.note, camera_hints: J(lv.camera_hints), work_order_id: lv.work_order_id, submitted_by: lv.submitted_by, created_at: lv.created_at,
     lines: lines.map(l => ({ id: l.display_id, who: l.who_display, who_name: l.who_name, say: l.say, lang: l.lang, terms: J(l.terms_declared) || [], subtitle: J(l.subtitle) || null, mood: l.mood })),
     beats: beats.map(b => ({ id: b.display_id, block: b.block_type, block_version: b.block_version, params: J(b.params), anchor: { line: b.anchor_line_display_id, word_index: b.anchor_word_index }, asset_ids: J(b.asset_ids) || [] })),
   };
@@ -129,7 +155,7 @@ function create(ctx) {
   const add = (method, pattern, opts, fn) => {
     const keys = [];
     const re = new RegExp('^' + pattern.replace(/:([a-z_]+)/g, (_, k) => { keys.push(k); return '([^/]+)'; }) + '/?$');
-    routes.push({ method, re, keys, opts, fn });
+    routes.push({ method, re, keys, opts, fn, src: pattern });
   };
   const secure = (req) => req.socket.encrypted || req.headers['x-forwarded-proto'] === 'https' || /^https:/.test(config.publicUrl || '');
   const cookie = (req, token, maxAge) => 'gs_sess=' + encodeURIComponent(token) + '; HttpOnly; SameSite=Strict; Path=/; Max-Age=' + maxAge + (secure(req) ? '; Secure' : '');
@@ -181,51 +207,7 @@ function create(ctx) {
   }
   add('GET', '/api/me', { sess: true }, async c => meBody(c.sess.user, c.sess.csrf));
 
-  // ---- tổng quan + lưới ----
-  // thu hồi TỰ ĐỘNG (refresh bị dùng lại) của agent nội bộ mà chưa có agent nội bộ nào thay: Tổng quan hiện nút "Ghép lại"
-  const pairingLost = () => {
-    const last = db.get("SELECT entity_id FROM audit_log WHERE action='auth.refresh' AND after LIKE '%refresh_reuse%' ORDER BY ts DESC LIMIT 1");
-    if (!last) return null;
-    const ag = db.get("SELECT display_id, kind, status FROM agents WHERE display_id=?", last.entity_id);
-    if (!ag || ag.kind !== 'internal' || ag.status !== 'revoked') return null;
-    if (db.get("SELECT 1 AS x FROM agents WHERE kind='internal' AND status!='revoked' AND deleted_at IS NULL")) return null;
-    return { agent: ag.display_id };
-  };
-  // từng có agent nội bộ nhưng hiện không có cái nào đang bật (đã tắt/thu hồi): Tổng quan nhắc và dẫn tới thẻ runner
-  const internalOff = () => !!db.get("SELECT 1 AS x FROM agents WHERE kind='internal' AND deleted_at IS NULL") && !db.get("SELECT 1 AS x FROM agents WHERE kind='internal' AND status!='revoked' AND deleted_at IS NULL");
-  add('GET', '/api/overview', { sess: true }, async () => {
-    const n = (sql, ...p) => db.get(sql, ...p).n;
-    const ACTIVE = "('queued','voicing','judging','aligning','rendering','mixing','gating','retrying','waiting_quota')";
-    const t0 = new Date().toISOString(), y0 = new Date(Date.now() - 86400e3).toISOString();   // 24 giờ gần nhất (cuốn chiếu), không phải "hôm qua" theo lịch
-    const done = db.all("SELECT kind, opened_at, closed_at FROM work_orders WHERE workspace_id=? AND state='fulfilled' AND closed_at>=? AND closed_at<?", db.ws, y0, t0);
-    const mins = done.map(w => (Date.parse(w.closed_at) - Date.parse(w.opened_at)) / 60000).filter(Number.isFinite).sort((x, y) => x - y);
-    const med = mins.length ? mins[mins.length >> 1] : null;
-    let used = 0, reclaimable = 0, total = null;
-    used = n('SELECT COALESCE(SUM(bytes),0) AS n FROM assets WHERE workspace_id=? AND media_present=1', db.ws);
-    db.all("SELECT outputs FROM renders WHERE workspace_id=? AND state IN ('superseded','rejected') AND outputs IS NOT NULL", db.ws).forEach(r => {
-      Object.values(J(r.outputs) || {}).forEach(id => { const a2 = db.get('SELECT bytes FROM assets WHERE (id=? OR display_id=?) AND media_present=1 AND source=?', id, id, 'system'); if (a2) reclaimable += a2.bytes; });
-    });
-    try { const st = fs.statfsSync(config.dataDir); total = st.blocks * st.bsize; } catch { total = null; }
-    let next = null;
-    try { next = require('./scheduler.js').nextSlot(db, new Date()); } catch (e) { events.logError('next_schedule', e); }
-    return {
-      awaiting_review: n("SELECT COUNT(*) AS n FROM renders WHERE workspace_id=? AND state='awaiting_review'", db.ws),
-      running: n('SELECT COUNT(*) AS n FROM renders WHERE workspace_id=? AND state IN ' + ACTIVE, db.ws),
-      pending_auth: n("SELECT COUNT(*) AS n FROM auth_requests WHERE workspace_id=? AND status='pending' AND expires_at>=?", db.ws, new Date().toISOString()),
-      pairing_lost: pairingLost(),
-      internal_agent_off: internalOff(),
-      stalled_work_orders: db.all("SELECT w.display_id, w.kind, w.brief, w.summary, w.opened_at, a.display_id AS agent FROM work_orders w LEFT JOIN agents a ON a.id=w.agent_id WHERE w.workspace_id=? AND w.state='stalled' ORDER BY w.opened_at", db.ws),
-      yesterday: {
-        work_orders: done.length,
-        renders: n('SELECT COUNT(*) AS n FROM renders WHERE workspace_id=? AND created_at>=? AND created_at<?', db.ws, y0, t0),
-        auto_fixed: done.filter(w => w.kind === 'unblock' || w.kind === 'revise').length,
-        median_minutes: med === null ? null : Math.round(med * 10) / 10,
-      },
-      providers: db.all('SELECT display_id, kind, vendor, model, enabled, scan FROM providers WHERE workspace_id=? AND deleted_at IS NULL', db.ws).map(p => Object.assign(p, { scan: J(p.scan) })),
-      next_schedule: next,
-      disk: { used, total, reclaimable },
-    };
-  });
+  // ---- lưới (tổng quan: server/routes/overview.js) ----
   add('GET', '/api/grid/:name', { sess: true }, async c => grids.runGrid(db, c.params.name, { q: c.url.searchParams.get('q'), sort: c.url.searchParams.get('sort'), limit: c.url.searchParams.get('limit') }));
 
   // ---- bài + render ----
@@ -254,7 +236,7 @@ function create(ctx) {
   });
   add('POST', '/api/renders/:id/export', { sess: true }, async c => {
     const r = need(db, 'renders', c.params.id, 'bản dựng');
-    const ex = ctx.pipeline.exportRender(ctx, r);
+    const ex = ctx.pipeline.exportRender(ctx, r, { actor: actorOf(c), entry: 'ui' });
     return Object.assign({ path: ex.dir }, ex);
   });
   add('POST', '/api/renders/:id/retry', { sess: true }, async c => {
@@ -330,6 +312,22 @@ function create(ctx) {
     return { status: 201, body: { display_id: ch.display_id, channel: ch } };
   });
   add('GET', '/api/events', { sess: true, raw: true }, async c => { events.sse(ctx.events, c.req, c.res); return null; });
+
+  // ---- Nạp route từ server/routes/*.js (SPEC-0.2.0 §2.4): register(add, rctx). Thứ tự theo tên file; module tên bắt đầu `_` không nạp.
+  // Mỗi (method, pattern) chỉ được đăng ký MỘT lần — trùng ⇒ ném lỗi lúc khởi động (không có hai route trùng).
+  const rctx = { ctx, db, write, config, actorOf, userActor, fail, need: (table, ref, what, extra) => need(db, table, ref, what, extra), J, send, readJson, firstChannel };
+  // ctx.routesDirs: thư mục route phụ (test dựng module route tạm); mặc định chỉ server/routes
+  for (const routesDir of [path.join(__dirname, 'routes'), ...(ctx.routesDirs || [])]) {
+    if (!fs.existsSync(routesDir)) continue;
+    for (const f of fs.readdirSync(routesDir).filter((x) => x.endsWith('.js') && !x.startsWith('_')).sort()) {
+      const m = require(path.join(routesDir, f));
+      if (typeof m.register !== 'function') continue;
+      m.register((method, pattern, opts, fn) => {
+        if (routes.some((r) => r.method === method && r.src === pattern)) throw new Error(`api: route trùng ${method} ${pattern} (routes/${f})`);
+        add(method, pattern, opts, fn);
+      }, rctx);
+    }
+  }
 
   // ---- bộ xử lý ----
   async function handle(req, res, url) {

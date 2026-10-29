@@ -9,10 +9,10 @@ const { ulid } = require('./ids');
 const state = require('./state');
 const queue = require('./queue');
 const secrets = require('./secrets');
-
-const MVP_BLOCKS = ['title', 'concept-chip', 'token-row', 'prob-card', 'stamp', 'takeaway', 'lesson-map', 'end-card', 'illustration'];
-// Trường chính sách kênh — chỉ owner sửa (CNS-036)
-const POLICY_FIELDS = ['schedule', 'loudness', 'subtitle_langs', 'limits', 'aspect', 'fps', 'publish', 'auto_publish'];
+const rights = require('./rights');
+const { createExt } = require('./hooks');
+const { POLICY_FIELDS, policyHits } = require('./policy');   // MỘT danh sách chính sách duy nhất (CNS-089)
+const blockRegistry = require('../render/blocks/registry'); // danh sách khối theo render/blocks/index.json + `kinds` của bài (SPEC-0.2.0 §2.3); không hardcode tên khối ở đây
 const ACTOR_TYPES = ['user', 'agent', 'assistant', 'system', 'cli', 'runner', 'client'];
 const ENTRIES = ['ui', 'http', 'mcp', 'cli', 'runner', 'system', 'assistant', 'oauth'];
 const ASSET_KINDS = ['svg', 'image', 'audio', 'video', 'subtitle', 'cover', 'logo', 'manifest'];
@@ -26,7 +26,7 @@ const err = (code, text, detail) => new WriteError(code, text, detail);
 // ---- Duyệt quyền agent (OAuth 2.1 + ghép thiết bị) ----
 const SCOPES = ['read', 'compose', 'run'];
 const CODE_TTL_MS = 60e3, ACCESS_TTL_MS = 3600e3, REFRESH_TTL_MS = 30 * 86400e3, REQUEST_TTL_MS = 10 * 60e3, DEVICE_TTL_MS = 15 * 60e3, CLIENT_PENDING_MS = 3600e3;
-const VENDORS = ['gemini']; // nhà cung cấp có adapter trong media/providers (fake chỉ bật qua config, không lưu DB)
+const VENDORS = ['gemini', 'offline']; // nhà cung cấp có adapter trong media/providers (fake chỉ bật qua config, không lưu DB); offline = sidecar `voice`, không khoá
 const PAIRING_WINDOW_MS = 10 * 60e3, REFRESH_GRACE_MS = 30e3, PURGE_AFTER_MS = 7 * 86400e3;
 // Trần yêu cầu/client đang chờ theo KÊNH VÀO, theo NGUỒN và theo client (CNS-066). Quá trần thì TỪ CHỐI yêu cầu mới (too_many_pending), không bao giờ đẩy bỏ yêu cầu cũ (kẻ flood sẽ xoá mất yêu cầu của chủ xưởng).
 const PENDING_CHANNEL = { internal: 3, loopback: 10, public: 10 }, PENDING_SOURCE = { internal: 3, loopback: 10, public: 3 }, PENDING_CLIENT = 2;
@@ -88,8 +88,8 @@ function anchorIndex(say, word) {
 }
 const wordCount = (say) => (say.match(/\S+/g) || []).length;
 
-function defaultValidateBlock(name, params) {
-  if (!MVP_BLOCKS.includes(name)) return { ok: false, errors: [`Khối "${name}" không có trong danh sách khối MVP.`] };
+function defaultValidateBlock(name, params, kind) {
+  if (!blockRegistry.names(kind).includes(name)) return { ok: false, errors: [`Khối "${name}" không có trong danh sách khối${kind ? ` của bài loại "${kind}"` : ''}.`] };
   if (!params || typeof params !== 'object' || Array.isArray(params)) return { ok: false, errors: ['params phải là object.'] };
   return { ok: true, errors: [] };
 }
@@ -143,7 +143,7 @@ function createWriter(db, opts = {}) {
 
   const checkPolicy = (a, data, top) => {
     if (a.type !== 'agent') return;
-    const hit = POLICY_FIELDS.filter((k) => (data && k in data) || (top && k in top));
+    const hit = policyHits(data, top);
     if (hit.length) {
       throw err('forbidden', 'Trường chính sách của kênh (lịch, âm lượng, giới hạn…) chỉ chủ xưởng được sửa.', { fields: hit });
     }
@@ -157,13 +157,20 @@ function createWriter(db, opts = {}) {
 
   // ---- Các op ----
   const OPS = {};
-  const op = (name, who, run) => { OPS[name] = { who, run }; };
+  // who: khoá trong `allow` HOẶC hàm (actor) → boolean. Tên op trùng ⇒ lỗi (gói W1 dùng `around` để bọc op cũ, không đăng ký đè).
+  const op = (name, who, run) => {
+    if (OPS[name]) throw new Error(`write: op "${name}" đã tồn tại (dùng ctx.around để bọc)`);
+    if (typeof who !== 'function' && !allow[who]) throw new Error(`write: op "${name}" có quyền không xác định "${who}"`);
+    OPS[name] = { who, run };
+  };
+  // Móc mở rộng cho server/ops/*.js (SPEC-0.2.0 §2.4): lessonExt · channelDefaults · suggestionApply · gates · hooks
+  const ext = createExt();
 
   op('channel.create', 'compose', (c) => {
     const p = c.p;
     if (!nonEmpty(p.name)) throw err('invalid', 'Kênh cần có tên.', null);
-    const data = p.data || {};
-    checkPolicy(c.a, data, p);
+    checkPolicy(c.a, p.data || {}, p);   // kiểm trên phần NGƯỜI GỌI gửi; mặc định server (hook channelDefaults) gộp sau, nên agent vẫn không tự đặt được trường chính sách
+    const data = ext.channelDefaults.apply({ p, actor: c.a, db }, p.data || {});
     const row = db.insertRow('channels', { name: p.name, lang_primary: p.lang_primary || 'vi', lang_terms: p.lang_terms || 'en',
       current_version: 1, created_by: c.by }, { prefix: 'CH' });
     db.insertRow('channel_versions', { entity_id: row.id, version: 1, data, note: p.note || null, created_by: c.by });
@@ -281,8 +288,19 @@ function createWriter(db, opts = {}) {
     }
     const sha = crypto.createHash('sha256').update(p.bytes).digest('hex');
     const existing = db.json(db.get('SELECT * FROM assets WHERE workspace_id=? AND sha256=?', ws(), sha));
+    // Quyền dùng asset (§6.10): owner tải lên qua phiên UI ⇒ tự có quyền `owner_upload` (hàng attest, ghi cờ che thông tin cá nhân từ hộp tải lên); agent/hệ thống thì không.
+    // Raster/audio do agent tải lên (sau 0003) chưa có hàng attest ⇒ pipeline chặn `rights_missing` cho tới khi owner xác nhận (op asset.attest — gói U).
+    const ownerUpload = (a) => {
+      if (!(isOwner(c.a) && c.a.entry === 'ui' && p.source !== 'system')) return false;
+      if (!rights.needsRights(a, rights.cutoff(db))) return false;
+      const last = db.get('SELECT action FROM asset_rights WHERE asset_id=? ORDER BY at DESC, rowid DESC LIMIT 1', a.id);
+      if (last && last.action === 'attest') return false;
+      db.insertRow('asset_rights', { asset_id: a.id, action: 'attest', basis: 'owner_upload', pii_redacted: p.pii_redacted === true ? 1 : 0, note: null, by: c.a.id, at: db.now() });
+      return true;
+    };
     if (existing) {
-      return { result: { ...existing, deduped: true }, entity: ['asset', existing.display_id], before: null, after: { sha256: sha, deduped: true } };
+      const att = ownerUpload(existing);
+      return { result: { ...existing, deduped: true, rights: rights.statusOf(db, existing) }, entity: ['asset', existing.display_id], before: null, after: { sha256: sha, deduped: true, rights_attested: att } };
     }
     const ext = EXT[p.mime] || 'bin';
     const rel = path.join('media', sha.slice(0, 2), `${sha}.${ext}`);
@@ -293,7 +311,8 @@ function createWriter(db, opts = {}) {
     fs.renameSync(tmp, abs);
     const row = db.insertRow('assets', { kind: p.kind, sha256: sha, path: rel, bytes: p.bytes.length, mime: p.mime || null,
       meta: p.meta || null, media_present: 1, source: p.source === 'system' ? 'system' : 'upload', created_by: c.by }, { prefix: 'AS' });
-    return { result: { ...row, deduped: false }, entity: ['asset', row.display_id], before: null, after: { sha256: sha, bytes: row.bytes, kind: row.kind } };
+    const att = ownerUpload(row);
+    return { result: { ...row, deduped: false, rights: rights.statusOf(db, row) }, entity: ['asset', row.display_id], before: null, after: { sha256: sha, bytes: row.bytes, kind: row.kind, rights_attested: att } };
   });
 
   // ----- lesson.submit -----
@@ -302,7 +321,7 @@ function createWriter(db, opts = {}) {
   function submitLesson(c) {
     const p = c.p;
     const errors = [];
-    const E = (path_, text) => errors.push({ path: path_, text });
+    const E = (path_, text, code) => errors.push(code ? { path: path_, text, code } : { path: path_, text });
 
     let lesson = p.lesson ? need('lessons', p.lesson, 'bài học') : null;
     const channel = lesson ? db.json(db.get('SELECT * FROM channels WHERE id=?', lesson.channel_id)) : byRef('channels', p.channel);
@@ -335,6 +354,35 @@ function createWriter(db, opts = {}) {
     const beats = Array.isArray(p.beats) ? p.beats : [];
 
     const prev = lesson ? db.get('SELECT * FROM lesson_versions WHERE lesson_id=? ORDER BY version DESC LIMIT 1', lesson.id) : null;
+
+    // ---- loại bài + phần mở rộng lược đồ (lessonExt, SPEC-0.2.0 §2.4; CNS-090: danh sách loại kiểm theo registry, không theo CHECK DB) ----
+    // Cột không gửi ⇒ kế thừa từ version trước (update_lesson không phải gửi lại ảnh bìa/màn hình); gửi null ⇒ xoá.
+    const kind = p.kind !== undefined && p.kind !== null ? p.kind : (prev && prev.kind) || 'lesson';
+    if (!ext.lessonExt.kinds().includes(kind)) E('kind', `Loại bài "${kind}" chưa được hỗ trợ (có: ${ext.lessonExt.kinds().join(', ')}).`);
+    for (const col of ext.lessonExt.unowned()) if (p[col] !== undefined && p[col] !== null) E(col, `Trường "${col}" chưa được bật ở bản này.`);
+    const extVals = {};
+    for (const col of ext.lessonExt.columns()) {
+      extVals[col] = p[col] !== undefined ? p[col] : prev && prev[col] != null ? (() => { try { return JSON.parse(prev[col]); } catch { return prev[col]; } })() : null;
+    }
+    const channelDataRow = db.json(db.get('SELECT data FROM channel_versions WHERE entity_id=? AND version=?', channel.id, channel.current_version));
+    const lv = { kind, values: extVals, payload: p, lines, beats, channel, channelData: (channelDataRow && channelDataRow.data) || {}, prev: prev ? db.json(prev) : null, isNew: !lesson, workOrder: wo, out: {} };
+    // F7 (CNS-330): `resolve` của mọi phần mở rộng chạy TRƯỚC mọi `validate`; giá trị trả thay lv.values[cột] rồi mới kiểm + lưu (tỉ lệ lưu là giá trị ĐÃ PHÂN GIẢI, không phải thứ agent gửi)
+    const extCtx = { db, err, byRef, nonEmpty, ext };
+    for (const x of ext.lessonExt.list()) {
+      if (!x.resolve) continue;
+      try {
+        const r = x.resolve(lv, extCtx);
+        if (x.columns.length === 1) lv.values[x.columns[0]] = r === undefined ? null : r;
+        else if (r && typeof r === 'object') for (const col of x.columns) if (col in r) lv.values[col] = r[col];
+      } catch (e) {
+        if (e && e.code && e.text_human && e.name !== 'WriteError') E(x.name, `${e.code}: ${e.text_human}`, e.code);   // AspectError…: lỗi nghiệp vụ có mã, thành lỗi nộp bài
+        else throw e;
+      }
+    }
+    for (const x of ext.lessonExt.list()) {
+      if (!x.validate) continue;
+      for (const e of x.validate(lv, extCtx) || []) E(typeof e === 'string' ? x.name : e.path || x.name, typeof e === 'string' ? e : e.text, typeof e === 'string' ? undefined : e.code);
+    }
     const taken = (table, id) => db.get(
       `SELECT 1 AS x FROM ${table} t JOIN lesson_versions lv ON lv.id=t.lesson_version_id WHERE t.display_id=? ${lesson ? 'AND lv.lesson_id!=?' : ''} LIMIT 1`,
       ...(lesson ? [id, lesson.id] : [id]));
@@ -376,7 +424,7 @@ function createWriter(db, opts = {}) {
     beats.forEach((b, i) => {
       const at = `beats[${i}]`;
       if (!b || typeof b !== 'object') { E(at, 'Nhịp không hợp lệ.'); return; }
-      const res = validateBlock(b.block, b.params);
+      const res = validateBlock(b.block, b.params, kind);
       if (!res || !res.ok) E(`${at}.block`, `Khối "${b.block}" sai: ${((res && res.errors) || ['không hợp lệ']).join('; ')}`);
       const a = b.anchor;
       if (!a || typeof a !== 'object') { E(`${at}.anchor`, 'Mỗi nhịp bắt buộc có neo (anchor).'); return; }
@@ -411,7 +459,8 @@ function createWriter(db, opts = {}) {
     const verNo = prev ? prev.version + 1 : 1;
     if (prev) db.run(`UPDATE lesson_versions SET state='superseded', updated_at=? WHERE id=?`, db.now(), prev.id);
     const version = db.insertRow('lesson_versions', { lesson_id: lesson.id, version: verNo, state: 'submitted',
-      camera_hints: p.camera_hints || null, note: p.note || null, work_order_id: wo ? wo.id : null, submitted_by: c.by, created_by: c.by });
+      camera_hints: p.camera_hints || null, note: p.note || null, work_order_id: wo ? wo.id : null, submitted_by: c.by, created_by: c.by,
+      kind, ...Object.fromEntries(Object.entries(extVals).filter(([, v]) => v !== null && v !== undefined)) });
     lines.forEach((l, i) => db.insertRow('lines', { display_id: l.id, lesson_version_id: version.id, ord: i, cast_member_id: cast[i].id,
       say: l.say, lang: l.lang || 'vi', terms_declared: l.terms || [], subtitle: l.subtitle || null, mood: l.mood || null, created_by: c.by }));
     beatRows.forEach((r, i) => db.insertRow('beats', { display_id: r.b.id, lesson_version_id: version.id, ord: i, block_type: r.b.block,
@@ -442,9 +491,10 @@ function createWriter(db, opts = {}) {
     }
     const outLesson = byRef('lessons', lesson.id);
     return {
-      result: { lesson: outLesson, version: { id: version.id, version: verNo, lesson: outLesson.display_id }, render: db.json(db.get('SELECT * FROM renders WHERE id=?', render.id)), run: run.display_id },
+      result: { lesson: outLesson, version: { id: version.id, version: verNo, lesson: outLesson.display_id }, render: db.json(db.get('SELECT * FROM renders WHERE id=?', render.id)), run: run.display_id,
+        ...(lv.out.aspect ? { aspect: lv.out.aspect } : {}) },
       entity: ['lesson', outLesson.display_id], before: prev ? { version: prev.version } : null,
-      after: { version: verNo, lines: lines.length, beats: beatRows.length, render: render.display_id },
+      after: { version: verNo, kind, lines: lines.length, beats: beatRows.length, render: render.display_id },
     };
   }
 
@@ -458,8 +508,8 @@ function createWriter(db, opts = {}) {
     const lesson = p.lesson ? need('lessons', p.lesson, 'bài học') : null;
     const ag = p.agent ? need('agents', p.agent, 'agent') : null;
     const wo = state.createWorkOrder(db, { channel_id: ch.id, kind: p.kind || 'manual', curriculum_node_id: node && node.id,
-      lesson_id: lesson && lesson.id, agent_id: ag && ag.id, brief: p.brief, created_by: c.by });
-    return { result: wo, entity: ['work_order', wo.display_id], before: null, after: { kind: wo.kind, brief: wo.brief } };
+      lesson_id: lesson && lesson.id, agent_id: ag && ag.id, brief: p.brief, aspect: p.aspect || null, created_by: c.by });   // aspect: ops/aspect.js bọc op này để kiểm giá trị (F7)
+    return { result: wo, entity: ['work_order', wo.display_id], before: null, after: { kind: wo.kind, brief: wo.brief, ...(wo.aspect ? { aspect: wo.aspect } : {}) } };
   });
   op('work_order.cancel', 'owner', (c) => {
     const wo = need('work_orders', c.p.work_order, 'lệnh sản xuất');
@@ -767,6 +817,10 @@ function createWriter(db, opts = {}) {
     if (!VENDORS.includes(vendor)) throw err('invalid', 'Nhà cung cấp chưa được hỗ trợ.', { vendor, supported: VENDORS });
     const kind = p.kind || (pv && pv.kind);
     if (!['tts', 'judge', 'align', 'assistant', 'cli_agent'].includes(kind)) throw err('invalid', 'Loại nhà cung cấp không hợp lệ.', { kind });
+    if (vendor === 'offline') {   // giọng offline chạy trên máy: không có khoá, chỉ làm giọng + giám khảo
+      if (p.key) throw err('invalid', 'Giọng offline chạy trên máy, không cần khoá.', { vendor });
+      if (!['tts', 'judge'].includes(kind)) throw err('invalid', 'Giọng offline chỉ làm giọng (tts) và giám khảo (judge).', { vendor, kind });
+    }
     let secretName = pv ? pv.secret_name : null;
     if (p.key) { secretName = `provider:${vendor}`; secrets.put(db, ws(), secretName, p.key); }
     const f = { vendor, kind, model: p.model ?? (pv && pv.model) ?? null, secret_name: secretName, enabled: p.enabled === undefined ? (pv ? pv.enabled : 1) : p.enabled };
@@ -792,16 +846,38 @@ function createWriter(db, opts = {}) {
   op('suggestion.create', 'suggest', (c) => {
     const p = c.p;
     if (!nonEmpty(p.target_kind)) throw err('invalid', 'Gợi ý cần target_kind.', null);
+    const h = ext.suggestionApply.get(p.target_kind);
+    if (h && h.validate) h.validate(c, p);   // loại có bộ áp dụng riêng (vd channel_brand) tự kiểm diff khi tạo — KHÔNG kiểm ở lúc áp dụng mới phát hiện
     const row = db.insertRow('suggestions', { target_kind: p.target_kind, target_id: p.target_id || null, diff: p.diff || null, state: 'proposed', created_by: c.by }, { prefix: 'SG' });
     return { result: row, entity: ['suggestion', row.display_id], before: null, after: { target: p.target_kind, target_id: p.target_id } };
   });
-  op('suggestion.apply', 'owner', (c) => {
+  // Áp dụng SG- (mọi loại): CHỈ owner trên phiên UI (§10). Loại có bộ áp dụng đăng ký (ext.suggestionApply) chạy trong cùng tx; loại khác chỉ đánh dấu đã áp dụng (hành vi 0.1.x).
+  op('suggestion.apply', 'ownerUi', (c) => {
     const sg = need('suggestions', c.p.suggestion, 'gợi ý');
     if (sg.state !== 'proposed') throw err('conflict', `Gợi ý đã ở trạng thái "${sg.state}".`, null);
     const u = db.get('SELECT id FROM users WHERE id=?', c.a.id);
+    const h = ext.suggestionApply.get(sg.target_kind);
+    const extra = h ? h.apply(c, sg) : undefined;
     db.update('suggestions', sg.id, { state: 'applied', applied_by: u ? u.id : null, applied_at: db.now() });
-    return { result: byRef('suggestions', sg.id), entity: ['suggestion', sg.display_id], before: { state: sg.state }, after: { state: 'applied' } };
+    return { result: byRef('suggestions', sg.id), entity: ['suggestion', sg.display_id], before: { state: sg.state }, after: { state: 'applied', ...(extra && typeof extra === 'object' ? extra : {}) } };
   });
+
+  // ---- Nạp op từ server/ops/*.js (SPEC-0.2.0 §2.4). Mỗi module: register(op, ctx). Thứ tự theo tên file; lỗi nạp ⇒ ném (không nuốt). ----
+  // ctx cho module: { db, ws, err, byRef, need, allow, isOwner, agentHas, nonEmpty, newVersion, getSetting, putSetting, checkPolicy, ext, rights, op, around }
+  //   around(opName, wrap) — bọc op đã có: wrap(prevRun) → run mới (V bọc cast.save để kiểm công thức; không đăng ký đè, không sửa write.js).
+  const around = (name, wrap) => {
+    if (!OPS[name]) throw new Error(`write: không có op "${name}" để bọc`);
+    OPS[name] = { who: OPS[name].who, run: wrap(OPS[name].run) };
+  };
+  const opsCtx = { db, ws, err, byRef, need, allow, isOwner, agentHas, nonEmpty, newVersion, getSetting, putSetting, checkPolicy, ext, rights, op, around, validateBlock };
+  // opts.opsDirs: thư mục op phụ (test dựng module op tạm); mặc định chỉ server/ops. opts.skipOps: tên file bỏ qua (test dựng bản giả của một gói, vd ['thumb.js'])
+  for (const opsDir of [path.join(__dirname, 'ops'), ...(opts.opsDirs || [])]) {
+    if (!fs.existsSync(opsDir)) continue;
+    for (const f of fs.readdirSync(opsDir).filter((x) => x.endsWith('.js') && !x.startsWith('_') && !(opts.skipOps || []).includes(x)).sort()) {
+      const m = require(path.join(opsDir, f));
+      if (typeof m.register === 'function') m.register(op, opsCtx);
+    }
+  }
 
   function write(actor, opName, payload = {}) {
     const h = OPS[opName];
@@ -810,8 +886,8 @@ function createWriter(db, opts = {}) {
       throw err('invalid', 'Thiếu hoặc sai thông tin người thực hiện (actor).', null);
     }
     const out = db.tx(() => {
-      if (!allow[h.who](actor)) {
-        throw err('forbidden', 'Bạn không có quyền thực hiện thao tác này.', { op: opName, actor: actor.type, entry: actor.entry, need: h.who });
+      if (!(typeof h.who === 'function' ? h.who(actor) : allow[h.who](actor))) {
+        throw err('forbidden', 'Bạn không có quyền thực hiện thao tác này.', { op: opName, actor: actor.type, entry: actor.entry, need: typeof h.who === 'function' ? 'custom' : h.who });
       }
       const c = { a: actor, p: payload || {}, by: actorString(actor), actor, entry: auditEntry(actor) };
       const r = h.run(c);
@@ -822,7 +898,9 @@ function createWriter(db, opts = {}) {
     return out;
   }
   write.ops = Object.keys(OPS);
+  write.ext = ext;      // pipeline/MCP đọc móc mở rộng từ đây (ctx.write.ext)
+  write.opWho = (name) => (OPS[name] ? OPS[name].who : null);
   return write;
 }
 
-module.exports = { LIMITS, SCOPES, createWriter, redirectUriOk, redirectMatches, isLoopbackUri, parseScopes, CODE_TTL_MS, ACCESS_TTL_MS, DEVICE_TTL_MS, REQUEST_TTL_MS, WriteError, anchorIndex, MVP_BLOCKS, POLICY_FIELDS };
+module.exports = { LIMITS, SCOPES, createWriter, redirectUriOk, redirectMatches, isLoopbackUri, parseScopes, CODE_TTL_MS, ACCESS_TTL_MS, DEVICE_TTL_MS, REQUEST_TTL_MS, WriteError, anchorIndex, POLICY_FIELDS };

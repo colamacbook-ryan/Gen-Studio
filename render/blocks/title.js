@@ -33,7 +33,7 @@
           return '<span class="' + cls + '">' + U.esc(w) + '</span>';
         }).join(' ') + '</div>';
       }).join('');
-      box.innerHTML = h + '<svg class="scr" width="880" height="60" viewBox="0 0 880 60"><path d="M6 40 C160 10 300 52 450 30 S760 14 874 34" fill="none" stroke="#FF6F59" stroke-width="9" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg>';
+      box.innerHTML = h + '<svg class="scr" width="880" height="60" viewBox="0 0 880 60"><path d="M6 40 C160 10 300 52 450 30 S760 14 874 34" fill="none" style="stroke:var(--v-accent2)" stroke-width="9" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg>';
       world.appendChild(box);
       box._r = { words: [].slice.call(box.querySelectorAll('.wd')), path: box.querySelector('.scr path') };
       return box;

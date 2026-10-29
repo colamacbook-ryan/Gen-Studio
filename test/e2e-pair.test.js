@@ -25,7 +25,7 @@ test('e2e-pair: runner chờ cửa sổ ghép → owner mở + Duyệt → chạ
   let runner;
   const pendingReqs = async call => (await call('GET', '/api/auth-requests')).json.requests;
   try {
-    const lg = await request(t.base, 'POST', '/api/login', { body: { username: 'ryan', password: PW }, origin: t.base });
+    const lg = await request(t.base, 'POST', '/api/login', { body: { username: 'owner', password: PW }, origin: t.base });
     assert.equal(lg.status, 200, lg.text);
     const call = ui(t.base, { cookie: String(lg.headers['set-cookie']).split(';')[0], csrf: lg.json.csrf });
     const opened = scheduler.openScheduled(t.app.ctx, new Date(Date.now() + 25 * 3600e3));

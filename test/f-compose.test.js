@@ -144,7 +144,8 @@ test('backup không chứa data/.env (khoá chủ) và nhắc cất khoá riêng
 test('install.sh dựng + bật cả agent; studio vẫn chạy nếu agent dựng hỏng', () => {
   const s = read('install.sh');
   assert.match(s, /DC build agent/, 'phải dựng image agent');
-  assert.match(s, /DC up -d >/, 'khi agent dựng được phải bật mọi dịch vụ');
+  assert.match(s, /SVCS="studio"; \[ "\$AGENT" = 1 \] && SVCS="\$SVCS agent"/, 'khi agent dựng được phải bật agent');
+  assert.match(s, /DC up -d \$SVCS >/, 'chỉ bật dịch vụ đã dựng được');
   assert.match(s, /AGENT=0; warn /, 'agent dựng hỏng: cảnh báo, không dừng cài');
 });
 test('Dockerfile không tải phông từ mạng; phông OFL vendor có giấy phép + checksum', () => {
@@ -173,4 +174,66 @@ test('Host hợp lệ gồm cả cổng phía máy chủ khi chạy Docker (GS_P
   const h = allowedHosts({ hostPort: 7600 }, 7490);
   for (const x of ['localhost:7600', '127.0.0.1:7600', 'localhost:7490', 'studio:7490']) assert.ok(h.has(x), x);
   assert.ok(!allowedHosts({}, 7490).has('localhost:7600'));
+});
+// gói L: sidecar giọng offline — tuỳ chọn (profile), cô lập mạng, không thấy dữ liệu, model chỉ đọc, phụ thuộc ghim hash
+test('voice: profile riêng, không cổng ra máy chủ, không /data, mạng internal chỉ studio + voice, hạ quyền', () => {
+  const v = compose.services.voice, pull = compose.services['voice-pull'];
+  assert.deepStrictEqual(v.profiles, ['voice']); assert.deepStrictEqual(pull.profiles, ['voice-pull']);
+  assert.ok(!v.ports && !pull.ports, 'không mở cổng ra máy chủ');
+  for (const s of [v, pull]) {
+    for (const x of s.volumes || []) { const src = String(x).split(':')[0]; assert.equal(src, 'voice-models', 'chỉ volume model: ' + x); }
+    assert.deepStrictEqual(s.cap_drop, ['ALL']); assert.ok(String(s.security_opt).includes('no-new-privileges:true'));
+    assert.equal(s.read_only, 'true'); assert.ok(!('privileged' in s) && !('network_mode' in s) && !s.env_file);
+    assert.ok(!/MASTER_KEY|DATA_DIR|PAIRING/.test(JSON.stringify(s.environment || {})));
+  }
+  assert.ok(v.volumes.every((x) => x.endsWith(':ro')), 'phục vụ: model chỉ đọc');
+  assert.deepStrictEqual(v.networks, ['voice']);
+  assert.equal(compose.networks.voice.internal, 'true', 'mạng voice không ra Internet');
+  assert.ok(compose.services.studio.networks.includes('voice'));
+  assert.ok(!(compose.services.agent.networks || []).includes('voice'), 'agent không gọi thẳng sidecar');
+  assert.equal(compose.services.studio.environment.GS_VOICE_URL, 'http://voice:7491');
+  assert.ok(v.mem_limit, 'có trần RAM');
+});
+test('Dockerfile.voice: không root, pip --require-hashes --no-deps chỉ wheel, không đóng model vào image; lock ghim hash', () => {
+  const d = read('Dockerfile.voice');
+  const users = [...d.matchAll(/^USER\s+(\S+)/gm)].map((m) => m[1]);
+  assert.ok(users.length && !['root', '0'].includes(users[users.length - 1]));
+  assert.match(d, /pip install --require-hashes --no-deps --only-binary=:all: -r/);
+  assert.ok(!/huggingface\.co|\bpull\b.*RUN|RUN[^\n]*server\.py pull/.test(d), 'model không tải lúc build');
+  assert.match(d, /HF_HUB_OFFLINE=1/);
+  const lock = read('voice/requirements.lock').split('\n').filter((l) => /^[A-Za-z0-9_.-]+==/.test(l));
+  assert.ok(lock.length >= 10);
+  assert.ok(lock.some((l) => l.startsWith('onnxruntime==1.23.2')), 'onnxruntime ghim 1.23.2 (1.31 chặn symlink)');
+  const txt = read('voice/requirements.lock');
+  for (const l of lock) { const name = l.split('==')[0]; assert.match(txt, new RegExp(name.replace(/[.]/g, '\\.') + '==[^\\n]+ \\\\\\n\\s+--hash=sha256:[0-9a-f]{64}'), name + ' thiếu hash'); }
+  assert.ok(!/^(gradio|librosa|torch)==/m.test(txt), 'không kéo gradio/librosa/torch');
+  const m = JSON.parse(read('voice/models.json'));
+  for (const [id, s] of Object.entries(m.models)) {
+    assert.match(s.revision, /^[0-9a-f]{40}$/, id); assert.ok(['Apache-2.0', 'MIT'].includes(s.license), id);
+    for (const f of s.files) { assert.match(f.sha256, /^[0-9a-f]{64}$/); assert.ok(!f.path.includes('..') && !f.path.startsWith('/')); }
+  }
+});
+test('install.sh --voice-offline: không hỏi câu nào (STD-06), dựng + tải model, hỏng không dừng cài; cli có voice status|pull', () => {
+  const s = read('install.sh');
+  assert.match(s, /--voice-offline\) VOICE=1/);
+  assert.ok(!/\bread\b[^\n]*VOICE|read -r[^\n]*voice/i.test(s), 'không hỏi người cài');
+  assert.match(s, /COMPOSE_PROFILES=/);
+  assert.match(s, /DC run --rm voice-pull/);
+  assert.match(s, /genstudio voice pull/);
+  // voice dựng hỏng ⇒ VOICE=0 và KHÔNG có voice trong danh sách `up` (rà W3: COMPOSE_PROFILES=voice làm `up -d` dựng lại voice rồi die)
+  assert.match(s, /else VOICE=0; warn /);
+  assert.match(s, /\[ "\$VOICE" = 1 \] && SVCS="\$SVCS voice"/);
+  assert.ok(!/DC up -d >/.test(s), 'không `up -d` toàn bộ profile');
+  const c = read('cli/genstudio');
+  assert.match(c, /voice\)/); assert.match(c, /dc run --rm voice-pull/); assert.match(c, /COMPOSE_PROFILES/);
+});
+
+// W3 (nâng cấp thật 0.1.1 → 0.2.0 bằng cách chạy lại installer): xưởng đã có chủ thì khoá thiết lập đã bị xoá ⇒ installer in link rỗng + lỗi `cat`.
+test('install.sh chạy lại trên xưởng đã có chủ: không in link thiết lập rỗng', () => {
+  const s = read('install.sh');
+  const tail = s.slice(s.lastIndexOf('# ---- 8.'));
+  assert.match(tail, /api\/setup\/state[^\n]*"owner":true/, 'hỏi máy chủ đã có chủ chưa');
+  assert.match(tail, /elif \[ -s "\$KEYF" \]/, 'chỉ in link khi còn khoá');
+  const i = tail.indexOf('setup?k=$(cat'), j = tail.indexOf('elif [ -s "$KEYF" ]');
+  assert.ok(j > 0 && i > j, 'cat khoá chỉ nằm trong nhánh có khoá');
 });

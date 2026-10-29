@@ -1,0 +1,6 @@
+/* © 2026 Gen Labs — All rights reserved. */
+/* Giọng offline (gói L): trạng thái sidecar + danh sách giọng quét được. */
+.voice-offline{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+.voice-offline .row{display:flex;gap:8px;align-items:center}
+.voice-list{display:flex;flex-wrap:wrap;gap:6px}
+.voice-list .chip{border:1px solid var(--b2);border-radius:4px;padding:2px 8px;font-size:12px;background:var(--surface);color:var(--tx)}

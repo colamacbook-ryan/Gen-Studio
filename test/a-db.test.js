@@ -115,10 +115,20 @@ test('seedDemo idempotent và khớp BUILD-BRIEF §5', () => {
   assert.equal(t.db.get(`SELECT COUNT(*) n FROM lines l JOIN lesson_versions v ON v.id=l.lesson_version_id JOIN lessons s ON s.id=v.lesson_id WHERE s.display_id='LS-0001'`).n, 12);
   assert.equal(t.db.get(`SELECT COUNT(*) n FROM beats b JOIN lesson_versions v ON v.id=b.lesson_version_id JOIN lessons s ON s.id=v.lesson_id WHERE s.display_id='LS-0001' AND v.version=2`).n, 8);
   assert.equal(t.db.get(`SELECT state FROM renders WHERE display_id='RD-0003'`).state, 'changes_requested');
-  for (const rd of ['RD-0004', 'RD-0005']) {
+  for (const [rd, gates] of [['RD-0004', 8], ['RD-0005', 9]]) {   // RD-0005 là bài khung dọc 9:16 ⇒ thêm G-SAFE
     assert.equal(t.db.get(`SELECT state FROM renders WHERE display_id=?`, rd).state, 'awaiting_review');
-    assert.equal(t.db.get(`SELECT COUNT(*) n FROM gate_results g JOIN renders r ON r.id=g.subject_id WHERE r.display_id=? AND g.result='pass'`, rd).n, 8);
+    assert.equal(t.db.get(`SELECT COUNT(*) n FROM gate_results g JOIN renders r ON r.id=g.subject_id WHERE r.display_id=? AND g.result='pass'`, rd).n, gates);
   }
+  // F7: demo có cả 16:9 lẫn 9:16 (lesson_versions.aspect + manifest.size)
+  const asp = (rd) => t.db.get(`SELECT v.aspect a, r.manifest m FROM renders r JOIN lesson_versions v ON v.id=r.lesson_version_id WHERE r.display_id=?`, rd);
+  assert.equal(asp('RD-0004').a, '16:9');
+  assert.deepEqual(JSON.parse(asp('RD-0004').m).size, [1920, 1080]);
+  assert.equal(asp('RD-0005').a, '9:16');
+  assert.deepEqual(JSON.parse(asp('RD-0005').m).size, [1080, 1920]);
+  assert.equal(JSON.parse(asp('RD-0005').m).aspect, '9:16');
+  // INT-09: dữ liệu demo không mang tên owner thật
+  assert.ok(!/ryan/i.test(fs.readFileSync(path.join(__dirname, '..', 'seed', 'demo.json'), 'utf8')), 'seed/demo.json còn tên owner');
+  assert.ok(!/ryan|Lớp AI Bình Dân/i.test(fs.readFileSync(path.join(__dirname, '..', 'server', 'seed.js'), 'utf8')), 'server/seed.js hardcode tên owner/kênh');
   assert.equal(t.db.get(`SELECT work_order_id w FROM reviews`).w, t.db.get(`SELECT id FROM work_orders WHERE display_id='WO-0003'`).id);
   assert.equal(t.db.get(`SELECT COUNT(*) n FROM review_notes`).n, 1);
   assert.equal(t.db.get(`SELECT COUNT(*) n FROM runs WHERE display_id BETWEEN 'RN-0036' AND 'RN-0044'`).n, 9);

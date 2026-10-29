@@ -1,0 +1,28 @@
+# © 2026 Gen Labs — All rights reserved.
+# Image `voice`: sidecar giọng offline (VieNeu-TTS v3 Turbo + faster-whisper), http.server thuần, không framework.
+# KHÔNG đóng model vào image: model tải vào volume `voice-models` bằng `genstudio voice pull` (ghim revision + sha256, voice/models.json).
+# Phục vụ: user không root, rootfs chỉ đọc, volume model chỉ đọc, chỉ ở mạng compose nội bộ `voice` (không cổng ra máy chủ, không egress).
+FROM python:3.13-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+COPY voice/requirements.lock /tmp/requirements.lock
+RUN pip install --require-hashes --no-deps --only-binary=:all: -r /tmp/requirements.lock \
+ && rm -f /tmp/requirements.lock \
+ && useradd --uid 10001 --user-group --no-create-home --shell /usr/sbin/nologin gsvoice \
+ && mkdir -p /models && chown gsvoice:gsvoice /models
+
+WORKDIR /app
+COPY voice/server.py voice/models.json /app/
+
+ENV GS_VOICE_MODELS=/models \
+    GS_VOICE_HOST=0.0.0.0 \
+    GS_VOICE_PORT=7491 \
+    HF_HUB_OFFLINE=1 \
+    HOME=/tmp
+USER gsvoice
+VOLUME /models
+EXPOSE 7491
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7491/health', timeout=3)"
+ENTRYPOINT ["python", "/app/server.py"]
+CMD ["serve"]

@@ -15,7 +15,7 @@ const NAV = [
     { path: 'work-orders', icon: 'list', label: 'nav.work_orders' },
     { path: 'lessons', icon: 'film', label: 'nav.lessons' },
     { path: 'pipeline', icon: 'flow', label: 'nav.pipeline' }] },
-  { group: 'nav.g.library', items: [{ path: 'assets', icon: 'image', label: 'nav.assets' }] },
+  { group: 'nav.g.library', items: [{ path: 'assets', icon: 'image', label: 'nav.assets' }, { path: 'cast', icon: 'grid', label: 'nav.cast' }] },
   { group: 'nav.g.connect', items: [
     { path: 'agents', icon: 'plug', label: 'nav.agents', badge: 'auth' },
     { path: 'providers', icon: 'key', label: 'nav.providers' }] },
@@ -58,6 +58,7 @@ export function buildShell(ctx) {
       let m;
       if ((m = /^LS-\d+$/.exec(v))) location.hash = buildHash('lessons', v);
       else if ((m = /^RD-\d+$/.exec(v))) location.hash = buildHash('review', v);
+      else if ((m = /^CM-\d+$/.exec(v))) location.hash = buildHash('cast', v);
       else if (v) { location.hash = buildHash('lessons'); }
       jump.value = '';
     },

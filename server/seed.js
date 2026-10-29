@@ -6,6 +6,8 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const secrets = require('./secrets');
 const { anchorIndex } = require('./write');
+const aspects = require('../render/aspects');
+const GC_VERSION = (() => { try { return fs.readFileSync(path.join(__dirname, '..', 'vendor', 'gen-chibi', 'VERSION'), 'utf8').trim(); } catch { return 'unknown'; } })();   // bản engine đang vendor (không hardcode)
 
 const DEMO = path.join(__dirname, '..', 'seed', 'demo.json');
 
@@ -37,7 +39,7 @@ function seedDemo(db, opts = {}) {
     for (const c of d.cast) {
       const m = ins('cast_members', { display_id: c.id, channel_id: ch.id, name: c.name, role_label: c.role_label, current_version: 1 });
       db.insertRow('cast_versions', { entity_id: m.id, version: 1, created_by: by, note: 'seed',
-        data: { look: c.look, voice: { provider: 'gemini', model: 'gemini-3.1-flash-tts-preview', voice: c.voice }, engine_version: '0.25.1' } });
+        data: { look: c.look, voice: { provider: 'gemini', model: 'gemini-3.1-flash-tts-preview', voice: c.voice }, engine_version: GC_VERSION } });
     }
     for (const a of d.agents) {
       const ag = ins('agents', { display_id: a.id, name: a.name, kind: a.kind, scopes: a.scopes, cli: a.cli, wake_limit_per_day: a.wake_limit_per_day, status: 'active' });
@@ -66,8 +68,9 @@ function seedDemo(db, opts = {}) {
     for (const l of d.lessons) {
       const ls = ins('lessons', { display_id: l.id, channel_id: ch.id, curriculum_node_id: id[l.node], title: l.title, current_version: l.versions.length });
       for (const v of l.versions) {
+        // tỉ lệ khung (F7): demo có cả 16:9 lẫn 9:16 — ghi giá trị đã phân giải như submit_lesson
         const lv = db.insertRow('lesson_versions', { lesson_id: ls.id, version: v.version, created_by: by, submitted_by: 'agent:AG-0001',
-          state: v.version === l.versions.length ? 'submitted' : 'superseded', work_order_id: v.wo ? wo[v.wo].id : null });
+          state: v.version === l.versions.length ? 'submitted' : 'superseded', work_order_id: v.wo ? wo[v.wo].id : null, aspect: l.aspect || '16:9' });
         verId[`${l.id}:${v.version}`] = lv.id;
         const says = {};
         l.lines.forEach((ln, i) => {
@@ -108,7 +111,7 @@ function seedDemo(db, opts = {}) {
           lineMap[ln.id] = { voice_clip: vc.display_id, a_ms: ln.a, b_ms: ln.b };
         });
         manifest = { seed: true, lines: lineMap, channel: `${d.channel.id}@1`, cast: d.cast.map((c) => `${c.id}@1`),
-          engine: { app: 'seed', gen_chibi: '0.25.1' }, aspect: '16:9', fps: 30, size: [1920, 1080] };
+          engine: { app: 'seed', gen_chibi: GC_VERSION }, aspect: l.aspect || '16:9', fps: 30, size: (aspects.get(l.aspect || '16:9') || aspects.get('16:9')).size };
       }
       if (['awaiting_review', 'approved'].includes(r.state)) {
         outputs = { mp4: asset(`${r.id}.mp4`).id, srt_vi: asset(`${r.id}-vi.srt`).id, srt_en: asset(`${r.id}-en.srt`).id, cover: asset(`${r.id}.png`).id, mix: asset(`${r.id}-mix.wav`).id };

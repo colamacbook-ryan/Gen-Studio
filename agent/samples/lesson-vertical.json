@@ -1,0 +1,107 @@
+{
+  "id": "lesson-vertical",
+  "_doc": "Mẫu bài cho khung DỌC 9:16 (F7) — agent giả chọn mẫu này khi get_task.aspect.value = \"9:16\" (hoặc GS_FAKE_SAMPLE=lesson-vertical). CỐ Ý không có `extra.aspect`: tỉ lệ đến từ lệnh sản xuất / mặc định kênh (server ghi giá trị đã phân giải, CNS-330), như agent thật chỉ đọc `aspect` của việc. Câu ngắn hơn mẫu gốc để phụ đề dọc không lật trang. Ảnh bìa: agent giả tự thêm khi get_capabilities.aspects có mẫu ảnh bìa 9:16.",
+  "title": "A.I. sai mà vẫn tự tin?",
+  "cast": [
+    {
+      "name": "Anh Gen",
+      "role_label": "Người giảng",
+      "voice": "Charon",
+      "archetype": "mentor"
+    },
+    {
+      "name": "Bé Hỏi",
+      "role_label": "Người hỏi",
+      "voice": "Leda",
+      "archetype": "curious-kid"
+    }
+  ],
+  "lines": [
+    {
+      "name": "Bé Hỏi",
+      "say": "Anh Gen ơi, sao A.I. sai mà vẫn tự tin ạ?",
+      "terms": [
+        "A.I."
+      ],
+      "mood": "unsure",
+      "subtitle": {
+        "en": "Gen, why is A.I. so sure when wrong?"
+      }
+    },
+    {
+      "name": "Anh Gen",
+      "say": "Câu quen như thủ đô Việt Nam, thì Hà Nội chiếm chín mươi hai phần trăm.",
+      "terms": [],
+      "mood": "calm",
+      "subtitle": {
+        "en": "For a familiar question, Hanoi takes ninety-two percent."
+      }
+    },
+    {
+      "name": "Bé Hỏi",
+      "say": "À! Vậy là đoán, chứ không phải biết!",
+      "terms": [],
+      "mood": "happy",
+      "subtitle": {
+        "en": "Ah! So it guesses, it does not know!"
+      }
+    }
+  ],
+  "beats": [
+    {
+      "block": "title",
+      "anchor": {
+        "line": 0,
+        "word": "A.I."
+      },
+      "params": {
+        "text": "Sao A.I. sai mà tự tin?",
+        "highlight": [
+          "A.I."
+        ]
+      }
+    },
+    {
+      "block": "prob-card",
+      "anchor": {
+        "line": 1,
+        "word": "Hà Nội"
+      },
+      "params": {
+        "prompt": "Thủ đô của Việt Nam là",
+        "options": [
+          [
+            "Hà Nội",
+            92
+          ],
+          [
+            "Huế",
+            4
+          ],
+          [
+            "TP.HCM",
+            3
+          ],
+          [
+            "Hải Phòng",
+            1
+          ]
+        ],
+        "pick": 0,
+        "chip": "✓ chắc chắn"
+      }
+    },
+    {
+      "block": "takeaway",
+      "anchor": {
+        "line": 2,
+        "word": "đoán"
+      },
+      "params": {
+        "kind": "eq",
+        "text": "Đoán ≠ Biết"
+      }
+    }
+  ],
+  "extra": {}
+}

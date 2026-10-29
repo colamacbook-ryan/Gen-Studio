@@ -61,6 +61,7 @@ function load(opts = {}) {
     masterKey,
     fakeProviders: truthy(get('GS_FAKE_PROVIDERS')),
     seedDemo: truthy(get('GS_SEED_DEMO')),
+    kolPack: get('GS_KOL_PACK') || null,   // pack KOL của chủ xưởng (JSON thuần, ngoài repo — SPEC §3.7); độc lập với GS_SEED_DEMO
     chromiumPath: get('GS_CHROMIUM_PATH') || get('CHROMIUM_PATH') || null,
     ffmpegPath: get('GS_FFMPEG_PATH') || get('FFMPEG_PATH') || 'ffmpeg',
     lang: ['vi', 'en'].includes(get('GS_LANG')) ? get('GS_LANG') : 'vi',
@@ -70,6 +71,7 @@ function load(opts = {}) {
     pairingSecret: get('GS_PAIRING_SECRET'),
     trustProxy: truthy(get('GS_TRUST_PROXY')),   // chỉ tin header chuyển tiếp (cf-connecting-ip / X-Forwarded-For) khi đứng sau proxy/tunnel của chính chủ xưởng ("Đưa lên mạng")
     internalHost: (get('GS_INTERNAL_HOST') || 'studio:7490').toLowerCase(),   // Host mà runner dùng trong mạng Docker (kênh vào 'internal')
+    voiceUrl: get('GS_VOICE_URL') || 'http://voice:7491',   // sidecar giọng offline (mạng compose `voice`, không ra máy chủ) — ARCHITECTURE §13
     version: readVersion(),
   };
 }

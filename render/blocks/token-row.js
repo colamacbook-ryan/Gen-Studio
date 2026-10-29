@@ -15,7 +15,7 @@
     mount: function (world, p, ctx) {
       var box = U.box(ctx.slot, 'b-tokens'), s = scaleOf(p.tokens);
       box.innerHTML = '<div class="row" style="transform:scale(' + s + ')">' + p.tokens.map(function (x) { return '<span class="tok">' + U.esc(x) + '</span>'; }).join('') + '<span class="tok q">?</span></div>' +
-        '<div class="ntp"><span class="en">' + (p.next ? '= ' + U.esc(p.next) : '') + '</span><svg width="640" height="24" viewBox="0 0 640 24"><path d="M4 14 C180 4 420 22 636 10" fill="none" stroke="#FFD84A" stroke-width="12" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></div>';
+        '<div class="ntp"><span class="en">' + (p.next ? '= ' + U.esc(p.next) : '') + '</span><svg width="640" height="24" viewBox="0 0 640 24"><path d="M4 14 C180 4 420 22 636 10" fill="none" style="stroke:var(--v-hl)" stroke-width="12" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/></svg></div>';
       world.appendChild(box);
       box._r = { toks: [].slice.call(box.querySelectorAll('.tok')), ntp: box.querySelector('.ntp'), line: box.querySelector('.ntp path') };
       return box;

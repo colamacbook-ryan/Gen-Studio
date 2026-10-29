@@ -30,6 +30,7 @@ genstudio <lệnh>
   token create [tên] [--scopes read,compose,run]
                          nâng cao: cấp token tay cho agent ngoài (hiện một lần); CLI không duyệt được quyền agent
   agent-login            đăng nhập Claude Code cho agent nội bộ (chính chủ, một lần, trên máy chủ)
+  voice status|pull      giọng offline trên máy (không cần khoá): xem trạng thái · tải model (~1 GB) và bật dịch vụ
 U
 }
 
@@ -99,6 +100,22 @@ case "$cmd" in
     exec $SUDO docker compose exec -T studio node server/main.js --create-token "$name" "$@" ;;
   agent-login)
     exec $SUDO docker compose run --rm -it agent claude auth login ;;   # `claude login` không phải lệnh (mở phiên chat) — đúng là `claude auth login`
+  voice)
+    # giọng offline (profile compose `voice`): pull = dựng image + tải model (ghim revision + sha256) + bật profile + chạy lại dịch vụ
+    case "${1:-status}" in
+      pull)
+        p="$(envget COMPOSE_PROFILES)"; case ",$p," in *,voice,*) ;; *) envset COMPOSE_PROFILES "${p:+$p,}voice" ;; esac
+        dc build voice
+        dc run --rm voice-pull
+        dc up -d --force-recreate voice
+        echo "✓ Giọng offline đã bật — trên giao diện: Nhà cung cấp → Quét lại" ;;
+      status)
+        dc ps voice 2>/dev/null || true
+        if dc ps --status running --services 2>/dev/null | grep -qx voice; then
+          dc exec -T voice python -c "import json,urllib.request;h=json.load(urllib.request.urlopen('http://127.0.0.1:7491/health',timeout=5));print('●' if h['ready'] else '○',h['state'],'·',', '.join(m['model'] for m in h['models']),'·',len(h['voices']),'giọng');h['detail'] and print('  ',h['detail'])"
+        else echo "○ dịch vụ giọng offline chưa chạy — genstudio voice pull"; fi ;;
+      *) echo "Dùng: genstudio voice status|pull" >&2; exit 2 ;;
+    esac ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;
 esac

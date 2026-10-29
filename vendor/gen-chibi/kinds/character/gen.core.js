@@ -29,8 +29,18 @@
     D.defaults({
       skin: '#dcd6cc', skinShade: '#bcb4a7', hair: '#5e5a54', iris: '#3c3c3c', robe: '#b9bec4', inner: '#e4e2dd',
       trim: '#8e949b', accent: '#c9b98f', hat: '#a9aeb4', armor: '#a3a8ae', metal: '#d3d6d9', boots: '#7f8389',
-      blush: '#d9c3b8', wood: '#a59d92', tassel: '#b3a59a', cape: '#9aa0a7', pants: '#a9a39a'
+      blush: '#d9c3b8', wood: '#a59d92', tassel: '#b3a59a', cape: '#9aa0a7', pants: '#a9a39a',
+      // v0.26 (E7) — token cel shading: màu thật cho mảng bóng / sáng / viền sáng, thay cho "đen trong suốt". Giá trị dưới là mặc định cho khung xám;
+      // nhân vật không khai báo thì engine DẪN XUẤT từ token gốc của chính nó (derive bên dưới), nhân vật khai báo thì dùng đúng màu đó
+      hairShade: '#44413d', hairLight: '#99948d', rim: '#f1eee9', robeShade: '#8b9095', robeLight: '#d4d8dc', trimShade: '#6a6f75', glow: '#e9dfc7'
     });
+    D.derive('hairShade', { from: 'hair', to: '#000000', t: 0.28 });
+    D.derive('hairLight', { from: 'hair', to: '#ffffff', t: 0.35 });
+    D.derive('rim', { from: 'skin', to: '#ffffff', t: 0.65 });
+    D.derive('robeShade', { from: 'robe', to: '#000000', t: 0.25 });
+    D.derive('robeLight', { from: 'robe', to: '#ffffff', t: 0.3 });
+    D.derive('trimShade', { from: 'trim', to: '#000000', t: 0.25 });
+    D.derive('glow', { from: 'accent', to: '#ffffff', t: 0.55 });
 
     /* ---------------- SLOT ---------------- */
     // mặc định = ma-nơ-canh (đầu trọc, thân trần) — asset chủ đề thay từng bộ phận
@@ -620,13 +630,13 @@
     posture('kneel', 'Quỳ', { root: { y: 11 }, thighL: { sy: 0.3 }, thighR: { sy: 0.3 }, shinL: { sy: 0.01 }, shinR: { sy: 0.01 }, footL: { sy: 0.01 }, footR: { sy: 0.01 }, hem: { sx: 1.1, sy: 0.72 } }, { shadow: { sx: 1.1 } });
     posture('squat', 'Ngồi xổm', { root: { y: 10 }, thighL: { rot: 58, sy: 0.9 }, shinL: { rot: -64 }, thighR: { rot: -58, sy: 0.9 }, shinR: { rot: 64 }, hem: { sx: 1.18, sy: 0.5 }, body: { sy: 0.97 } }, { shadow: { sx: 1.2 } });
     posture('cower', 'Co rúm', { root: { y: 8 }, body: { sy: 0.9, sx: 1.04 }, head: { y: 5 }, thighL: { rot: 14, sy: 0.6 }, shinL: { rot: -14 }, thighR: { rot: -14, sy: 0.6 }, shinR: { rot: 14 }, hem: { sx: 1.1, sy: 0.7 } });
-    posture('lie', 'Nằm', { root: { rot: -90, x: 92, y: -60 }, hem: { sy: 1.02 } }, { props: ['bedroll'], hideHeld: true, shadow: { sx: 2.1, dx: -6, lift0: 60, op: 0.7 }, crop: [6, 120, 132, 132] });
+    posture('lie', 'Nằm', { root: { rot: -90, x: 92, y: -60 }, hem: { sy: 1.02 } }, { noLegLift: true, props: ['bedroll'], hideHeld: true, shadow: { sx: 2.1, dx: -6, lift0: 60, op: 0.7 }, crop: [6, 120, 132, 132] });
     posture('crawl', 'Bò', { root: { y: 20 }, body: { sy: 0.88, sx: 1.04 }, head: { y: 4 }, thighL: { sy: 0.2, rot: 30 }, thighR: { sy: 0.2, rot: -30 }, shinL: { sy: 0.3 }, shinR: { sy: 0.3 }, hem: { sx: 1.22, sy: 0.46 },
       armL: { rot: 22, sy: 1.25 }, foreL: { rot: 8 }, armR: { rot: -22, sy: 1.25 }, foreR: { rot: -8 } }, { handsBusy: true, shadow: { sx: 1.25 } });
     posture('air', 'Trên không', { root: { y: -26 }, thighL: { rot: 12, sy: 0.7 }, shinL: { rot: -38 }, thighR: { rot: -12, sy: 0.7 }, shinR: { rot: 38 }, hem: { sx: 1.06, sy: 0.9 } });
     posture('fly', 'Bay', { root: { y: -34 }, body: { rot: 8 }, head: { rot: -4 }, thighL: { rot: 24 }, thighR: { rot: 20 }, shinL: { rot: 10 }, shinR: { rot: 12 }, hem: { rot: 14, sx: 0.96 },
-      armL: { rot: 40 }, armR: { rot: -150 }, foreR: { rot: -10 } });
-    posture('swim', 'Bơi', { root: { y: 46 } }, { props: ['water'], handsBusy: true, shadow: { op: 0 } });
+      armL: { rot: 40 }, armR: { rot: -150 }, foreR: { rot: -10 } }, { noLegLift: true });
+    posture('swim', 'Bơi', { root: { y: 46 } }, { noLegLift: true, props: ['water'], handsBusy: true, shadow: { op: 0 } });
 
     /* ---------------- di chuyển (chu kỳ cộng dồn lên tư thế) ---------------- */
     function move(id, label, dur, tracks, extra) { var d = { label: label, dur: dur, tracks: tracks, still: 0.25 }; for (var x in (extra || {})) d[x] = extra[x]; D.move(id, d); }

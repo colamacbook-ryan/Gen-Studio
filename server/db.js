@@ -31,6 +31,7 @@ const JSON_COLS = new Set([
   'scopes', 'prereq_ids', 'scan', 'data', 'camera_hints', 'terms_declared', 'subtitle', 'params', 'asset_ids', 'meta',
   'word_times', 'envelope', 'terms_detected', 'manifest', 'outputs', 'blocked_reason', 'measure', 'cost', 'error',
   'result', 'scopes_requested', 'scopes_granted', 'payload', 'diff', 'before', 'after', 'value', 'sort', 'columns', 'redirect_uris',
+  'thumbnail', 'screens', 'host', 'music',   // lesson_versions 0.2.0 (0003); `variant` là chuỗi thường
 ]);
 
 const bind = (p) => p.map((v) => (v === undefined ? null : typeof v === 'boolean' ? (v ? 1 : 0) : v));

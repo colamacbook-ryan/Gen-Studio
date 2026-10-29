@@ -12,6 +12,7 @@ const events = require('../server/events.js');
 
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
 const realGates = require('../media/gates/index.js');
+const { gatesFor } = realGates;   // danh sách cổng đọc từ registry GATES (SPEC-0.2.0 §2.5)
 function stubDeps(tmp) {
   return {
     timeline: { buildPlan({ lesson, clips }) {
@@ -55,8 +56,8 @@ test('d-pipeline: render qua đủ bước → awaiting_review, 8 cổng pass, �
     assert.ok(r.manifest && r.manifest.plan && r.manifest.lines);
     assert.ok(r.outputs.mp4 && r.outputs.srt_vi && r.outputs.cover && r.outputs.mix);
     const gates = t.db.all("SELECT gate, result FROM gate_results WHERE subject_kind='render' AND subject_id=?", r.id);
-    assert.equal(gates.length, 8); assert.ok(gates.every(g => g.result === 'pass'), JSON.stringify(gates));
-    assert.deepEqual(gates.map(g => g.gate).sort(), ['G-FRAMES', 'G-LOUD', 'G-MOTION', 'G-MUX', 'G-PRON', 'G-SCRIPT', 'G-SYNC', 'G-WAV']);
+    assert.equal(gates.length, gatesFor('lesson', {}).length); assert.ok(gates.every(g => g.result === 'pass'), JSON.stringify(gates));
+    assert.deepEqual(gates.map(g => g.gate).sort(), gatesFor('lesson', {}).slice().sort());
     const clips = t.db.all('SELECT * FROM voice_clips');
     assert.equal(clips.length, 2); assert.ok(clips.every(c => c.word_times && c.envelope && c.raw_asset_id && c.asset_id));
     assert.equal(t.db.all("SELECT * FROM gate_results WHERE subject_kind='voice_clip'").length, 6);

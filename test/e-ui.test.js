@@ -211,3 +211,9 @@ test('UI: không truyền null có điều kiện vào Element.append gốc', ()
   }
   assert.deepEqual(bad, [], 'dùng append(el, [...]) của dom.js cho các lời gọi này');
 });
+
+// W3 (L-102 trên bản cài thật): thiếu favicon ⇒ /favicon.ico 404 = lỗi console ở mọi lần mở. Favicon nội tuyến data: (CSP img-src cho phép data:).
+test('index.html có favicon nội tuyến (không gọi /favicon.ico)', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'studio', 'index.html'), 'utf8');
+  assert.match(html, /<link rel="icon" href="data:image\/svg\+xml,/);
+});

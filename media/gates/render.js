@@ -1,5 +1,6 @@
 // © 2026 Gen Labs — All rights reserved.
 // Cổng trên bản dựng: G-WAV(b), G-LOUD, G-SYNC, G-MOTION, G-FRAMES, G-MUX. Lỗi đo → 'unknown'.
+// F7 §6.1: G-MUX nhận `size` = plan.size ⇒ kiểm width×height luồng video; không truyền `size` ⇒ không kiểm (bên gọi cũ, test cũ không đổi).
 'use strict';
 const mixmod = require('../mix');
 const srtmod = require('../srt');
@@ -72,7 +73,7 @@ function gateFrames({ frames }) {
   return G('G-FRAMES', frames.got >= frames.expected && !errors.length ? 'pass' : 'fail', { expected: frames.expected, got: frames.got, errors: errors.slice(0, 5), error_count: errors.length });
 }
 
-async function gateMux({ mp4Path, lines, srt, fps = 30, ffmpegPath, opts = {} }) {
+async function gateMux({ mp4Path, lines, srt, fps = 30, size, ffmpegPath, opts = {} }) {
   const o = { srtTolMs: 50, ...opts };
   try {
     const p = await mixmod.probe(mp4Path, { ffmpegPath });
@@ -86,6 +87,7 @@ async function gateMux({ mp4Path, lines, srt, fps = 30, ffmpegPath, opts = {} })
       dv = parseFloat(v[0].duration); da = parseFloat(a[0].duration);
       if (!Number.isFinite(dv) || !Number.isFinite(da)) throw new Error('Không đọc được độ dài luồng');
       if (Math.abs(dv - da) > 1 / fps) bad.push(`audio ${da.toFixed(3)}s lệch video ${dv.toFixed(3)}s`);
+      if (Array.isArray(size) && (v[0].width !== size[0] || v[0].height !== size[1])) bad.push(`video ${v[0].width}×${v[0].height}, plan ${size[0]}×${size[1]}`);
     }
     const srtRes = {};
     for (const s of srt || []) {
@@ -94,18 +96,20 @@ async function gateMux({ mp4Path, lines, srt, fps = 30, ffmpegPath, opts = {} })
       srtRes[s.lang] = ok ? 'ok' : 'lech';
       if (!ok) bad.push(`SRT ${s.lang} không khớp mốc câu`);
     }
-    return G('G-MUX', bad.length ? 'fail' : 'pass', { video_s: dv, audio_s: da, streams: p.streams.length, srt: srtRes, problems: bad });
+    const m = { video_s: dv, audio_s: da, streams: p.streams.length, srt: srtRes, problems: bad };
+    if (Array.isArray(size)) m.size = v.length === 1 ? [v[0].width, v[0].height] : null;
+    return G('G-MUX', bad.length ? 'fail' : 'pass', m);
   } catch (e) { return unknown('G-MUX', e); }
 }
 
-async function renderGates({ mixPath, mp4Path, lines, beats, frames, cutsAllowed = [], srt, fps = 30, ffmpegPath, opts = {} }) {
+async function renderGates({ mixPath, mp4Path, lines, beats, frames, cutsAllowed = [], srt, fps = 30, size, ffmpegPath, opts = {} }) {
   return Promise.all([
     gateWavB({ mixPath, lines, ffmpegPath, opts: opts.wavB }),
     gateLoud({ mixPath, ffmpegPath, opts: opts.loud }),
     gateSync({ beats, lines }),
     gateMotion({ mp4Path, lines, cutsAllowed, ffmpegPath, opts: opts.motion }),
     gateFrames({ frames }),
-    gateMux({ mp4Path, lines, srt, fps, ffmpegPath, opts: opts.mux }),
+    gateMux({ mp4Path, lines, srt, fps, size, ffmpegPath, opts: opts.mux }),
   ]);
 }
 

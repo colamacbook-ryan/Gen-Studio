@@ -1,0 +1,142 @@
+[
+ {
+  "id": "host-a",
+  "name": "Host A",
+  "role": "Người dẫn chương trình",
+  "persona": {
+   "role": "host_lead",
+   "energy": "warm",
+   "temperament": "earnest",
+   "laugh": "giggle",
+   "tic": "chinHand"
+  },
+  "catchphrase": {
+   "vi": "Bắt đầu nhé.",
+   "use": "intro_or_turn"
+  },
+  "running_gag": {
+   "id": "nhap-nhay-but",
+   "text": "Gõ nhẹ cây bút lên bàn trước khi vào phần mới",
+   "trigger": "once_per_lesson",
+   "motion": "nod",
+   "fx": null,
+   "prop": null,
+   "max_per_min": 1
+  },
+  "dynamic": {
+   "with": "host-b",
+   "type": "mentor_student"
+  },
+  "look": {
+   "eyes": "calm",
+   "brows": "normal",
+   "parts": {
+    "hair": "local.my/host-toc-bob",
+    "outfit": "local.my/host-ao-khoac",
+    "legwear": "gen.core/chan-tran",
+    "shoes": "gen.khung/khoi-giay"
+   },
+   "params": {},
+   "palette": {
+    "skin": "#E9B98F",
+    "skinShade": "#D29C72",
+    "hair": "#7A4B2A",
+    "hairShade": "#5A3418",
+    "robe": "#12907F",
+    "robeShade": "#0B6D61",
+    "trim": "#0B6D61",
+    "accent": "#F2C14E",
+    "inner": "#FFFFFF",
+    "pants": "#2F3A4F",
+    "boots": "#2F3A4F",
+    "metal": "#B8C4DD"
+   }
+  },
+  "identity": {
+   "p1": "Tóc bob nâu, blazer xanh ngọc",
+   "must": [
+    "hair:host-toc-bob",
+    "outfit:host-ao-khoac"
+   ],
+   "source": "Gen Labs — Gen-Studio"
+  },
+  "expressions": {},
+  "voice": {
+   "provider": "gemini",
+   "model": null,
+   "voice": "Kore",
+   "style": "nữ trẻ, ấm, rõ ràng"
+  },
+  "variant": "sample-1"
+ },
+ {
+  "id": "host-b",
+  "name": "Host B",
+  "role": "Người đồng dẫn",
+  "persona": {
+   "role": "host_co",
+   "energy": "energetic",
+   "temperament": "curious",
+   "laugh": "haha",
+   "tic": "shrug"
+  },
+  "catchphrase": {
+   "vi": "Khoan, cho mình hỏi chút.",
+   "use": "intro_or_turn"
+  },
+  "running_gag": {
+   "id": "ghi-chu-vo",
+   "text": "Lôi sổ tay ra ghi chép mỗi khi gặp thuật ngữ mới",
+   "trigger": "on_term_first_use",
+   "motion": "write",
+   "fx": null,
+   "prop": null,
+   "max_per_min": 2
+  },
+  "dynamic": {
+   "with": "host-a",
+   "type": "mentor_student"
+  },
+  "look": {
+   "eyes": "round",
+   "brows": "thin",
+   "parts": {
+    "hair": "local.my/host-toc-hat",
+    "outfit": "local.my/host-ao-len",
+    "legwear": "gen.core/chan-tran",
+    "shoes": "gen.khung/khoi-giay"
+   },
+   "params": {},
+   "palette": {
+    "skin": "#C98D62",
+    "skinShade": "#AD7048",
+    "hair": "#4A5568",
+    "hairShade": "#2E3644",
+    "robe": "#E8A317",
+    "robeShade": "#B97F0A",
+    "trim": "#8A5A12",
+    "accent": "#FFFFFF",
+    "inner": "#FFFFFF",
+    "pants": "#3D4B66",
+    "boots": "#FFFFFF",
+    "metal": "#B8C4DD"
+   }
+  },
+  "identity": {
+   "p1": "Tóc ngắn xám hất, áo len cổ lọ vàng",
+   "must": [
+    "hair:host-toc-hat",
+    "outfit:host-ao-len"
+   ],
+   "source": "Gen Labs — Gen-Studio"
+  },
+  "expressions": {},
+  "voice": {
+   "provider": "gemini",
+   "model": null,
+   "voice": "Puck",
+   "style": "nam trẻ, nhanh, tò mò"
+  },
+  "variant": "sample-1"
+ }
+]

@@ -2,7 +2,9 @@
 // Hàm thuần (không DOM) dùng chung: route, timecode, escape, tách thuật ngữ, chuẩn hoá lỗi.
 
 export const ROUTES = ['overview', 'review', 'lessons', 'pipeline', 'work-orders', 'agents', 'providers',
-  'channels', 'curriculum', 'assets', 'audit', 'setup', 'login', 'authorize', 'pair'];
+  'channels', 'curriculum', 'assets', 'cast', 'audit', 'setup', 'login', 'authorize', 'pair'];
+// Tên cũ/tên API → tên route: href viết kiểu khoá API (#/work_orders?q=…) vẫn mở đúng lưới (Tổng quan v2 dùng href của /api/overview)
+export const ROUTE_ALIASES = { work_orders: 'work-orders', workorders: 'work-orders' };
 
 // '#/review/RD-0004?x=1' -> {path:'review', id:'RD-0004', query:{x:'1'}}
 export function parseRoute(hash) {
@@ -20,6 +22,7 @@ export function parseRoute(hash) {
     try { query[decodeURIComponent(k)] = decodeURIComponent(v.replace(/\+/g, ' ')); } catch { query[k] = v; }
   }
   let path = parts[0] || 'overview';
+  if (Object.hasOwn(ROUTE_ALIASES, path)) path = ROUTE_ALIASES[path];
   if (!ROUTES.includes(path)) path = 'overview';
   let id = null;
   if (parts[1]) { try { id = decodeURIComponent(parts[1]); } catch { id = parts[1]; } }

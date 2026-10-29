@@ -1,6 +1,13 @@
 // © 2026 Gen Labs — All rights reserved.
 // Trang sân khấu: dựng plan thành khung hình theo thời gian. API cho render.js: __load(plan) → Promise · __seek(t_ms) · __sfx(names) → {tên: base64 WAV} · __stats().
 // Ngân sách hiệu năng (L-42): ≤ 8 nhân vật (MVP vẽ 2); SVG nhân vật chỉ thay khi chuỗi đổi; khối đã "lắng" (settle) không vẽ lại; khối chưa tới giờ bị ẩn.
+// 0.2.0 (SPEC §2.1/§6.5, P0b): khối theo `place` — 'fullbleed' (màn hình) vào lớp E.full, 'track' (con trỏ/focus bám đích) vào lớp E.track: cả hai phủ khung 1920×1080,
+// KHÔNG chịu máy quay; chỗ đứng nhân vật theo plan.actors[].layout {mode: stage|pip|hidden, x, y, scale} (mặc định = v0.1.x); mode 'pip' = host góc trái dưới (lớp HUD, máy quay không kéo theo);
+// plan.style.brand ≠ null ⇒ GSBrand.apply lúc __load và GSBrand.inkFilter mỗi khi SVG nhân vật đổi chuỗi (không mỗi khung). Khối ở tầng 'layers' nhận ctx.layers {full, track, hud, pip}.
+// F7 (SPEC-0.2.0-F7 §4.3): plan.layout ≠ null (tỉ lệ không legacy, vd 9:16) ⇒ .stage cỡ plan.size + lớp `lay` (và `a-<token>` chỉ để soi) + biến CSS --lay-* từ
+//   GSAspects.layoutVars(plan.layout) đặt SAU GSBrand.apply (CNS-343); máy quay quy về tâm size/2; phụ đề lật trang theo mốc từ (layout.subtitle.paging, CNS-333);
+//   window.__measure() → {t_ms, cam, els:[{role, box:[x,y,w,h], …}]} cho G-SAFE (render.js gọi ở aspects.sampleTimes). 16:9 không có lớp/biến mới, không đo (M14).
+//   render/aspects.js không có thẻ <script> trong stage.html ⇒ nạp động khi plan có layout (như brand.js nạp render/brand.js).
 (function () {
   'use strict';
   var GC = window.GenChibi, B = window.GSBlocks, Cam = window.GSCamera, Dir = window.GSDirect, U = window.GSUtil;
@@ -15,24 +22,57 @@
     if (ids.length > MAX_CHARACTERS) throw new Error('quá ' + MAX_CHARACTERS + ' nhân vật trên sân khấu');
     if (!GC.PACKS['local.my']) GC.pack({ id: 'local.my', name: 'Của tôi', owner: 'Gen Labs', group: 'mine', visibility: 'private', license: '© 2026 Gen Labs' }, function () {});
     (plan.parts || []).forEach(function (p) { var r = GC.registerDataPart('local.my', p); if (r && r.errors && r.errors.length) console.error('part ' + p.id + ': ' + r.errors.join('; ')); });
-    var map = {};
+    // gói dữ liệu Gen-Chibi (plan.packs = [{json, outline}], gói K): đăng ký TRƯỚC công thức; outline ≠ null ⇒ nhân vật dùng linh kiện của gói đó được viền nướng vào path (opts.outline, không filter)
+    var outlineOf = {};
+    (plan.packs || []).forEach(function (p) {
+      var r = GC.registerDataPack(p.json);
+      if (r && r.errors && r.errors.length) console.error('pack ' + (p.json && p.json.id) + ': ' + r.errors.join('; '));
+      else if (p.outline) outlineOf[p.json.id] = p.outline;
+    });
+    var map = {}, outlines = {};
     ids.forEach(function (cid) {
       var r = JSON.parse(JSON.stringify(plan.cast[cid]));
       r.id = r.id || cid.toLowerCase(); r.kind = r.kind || 'character'; r.version = r.version || 1; r.status = r.status || 'draft'; r.expressions = r.expressions || {}; r.lines = r.lines || {};
       GC.registerAsset('local.my', r); map[cid] = GC.ASSETS['local.my/' + r.id];
       if (!map[cid]) console.error('nhân vật ' + cid + ' không đăng ký được');
+      else { var parts = (r.look && r.look.parts) || {}; for (var s in parts) { var o = outlineOf[String(parts[s]).split('/')[0]]; if (o) { outlines[cid] = o; break; } } }
     });
-    return map;
+    return { assets: map, outlines: outlines };
   }
 
-  window.__load = function (plan) {
+  function loadAspects() {
+    if (window.GSAspects) return Promise.resolve(window.GSAspects);
+    return new Promise(function (res, rej) {
+      var s = document.createElement('script'); s.src = '../aspects.js';
+      s.onload = function () { res(window.GSAspects); }; s.onerror = function () { rej(new Error('không nạp được render/aspects.js')); };
+      document.head.appendChild(s);
+    });
+  }
+  window.__load = function (plan) { return plan && plan.layout && !window.GSAspects ? loadAspects().then(function () { return load(plan); }) : load(plan); };
+
+  // bố cục theo tỉ lệ (F7): cỡ khung + lớp + biến CSS; logo tối đa = phần còn lại tới mép phải vùng mềm (soft.x1 − logo.tr.x), dữ liệu aspects.json
+  function applyLayout(root, plan) {
+    var L = plan.layout, w = plan.size[0] + 'px', h = plan.size[1] + 'px';
+    root.classList.add('lay', 'a-' + String(plan.aspect || '').replace(':', 'x'));
+    [document.documentElement, document.body, root].forEach(function (e) { e.style.width = w; e.style.height = h; });
+    var v = window.GSAspects.layoutVars(L);
+    if (L.safe && L.safe.soft && L.logo && L.logo.tr) v['--lay-logo-max'] = Math.max(0, L.safe.soft[2] - L.logo.tr[0]) + 'px';
+    Object.keys(v).forEach(function (k) { root.style.setProperty(k, String(v[k])); });
+  }
+
+  window.GSStageLayout = { load: loadAspects, apply: applyLayout };   // brand.js: xem trước nhận diện view 'thumb' ở tỉ lệ không legacy (không có plan)
+
+  function load(plan) {
     var root = $('stage'); root.innerHTML = '';
     if (plan.fontCss) { var st = document.createElement('style'); st.textContent = plan.fontCss; document.head.appendChild(st); }
     var world = plan.style.world;
     root.innerHTML = '<div class="shake" id="shake"><div class="world" id="world" style="width:' + world.w + 'px;height:' + world.h + 'px"></div>' +
-      '<div class="hud" id="hud"><div class="chip-top" id="chipTop"><b></b><span></span></div><div class="sub" id="sub"></div></div></div>';
-    var E = { world: $('world'), shake: $('shake'), hud: $('hud'), chip: $('chipTop'), sub: $('sub') };
-    var assets = registerCast(plan), dir = Dir.makeDirector(plan);
+      '<div class="layer-full" id="layerFull"></div><div class="layer-track" id="layerTrack"></div>' +
+      '<div class="hud" id="hud"><div class="chip-top" id="chipTop"><b></b><span></span></div><div class="pip" id="pip" style="display:none"></div><div class="sub" id="sub"></div></div></div>';
+    var E = { world: $('world'), shake: $('shake'), hud: $('hud'), chip: $('chipTop'), sub: $('sub'), full: $('layerFull'), track: $('layerTrack'), pip: $('pip') };
+    if (plan.style.brand && window.GSBrand) window.GSBrand.apply(root, plan.style.brand);   // nhận diện kênh (gói B): biến CSS, logo, lower-third, intro
+    if (plan.layout) applyLayout(root, plan);   // F7: sau brand ⇒ biến bố cục thắng (CNS-343)
+    var reg = registerCast(plan), assets = reg.assets, dir = Dir.makeDirector(plan);
 
     // chip góc trái: tiêu đề bài, hiện khi máy quay rời vùng đầu
     var meta = plan.style.meta || {}; E.chip.querySelector('b').textContent = meta.tag || ''; E.chip.querySelector('span').textContent = meta.title || '';
@@ -40,11 +80,17 @@
     var ov = plan.beats.filter(function (b) { return b.block === 'lesson-map'; }).pop();
 
     // actors
+    var inkFilter = plan.style.brand && window.GSBrand && window.GSBrand.inkFilter ? function (svg) { return window.GSBrand.inkFilter(svg, plan.style.brand); } : null;
     var actors = plan.actors.map(function (a, i) {
-      var el = U.el('div', 'actor'); el.style.left = (i === 0 ? -40 : 1500) + 'px'; E.hud.insertBefore(el, E.sub);
-      return { id: a.id, name: a.name, side: i, el: el, last: '' };
+      var L = a.layout || { mode: 'stage', x: i === 0 ? -40 : 1500, y: 0, scale: 1 };   // plan cũ (không có layout) vẫn dựng đúng như v0.1.x
+      var act = { id: a.id, name: a.name, side: i, el: null, last: '', lastRaw: '', outline: reg.outlines[a.id] || null, mode: L.mode || 'stage', ox: L.x, oy: L.y || 0, sc: L.scale || 1 };
+      if (act.mode === 'hidden') return act;
+      act.el = U.el('div', 'actor');
+      if (act.mode === 'pip') { E.pip.style.display = ''; E.pip.appendChild(act.el); }
+      else { act.el.style.left = (typeof L.x === 'number' ? L.x : (i === 0 ? -40 : 1500)) + 'px'; E.hud.insertBefore(act.el, E.pip); }
+      return act;
     });
-    stats.actors = actors.length;
+    stats.actors = actors.filter(function (a) { return a.el; }).length;
 
     // terms
     var terms = []; plan.lines.forEach(function (l) { (l.terms || []).forEach(function (t) { t.split(/\s+/).forEach(function (w) { var n = norm(w); if (n && terms.indexOf(n) < 0) terms.push(n); }); }); });
@@ -62,8 +108,11 @@
     Object.keys(chains).forEach(function (hid) {
       var head = byId[hid], def = B.get(head.block), list = chains[hid];
       var chain = list.map(function (b) { return { beat: b, params: b.params, t: (b.t_in - head.t_in) / 1000, peak: b.peak_ms / 1000 }; });
-      var ctx = { beat: head, slot: head.slot, plan: plan, chain: chain, peak: chain[0].peak, terms: terms, zones: plan.style.zones, world: world, hud: E.hud, assetUrl: assetUrl };
-      var el = def.mount(E.world, head.params, ctx);
+      var ctx = { beat: head, slot: head.slot, plan: plan, chain: chain, peak: chain[0].peak, terms: terms, zones: plan.style.zones, world: world, hud: E.hud, assetUrl: assetUrl,
+        layers: { full: E.full, track: E.track, hud: E.hud, pip: E.pip } };
+      ctx.aspect = plan.aspect || '16:9';   // F7 §4.5: khối đọc được tỉ lệ (không bắt buộc dùng)
+      var parent = def.place === 'fullbleed' ? E.full : def.place === 'track' ? E.track : E.world;   // fullbleed/track không chịu máy quay
+      var el = def.mount(parent, head.params, ctx);
       var last = chain[chain.length - 1];
       recs.push({ head: head, def: def, el: el, ctx: ctx, settleAt: def.settle === undefined ? Infinity : last.t + def.settle, drawnSettled: false, shown: null });
     });
@@ -75,11 +124,18 @@
       var html = U.esc(l.say); (l.terms || []).forEach(function (t) { html = html.split(U.esc(t)).join('\u0001' + U.esc(t) + '\u0002'); });
       return { line: l, html: html };
     });
-    S = { plan: plan, E: E, recs: recs, dir: dir, actors: actors, assets: assets, subs: subs, curSub: null, subC: [], subOn: -1, chipT: chipT, ov: ov, impacts: impacts, firstSeek: true };
+    var br = plan.style.brand, brandInk = br && br.tokens && /^#[0-9a-fA-F]{6}$/.test(String(br.tokens.ink || '')) ? br.tokens.ink : null;
+    S = { plan: plan, E: E, ink: inkFilter, brandInk: brandInk, recs: recs, dir: dir, actors: actors, assets: assets, subs: subs, curSub: null, subC: [], subOn: -1, chipT: chipT, ov: ov, impacts: impacts, firstSeek: true };
+    if (plan.layout) {   // F7: tâm khung + phụ đề lật trang
+      var ls = plan.layout.subtitle || {};
+      S.half = [plan.size[0] / 2, plan.size[1] / 2]; S.lastT = 0;
+      S.paging = ls.paging ? { cap: Math.max(1, (ls.lines_max | 0) * (ls.chars_per_line | 0)), tr: !!ls.show_translation } : null;
+      S.subPage = -1;
+    }
     var fonts = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
     var imgs = [].slice.call(E.world.querySelectorAll('img')).map(function (i) { return i.decode ? i.decode().catch(function () { console.error('illustration: ảnh không giải mã được'); }) : Promise.resolve(); });
     return Promise.all([fonts].concat(imgs)).then(function () { window.__seek(0); return { beats: plan.beats.length, actors: actors.length }; });
-  };
+  }
 
   function drawSub(t) {
     var E = S.E, s = null;
@@ -104,19 +160,62 @@
     }
   }
 
+  // ---- phụ đề lật trang (F7 CNS-333): trang = các từ vừa lines_max × chars_per_line ký tự; trang đổi khi từ đang nói (mốc word_times) sang trang mới.
+  // Chỉ đổi innerHTML khi sang trang (L-42); tô từ đang nói + đánh dấu thuật ngữ (.en) giữ như 16:9; dòng dịch .tr chỉ khi show_translation.
+  function subTokens(s) {
+    var toks = [], inEn = false;
+    s.html.split(/(\u0001|\u0002| )/).forEach(function (tok) { if (tok === '\u0001') inEn = true; else if (tok === '\u0002') inEn = false; else if (tok && tok !== ' ') toks.push({ h: tok, en: inEn, n: tok.replace(/&[#a-z0-9]+;/gi, 'x').length }); });
+    return toks;
+  }
+  function paginate(toks, cap) {
+    var starts = [0], len = 0;
+    toks.forEach(function (k, i) { if (len > 0 && len + 1 + k.n > cap) { starts.push(i); len = k.n; } else len += (len > 0 ? 1 : 0) + k.n; });
+    return starts;
+  }
+  function drawSubPaged(t) {
+    var E = S.E, P = S.paging, s = null;
+    S.subs.forEach(function (x) { if (t >= x.line.a_ms - 120 && t <= x.line.b_ms + 300) s = x; });
+    if (s !== S.curSub) {
+      S.curSub = s; S.subOn = -1; S.subPage = -1;
+      if (s && !s.toks) { s.toks = subTokens(s); s.pages = paginate(s.toks, P.cap); }
+      if (!s) { E.sub.innerHTML = ''; S.subC = []; }
+    }
+    E.sub.style.opacity = s ? 1 : 0;
+    if (!s) return;
+    var ws = s.line.words, n = s.toks.length, k = 0;
+    if (ws.length === n) { for (var i = 0; i < n; i++) if (t >= ws[i].t0 - 40) k = i + 1; }
+    else k = Math.round(U.seg(t, s.line.a_ms, s.line.b_ms) * n);
+    var cur = Math.max(0, k - 1), pg = 0;
+    while (pg < s.pages.length - 1 && cur >= s.pages[pg + 1]) pg++;
+    if (pg !== S.subPage) {
+      S.subPage = pg; S.subOn = -1;
+      var a0 = s.pages[pg], a1 = pg + 1 < s.pages.length ? s.pages[pg + 1] : n;
+      var ai = S.actors.filter(function (a) { return a.id === s.line.who; })[0], out = '<span class="who s' + (ai ? ai.side : 0) + '">' + U.esc(ai ? ai.name : '') + ':</span>';
+      for (var j = a0; j < a1; j++) out += (j > a0 ? ' ' : '') + '<span class="c' + (s.toks[j].en ? ' en' : '') + '">' + s.toks[j].h + '</span>';
+      if (P.tr && s.line.subtitle && s.line.subtitle.en) out += '<span class="tr">' + U.esc(s.line.subtitle.en) + '</span>';
+      E.sub.innerHTML = out; S.subC = [].slice.call(E.sub.querySelectorAll('.c'));
+    }
+    if (k !== S.subOn) { S.subOn = k; var base = s.pages[pg]; S.subC.forEach(function (c, j) { c.classList.toggle('on', base + j < k); }); }
+  }
+
   function drawActor(a, t) {
+    if (!a.el) return;   // layout.mode 'hidden'
     var r = S.dir.act(a.id, t), asset = S.assets[a.id], d = r.director;
-    var svg = GC.svgString(asset, r.state, { t: t / 1000, director: d });
-    if (svg !== a.last) { a.el.innerHTML = svg; a.last = svg; stats.svgRedraws++; }
+    var so = { t: t / 1000, director: d };
+    if (a.outline) { so.outline = a.outline; if (S.brandInk) so.ink = S.brandInk; }   // nhân vật của pack: viền nướng vào path + màu mực theo brand ngay trong engine (không hậu xử lý chuỗi)
+    var raw = GC.svgString(asset, r.state, so);
+    if (raw !== a.lastRaw) { a.lastRaw = raw; a.last = S.ink && !a.outline ? S.ink(raw) : raw; a.el.innerHTML = a.last; stats.svgRedraws++; }   // inkFilter chỉ chạy khi chuỗi SVG đổi (CNS-088)
+    if (a.mode === 'pip') { a.el.style.transform = 'scale(' + (0.52 * a.sc * (r.talking ? 1.04 : 1)) + ')'; return; }   // PiP: không chạy vào/ra theo máy quay
     var ts = t / 1000, outP = S.ov ? U.eio(U.seg(ts, S.ov.t_in / 1000, S.ov.t_in / 1000 + 1.5)) : 0, zoom = r.talking ? 1.05 : 1, tx = 0, ty = outP * 30;
     if (a.side === 0) ty += (1 - U.eb(U.seg(ts, 0.5, 1.1))) * 300; else tx = U.lerp(520, 0, U.eo(U.seg(ts, 0, 0.95)));
-    a.el.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + (zoom * U.lerp(1, 0.82, outP)) + ')';
+    a.el.style.transform = 'translate(' + tx + 'px,' + (ty + a.oy) + 'px) scale(' + (a.sc * zoom * U.lerp(1, 0.82, outP)) + ')';
   }
 
   window.__seek = function (tMs) {
     var E = S.E, plan = S.plan, c = Cam.sample(plan.camera, tMs);
     stats.seeks++;
-    E.world.style.transform = 'translate(' + (960 - c.x * c.z) + 'px,' + (540 - c.y * c.z) + 'px) scale(' + c.z + ')';
+    if (S.half) { S.lastT = tMs; E.world.style.transform = 'translate(' + (S.half[0] - c.x * c.z) + 'px,' + (S.half[1] - c.y * c.z) + 'px) scale(' + c.z + ')'; }   // F7: tâm khung theo plan.size
+    else E.world.style.transform = 'translate(' + (960 - c.x * c.z) + 'px,' + (540 - c.y * c.z) + 'px) scale(' + c.z + ')';
     var amp = 0, dt = 0; S.impacts.forEach(function (ti) { var d = (tMs - ti) / 350; if (d > 0 && d < 1) { amp = (1 - d) * 14; dt = tMs - ti; } });
     E.shake.style.transform = amp ? 'translate(' + (Math.sin(dt * 0.09) * amp) + 'px,' + (Math.cos(dt * 0.073) * amp * 0.6) + 'px)' : '';
     S.recs.forEach(function (r) {
@@ -131,8 +230,50 @@
     var ts = tMs, ct = U.eo(U.seg(ts, S.chipT + 200, S.chipT + 750)), cOut = S.ov ? 1 - U.seg(ts, S.ov.t_in, S.ov.t_in + 400) : 1;
     U.setT(E.chip, 'translate(' + ((1 - ct) * -60) + 'px,' + ((1 - ct) * -90) + 'px) scale(' + U.lerp(0.7, 1, ct) + ')', ct * cOut);
     S.actors.forEach(function (a) { drawActor(a, tMs); });
-    drawSub(tMs);
+    if (S.paging) drawSubPaged(tMs); else drawSub(tMs);
     return true;
+  };
+
+  // ---- đo vùng an toàn (F7 §4.3, G-SAFE): CHỈ gọi khi plan có layout (render.js, ở mốc aspects.sampleTimes, ngay sau __seek của khung gần nhất) ----
+  // → {t_ms, cam:{x,y,z}, els:[{role, box:[x,y,w,h] (px khung, đã qua máy quay), line?, beat?, zone?, block?, id?, font_px_min?}]}
+  //   role: subtitle | logo | intro | block (khối trang vở đang hiện, trong khung) | end_card | actor_head (40 % trên của hộp nhân vật).
+  //   font_px_min (khối) = min(font-size tính × tỉ lệ hiệu dụng) trên ≤ 300 phần tử có chữ của khối; tỉ lệ hiệu dụng = hộp hiển thị / hộp bố cục (gồm z máy quay + biến đổi khối).
+  var MEASURE_TEXT_MAX = 300;
+  var r1 = function (n) { return Math.round(n * 10) / 10; };
+  function shown(el) { if (!el) return false; var cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0.01; }
+  function boxOf(el) { var r = el.getBoundingClientRect(); return [r1(r.left), r1(r.top), r1(r.width), r1(r.height)]; }
+  function hasText(el) { for (var c = el.firstChild; c; c = c.nextSibling) if (c.nodeType === 3 && c.nodeValue.trim()) return true; return false; }
+  function fontMin(root) {
+    var all = [root].concat([].slice.call(root.querySelectorAll('*'))), n = 0, min = null;
+    for (var i = 0; i < all.length && n < MEASURE_TEXT_MAX; i++) {
+      var e = all[i]; if (!hasText(e)) continue; n++;
+      if (!(e.offsetWidth > 0 && e.offsetHeight > 0)) continue;   // SVG / không hiển thị
+      var cs = getComputedStyle(e); if (cs.visibility === 'hidden' || parseFloat(cs.opacity) <= 0.01) continue;
+      var r = e.getBoundingClientRect(), sc = Math.min(r.width / e.offsetWidth, r.height / e.offsetHeight), px = parseFloat(cs.fontSize) * sc;
+      if (isFinite(px) && (min === null || px < min)) min = px;
+    }
+    return min === null ? null : r1(min);
+  }
+  function beatAt(rec, t) { var b = rec.head; rec.ctx.chain.forEach(function (c) { if (c.beat.t_in <= t) b = c.beat; }); return b; }
+  window.__measure = function () {
+    var plan = S.plan, E = S.E, t = S.lastT === undefined ? 0 : S.lastT, c = Cam.sample(plan.camera, t), els = [];
+    var W = plan.size[0], H = plan.size[1], inFrame = function (b) { return b[2] > 0 && b[3] > 0 && b[0] < W && b[1] < H && b[0] + b[2] > 0 && b[1] + b[3] > 0; };
+    if (S.curSub && shown(E.sub) && E.sub.textContent) els.push({ role: 'subtitle', line: S.curSub.line.id, box: boxOf(E.sub) });
+    [].forEach.call(E.hud.querySelectorAll('.brand-logo'), function (el) { if (shown(el)) els.push({ role: 'logo', box: boxOf(el) }); });
+    var intro = E.hud.querySelector('.intro');
+    if (intro && shown(intro)) [].forEach.call(intro.querySelectorAll('.name, .mark'), function (el) { if (shown(el)) els.push({ role: 'intro', box: boxOf(el) }); });
+    S.recs.forEach(function (r) {
+      if (!r.shown) return;
+      var b = beatAt(r, t), place = r.def.place;
+      if (r.head.block === 'end-card') { if (shown(r.el)) els.push({ role: 'end_card', beat: b.id, box: boxOf(r.el) }); return; }
+      if (place === 'hud' || place === 'fullbleed' || place === 'track') return;
+      var bx = boxOf(r.el); if (!inFrame(bx)) return;
+      var e = { role: 'block', block: r.head.block, beat: b.id, zone: b.zone || null, box: bx }, f = fontMin(r.el);
+      if (f !== null) e.font_px_min = f;
+      els.push(e);
+    });
+    S.actors.forEach(function (a) { if (!a.el) return; var r = a.el.getBoundingClientRect(); els.push({ role: 'actor_head', id: a.id, box: [r1(r.left), r1(r.top), r1(r.width), r1(r.height * 0.4)] }); });
+    return { t_ms: Math.round(t), cam: { x: r1(c.x), y: r1(c.y), z: Math.round(c.z * 1e4) / 1e4 }, els: els };
   };
 
   window.__sfx = function (names) {

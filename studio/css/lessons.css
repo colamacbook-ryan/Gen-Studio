@@ -1,0 +1,46 @@
+/* © 2026 Gen Labs — All rights reserved.
+   Kiểu của gói UI-P2 (= UI-TUT) — Bài học: đầu Inspector (loại · tỉ lệ · "Tạo lệnh bản …"), tab Màn hình & bước.
+   Tỉ lệ khung dùng css/aspect.css (UI-0). Chỉ dùng token của styles.css (var(--…)). */
+
+/* ---- bộ lọc nhanh + lưới ---- */
+.lsn-grid-host{flex:1;min-width:0;display:flex}
+.lsn-filters{display:flex;align-items:center;gap:8px}
+.lsn-filters .micro{margin-left:8px}
+
+/* ---- đầu Inspector bài ---- */
+.lsn-head{display:flex;flex-direction:column;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--b1)}
+.lsn-title{font-weight:600;font-size:13px}
+.lsn-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.lsn-actions{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.lsn-why{margin:0;max-width:360px;line-height:1.45}
+.order-sum{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+
+/* ---- Màn hình & bước ---- */
+.scr-tab{display:flex;flex-direction:column;gap:8px}
+.scr-list{display:flex;flex-direction:column;gap:8px}
+.scr-card{display:grid;grid-template-columns:132px 1fr;gap:10px;padding:8px;border:1px solid var(--b1);border-radius:6px;background:var(--sunken)}
+.scr-thumb{position:relative;width:132px;aspect-ratio:16/10;background:var(--canvas);border:1px solid var(--b2);border-radius:4px;overflow:hidden}
+.scr-thumb img{width:100%;height:100%;object-fit:contain;display:block}
+.scr-thumb.mock{display:grid;place-items:center;background:repeating-linear-gradient(0deg,var(--surface) 0 10px,var(--sunken) 10px 11px)}
+.scr-mock-label{font-size:10px;color:var(--tx3);text-align:center;padding:4px}
+.scr-target{position:absolute;border:1.5px solid var(--ember);border-radius:2px;background:var(--ember-soft)}
+.scr-redact{position:absolute;background:repeating-linear-gradient(45deg,var(--tx3) 0 2px,var(--raised) 2px 5px)}
+.scr-meta{display:flex;flex-direction:column;gap:4px;min-width:0}
+.scr-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.scr-ids{display:flex;flex-wrap:wrap;gap:4px}
+.scr-ids .chip{font-size:11px;padding:0 6px;height:18px;display:inline-flex;align-items:center;border:1px solid var(--b2);border-radius:4px;color:var(--tx2)}
+.step-grid{display:flex;flex-direction:column}
+.step-row{display:grid;grid-template-columns:72px 64px 92px 1fr;gap:6px;min-height:26px;align-items:center;border-bottom:1px solid var(--b1);font-size:12px}
+.step-row>:nth-child(5){grid-column:2 / -1;color:var(--tx2);padding-bottom:4px}
+.step-row>:nth-child(5):empty{display:none}
+.step-row.head{color:var(--tx3);font-size:11px;min-height:22px}
+.step-row.head>:nth-child(5){display:none}
+.step-row .clip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* segmented dùng chung (bộ lọc Bài học, form Nhận diện) */
+.brand-seg{display:inline-flex;border:1px solid var(--b2);border-radius:4px;overflow:hidden;align-self:flex-start}
+.seg-opt{height:26px;padding:0 10px;background:transparent;border:0;border-right:1px solid var(--b2);color:var(--tx2);font-size:12px}
+.seg-opt:last-child{border-right:0}
+.seg-opt.on{background:var(--ember-soft);color:var(--ember)}
+.seg-opt:disabled{cursor:not-allowed}
+

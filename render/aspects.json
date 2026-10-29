@@ -1,0 +1,55 @@
+{
+  "_doc": "Tỉ lệ khung = DỮ LIỆU (SPEC-0.2.0-F7 §3.1, nguồn duy nhất). Mọi nơi (pipeline, MCP, HTTP, sân khấu, cổng, giao diện) đọc qua render/aspects.js. 16:9 có layout.legacy=true: engine dùng đúng hằng số cũ (M14, không tham số hoá). Số của 9:16 là điểm khởi đầu, chỉnh ở spike S13 bằng cách sửa file này. Vùng an toàn và preset có verified:false là số chưa kiểm chính thức [CẦN VERIFY]. Thêm 1:1/4:5 sau này = thêm một mục aspects + preset + mẫu ảnh bìa, không sửa mã.",
+  "version": 1,
+  "default": "16:9",
+  "aspects": {
+    "16:9": {
+      "enabled": true, "size": [1920, 1080], "token": "16x9", "kinds": ["lesson", "tutorial"], "presets": ["yt_long"],
+      "thumb_sizes": [[1280, 720], [1920, 1080]],
+      "layout": { "legacy": true },
+      "safe": null
+    },
+    "9:16": {
+      "enabled": true, "size": [1080, 1920], "token": "9x16", "kinds": ["lesson"], "presets": ["yt_shorts", "fb_reels", "tiktok"],
+      "target_s": [30, 60], "min_font_px": 28,
+      "thumb_sizes": [[720, 1280], [1080, 1920]],
+      "layout": {
+        "world": { "cols": 1, "pitch": [0, 2000], "origin": [700, 900], "zone_max_h": 900, "min": [1400, 2400], "pad": [700, 1100] },
+        "camera": { "frame_box": [800, 460], "content_center": [476, 606], "z": [0.5, 1.1], "overview_pad_h": 160 },
+        "overview": false,
+        "actors": { "scale": 1.4, "x": [5, 520], "bottom": 300 },
+        "subtitle": { "top": 868, "left": 72, "max_w": 808, "font_px": 44, "lines_max": 2, "chars_per_line": 25, "paging": true, "show_translation": false },
+        "logo": { "tl": [72, 296], "tr": [816, 296], "remap": { "bl": "tl", "br": "tr" } },
+        "chip_top": false, "lower_third": false,
+        "end_card": { "top_pct": 34, "center_x": 476, "max_w": 800 }
+      },
+      "safe": { "ref": "vertical-v1", "hard": [60, 220, 940, 1440], "soft": [65, 288, 888, 1248], "verified": false,
+        "sources": ["S1", "S2", "S3", "M2", "T2"] }
+    }
+  },
+  "presets": {
+    "yt_long":   { "aspect": "16:9", "platform": "youtube",  "max_s": null, "cover": "upload" },
+    "yt_shorts": { "aspect": "9:16", "platform": "youtube",  "max_s": 180,  "cover": "upload_desktop|frame", "source": "Y1", "checked": "2026-10-29", "verified": true },
+    "fb_reels":  { "aspect": "9:16", "platform": "facebook", "max_s": null, "cover": "frame|upload", "source": "M1", "checked": "2026-10-29", "verified": false },
+    "tiktok":    { "aspect": "9:16", "platform": "tiktok",   "max_s": 1800, "cover": "frame", "grid_crop": [3, 4], "source": "T1", "checked": "2026-10-29", "verified": false }
+  },
+  "render": {
+    "_doc": "Hằng số dựng dùng chung mọi tỉ lệ. cover_frame_after_ms: khung bìa trong clip = min(duration−1, beats[0].t_in + số này) — công thức cover.jpg của render.js 0.1.x. sampling: mốc đo vùng an toàn (§4.4, L-42). camera_still: máy quay coi là đứng yên khi x,y không đổi và z chỉ trôi nhẹ (DRIFT 1,03 của camera.js).",
+    "cover_frame_after_ms": 1500,
+    "sampling": { "line_after_ms": 200, "beat_settle_ms": 1000, "end_settle_ms": 1000, "min_gap_ms": 500, "max": 240 },
+    "camera_still": { "max_dxy_px": 0.5, "max_dz_ratio": 0.05 }
+  },
+  "sources": {
+    "Y1": "https://support.google.com/youtube/answer/15424877",
+    "Y2": "https://ppc.land/youtube-ends-2-year-wait-for-shorts-thumbnails-but-blocks-a-b-testing/",
+    "Y3": "https://alternativeto.net/news/2026/7/youtube-introduces-custom-thumbnails-for-shorts-and-ask-studio-ai-thumbnail-generation/",
+    "M1": "https://about.fb.com/news/2025/06/making-it-easier-create-videos-facebook/",
+    "M2": "https://adnova.ai/blogs/meta-ad-safe-zones-guide",
+    "T1": "https://support.tiktok.com/en/using-tiktok/creating-videos/creator-tools-on-tiktok",
+    "T2": "https://ads.tiktok.com/help/article/video-ads-specifications",
+    "T3": "https://moda.app/resources/sizes/tiktok",
+    "S1": "https://www.socialync.io/tools/safe-zones/youtube-shorts",
+    "S2": "https://www.socialync.io/tools/safe-zones/tiktok",
+    "S3": "https://adaptlypost.com/en/blog/social-media-safe-zones-2026-complete-guide"
+  }
+}

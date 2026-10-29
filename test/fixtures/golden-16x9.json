@@ -1,0 +1,82 @@
+{
+  "_doc": "Golden 16:9 (SPEC-0.2.0-F7 §3.7, M14) do tools/golden-16x9.js --write ghi trên mã CHƯA có F7. Mọi gói F7 phải giữ khớp (test/h-aspect-golden.test.js). Không ghi lại để \"cho xanh\": chỉ ghi lại khi đổi 16:9 có chủ đích đã được duyệt, nêu lý do trong commit.",
+  "base": "b9fabb9",
+  "plans": {
+    "lesson": {
+      "sha256": "d3cd4b2d7c04ebc06ec6b56934b3c977d0b66f0b8d997d0f87a0f7a10f0843d4",
+      "bytes": 21760
+    },
+    "lesson_brand_thumb": {
+      "sha256": "7bf7ca93e9d676d49cf2e45ea9c2624a4d18d86c6dbc226f3890ab95f26613c7",
+      "bytes": 70047
+    },
+    "tutorial": {
+      "sha256": "424ba5835d936b3059d849ca65d911d03d8c0b7df6a68052b73b45a19856f237",
+      "bytes": 8406
+    }
+  },
+  "camera_plan_hash": {
+    "lesson": "31d357d0aa4530923706b40e7ce5819e1f204662c4a6a8d6310bac5b926f368c",
+    "lesson_brand_thumb": "f7f7c457d848c5340a84fbd07792f370e5ff9446325fb9cc4f002471792835bd",
+    "tutorial": "7f318287362c8ffb78db370dec97dbebc23ec4c681ab84f2f5c4522e5ce99ed8"
+  },
+  "manifests": {
+    "lesson": {
+      "sha256": "d4c8609ace2f7d04d1ee8f8b1b6c1e3decd1975438dcccfc1b5ad28f2fbbf6b7",
+      "bytes": 2112
+    },
+    "lesson_brand_thumb": {
+      "sha256": "0c7a33ad9666bcd6dcb7838af70ccd0b86257ba89dd4b6cb81ded3deb946a82c",
+      "bytes": 2258
+    }
+  },
+  "dom": {
+    "lesson": [
+      {
+        "t": 4792,
+        "sha256": "84ebc868e94bb83faa2f79d5241c73a477b3e448985e798130fec2f4d00758e5",
+        "bytes": 40117,
+        "css_sha256": "70d47985b9d2d361e0e293cf44bc17839948b04e0c771906e427013dce0d8dfd",
+        "css_rules": 48
+      },
+      {
+        "t": 13178,
+        "sha256": "336b2d951321bc1a274b746827833c573de6a4d648e615485a934c688b7ab0c1",
+        "bytes": 39210,
+        "css_sha256": "ef190aaa75e34a37df57109c175bae8d38a5961a9a3a1d3eb688246ab330ec0d",
+        "css_rules": 47
+      },
+      {
+        "t": 23760,
+        "sha256": "75141665223e1e64c74c27d001bd3b06c601701df4e1b54453be2c82800917f2",
+        "bytes": 39007,
+        "css_sha256": "d389484c13c5c9af3fa6c0d53cb81466358eb3a1b04a2f45a48f7136d139ce9a",
+        "css_rules": 42
+      }
+    ],
+    "lesson_brand": [
+      {
+        "t": 4872,
+        "sha256": "856b65fca9ccbe642ff901e993bb16180c5cf016881f091fe986296b6a9b93c8",
+        "bytes": 41588,
+        "css_sha256": "0199c551e782df750137cc497cf5d336abbc743ddc753b027a937e31bd75ae46",
+        "css_rules": 59
+      },
+      {
+        "t": 13398,
+        "sha256": "c2c875a5cd5b129f01a8c3805280e075bec159e81ab9bbfdc9c779651fad36b0",
+        "bytes": 40593,
+        "css_sha256": "443907e2b515e1f4ef851cbf27db95768c966ab7f46573f9b3c2ffde46e6b716",
+        "css_rules": 58
+      },
+      {
+        "t": 24160,
+        "sha256": "05c237c2031eddadd32c44abef55826740fda230829f006387a1df9235cc50a4",
+        "bytes": 40481,
+        "css_sha256": "febd5fb186d9066880c08f96279e1b1fb5c7f8b10a98fae2431a2372c57d98e5",
+        "css_rules": 51
+      }
+    ]
+  },
+  "_chromium": "153.0.8010.12"
+}

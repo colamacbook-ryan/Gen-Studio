@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { bootTmp, request, setupOwner, ui } = require('./d-helpers.js');
+const { gatesFor } = require('../media/gates/index.js');   // danh sách cổng đọc từ registry GATES (SPEC-0.2.0 §2.5), không hardcode số 8
 
 test('d-http: health, Host lạ bị chặn, tệp tĩnh, chống path traversal', async () => {
   const t = await bootTmp();
@@ -158,7 +159,7 @@ test('d-http: lưới + overview qua REST trả đúng hình dạng', async () =
     assert.equal(ov.status, 200);
     for (const k of ['awaiting_review', 'running', 'stalled_work_orders', 'yesterday', 'providers', 'next_schedule', 'disk']) assert.ok(k in ov.json, 'overview thiếu ' + k);
     const rd = await request(t.base, 'GET', '/api/renders/' + rq.json.rows[0].render, { cookie });
-    assert.equal(rd.status, 200); assert.equal(rd.json.gates.length, 8); assert.ok(rd.json.render.lesson_display_id);
+    assert.equal(rd.status, 200); assert.equal(rd.json.gates.length, gatesFor('lesson', { aspect: rq.json.rows[0].aspect || null }).length);   // seed demo có bài 9:16 (thêm G-SAFE) assert.ok(rd.json.render.lesson_display_id);
     const ls = await request(t.base, 'GET', '/api/lessons/LS-0001', { cookie });
     assert.equal(ls.status, 200); assert.ok(ls.json.lines.length >= 1 && ls.json.versions.length >= 1);
   } finally { await t.clean(); }

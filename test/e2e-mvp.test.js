@@ -7,6 +7,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { bootTmp, request, ui } = require('./d-helpers.js');
+const { gatesFor } = require('../media/gates/index.js');   // danh sách cổng đọc từ registry GATES (SPEC-0.2.0 §2.5), không hardcode số 8
 const scheduler = require('../server/scheduler.js');
 const { createRunner } = require('../agent/runner.js');
 
@@ -27,7 +28,7 @@ test('e2e-mvp: lịch → agent giả → pipeline thật → duyệt qua UI →
   const { db } = t.app.ctx;
   try {
     // --- phiên UI của owner (user demo) ---
-    const lg = await request(t.base, 'POST', '/api/login', { body: { username: 'ryan', password: PW }, origin: t.base });
+    const lg = await request(t.base, 'POST', '/api/login', { body: { username: 'owner', password: PW }, origin: t.base });
     assert.equal(lg.status, 200, lg.text);
     const s = { cookie: String(lg.headers['set-cookie']).split(';')[0], csrf: lg.json.csrf };
     const call = ui(t.base, s);
@@ -61,8 +62,8 @@ test('e2e-mvp: lịch → agent giả → pipeline thật → duyệt qua UI →
     assert.ok(done.duration_ms > 3000 && done.frames > 90);
     const view = await call('GET', '/api/renders/' + rd.display_id);
     assert.equal(view.status, 200);
-    assert.equal(view.json.gates.length, 8);
-    assert.deepEqual(view.json.gates.filter(g => g.result !== 'pass'), [], '8 cổng phải pass');
+    assert.deepEqual(view.json.gates.map(g => g.gate), gatesFor('lesson', {}), 'đủ cổng theo GATES của bài (không có thumbnail ⇒ 8 cổng R3)');
+    assert.deepEqual(view.json.gates.filter(g => g.result !== 'pass'), [], 'mọi cổng áp dụng phải pass'); 
     assert.equal(view.json.render.state, 'awaiting_review');
     assert.ok(view.json.plan.lines.length >= 3 && view.json.plan.beats.length >= 3);
     assert.ok(view.json.media.asset_id);

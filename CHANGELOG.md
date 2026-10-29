@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 — 2026-10-29 · clip dọc 9:16, giọng offline, ảnh bìa, video hướng dẫn
+- **Tỉ lệ khung:** mỗi lệnh/kênh chọn 16:9 hoặc 9:16 (clip dọc 1080×1920 cho Shorts/Reels/TikTok, cổng G-SAFE giữ chữ khỏi vùng nút nền tảng); bài 16:9 cũ dựng lại ra đúng plan cũ.
+- **Giọng offline không cần khoá** (`install.sh --voice-offline` / `genstudio voice pull`): VieNeu-TTS + giám khảo faster-whisper chạy trên máy, model ghim revision + sha256; trộn được với Gemini.
+- **Nhận diện kênh + ảnh bìa** (3 phương án, cổng G-THUMB, owner chọn trong Phòng chiếu), **video hướng dẫn** (màn giả lập + con trỏ, cổng G-CURSOR), nhân vật KOL (Gen-Chibi 0.26.0, chốt nhân vật), Tổng quan v2 + đánh dấu "đã đăng".
+- **Nâng cấp từ 0.1.x:** chạy lại lệnh cài; migration 0003–0005 tự sao lưu DB trước (`data/backups/pre-migrate-*.db`), dữ liệu và gói xuất cũ giữ nguyên. Chi tiết + việc Ryan phải làm: `docs/releases/v0.2.0.md`.
+
 ## 0.1.1 — 2026-10-28 · cài thật bằng Docker
 Cài thử đúng bản v0.1.0 bằng `install.sh` + Docker trên máy sạch lộ 7 lỗi mà bộ test không thấy; đã sửa, mỗi lỗi có test:
 - Installer chỉ bật `studio`, agent nội bộ không bao giờ chạy → nay dựng + bật cả `agent` (dựng agent hỏng thì studio vẫn chạy, có cảnh báo).
