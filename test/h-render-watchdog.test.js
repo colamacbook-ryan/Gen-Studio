@@ -40,10 +40,10 @@ test('hạn TỔNG: deadlineMs vẫn chặn trên tuyệt đối dù đang tiế
 test('đồng hồ treo đặt lại mỗi khung: tổng thời gian dựng khung > stallMs mà vẫn xong bình thường', { skip: SKIP, timeout: 180000 }, async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-wd-'));
   try {
-    const p = plan(); p.fps = 30; p.duration_ms = 4000;   // 120 khung
-    const r = await renderPlan({ plan: p, outDir: dir, stallMs: 1500 });
+    const p = plan(); p.fps = 30; p.duration_ms = 4000;   // 120 khung   // stallMs 5000: máy tải nặng 1 khung có thể ~1–2 s; 120 khung vẫn > 5 s ⇒ vẫn chứng minh đồng hồ đặt lại mỗi khung
+    const r = await renderPlan({ plan: p, outDir: dir, stallMs: 5000 });
     assert.equal(r.frames, 120); assert.deepEqual(r.errors, []);
-    assert.ok(r.render_ms > 1500, 'vòng khung dài hơn stallMs (' + r.render_ms + ' ms) — chỉ qua được nếu đồng hồ được đặt lại mỗi khung');
+    assert.ok(r.render_ms > 5000, 'vòng khung dài hơn stallMs (' + r.render_ms + ' ms) — chỉ qua được nếu đồng hồ được đặt lại mỗi khung');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
