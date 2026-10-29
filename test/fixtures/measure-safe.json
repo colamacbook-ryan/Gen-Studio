@@ -1,0 +1,498 @@
+{
+  "_doc": "Số đo G-SAFE mẫu (SPEC-0.2.0-F7 §6.2) — HỢP ĐỒNG cho UI-R2 và gói A2. Mỗi ca: `input` = dữ liệu cổng nhận (mẫu window.__measure() gộp mốc của aspects.sampleTimes, kèm duration_s), `result` + `measure` = đúng đầu ra aspects.safeCheck('9:16', input) (test/h-aspect-contract.test.js so chặt). Ca pass: 4 mốc, chữ nhỏ nhất 31 px, khối vùng kề ló ở mép không bị xét. Ca fail: S1 phụ đề tràn mép dưới, S2 logo góc phải dưới chưa đổi góc, S3 khối rộng hơn vùng cứng, S4 chữ 20 px, S5 cảnh báo (mềm, đầu nhân vật), S6 vượt Shorts 180 s và ngoài 30–60 s. Ca unknown: không có mẫu đo ⇒ chặn.",
+  "cases": [
+    {
+      "name": "pass",
+      "aspect": "9:16",
+      "input": {
+        "duration_s": 48.2,
+        "samples": [
+          {
+            "t_ms": 1600,
+            "kind": "line",
+            "line": "LN-0001",
+            "cam": {
+              "x": 700,
+              "y": 900,
+              "z": 0.62
+            },
+            "els": [
+              {
+                "role": "subtitle",
+                "box": [
+                  72,
+                  960,
+                  808,
+                  120
+                ]
+              },
+              {
+                "role": "logo",
+                "box": [
+                  72,
+                  300,
+                  96,
+                  72
+                ]
+              },
+              {
+                "role": "actor_head",
+                "box": [
+                  40,
+                  1228,
+                  360,
+                  170
+                ]
+              },
+              {
+                "role": "actor_head",
+                "box": [
+                  680,
+                  1228,
+                  360,
+                  170
+                ]
+              }
+            ]
+          },
+          {
+            "t_ms": 2150,
+            "kind": "beat",
+            "beat": "BT-0001",
+            "zone": "Z1",
+            "cam": {
+              "x": 700,
+              "y": 900,
+              "z": 0.62
+            },
+            "els": [
+              {
+                "role": "subtitle",
+                "box": [
+                  72,
+                  960,
+                  780,
+                  120
+                ],
+                "line": "LN-0001"
+              },
+              {
+                "role": "logo",
+                "box": [
+                  72,
+                  300,
+                  96,
+                  72
+                ]
+              },
+              {
+                "role": "block",
+                "beat": "BT-0001",
+                "zone": "Z1",
+                "box": [
+                  73,
+                  400,
+                  806,
+                  420
+                ],
+                "font_px_min": 37.2
+              }
+            ]
+          },
+          {
+            "t_ms": 9400,
+            "kind": "beat",
+            "beat": "BT-0002",
+            "zone": "Z2",
+            "cam": {
+              "x": 700,
+              "y": 2900,
+              "z": 0.67
+            },
+            "els": [
+              {
+                "role": "subtitle",
+                "box": [
+                  72,
+                  960,
+                  808,
+                  120
+                ],
+                "line": "LN-0002"
+              },
+              {
+                "role": "logo",
+                "box": [
+                  72,
+                  300,
+                  96,
+                  72
+                ]
+              },
+              {
+                "role": "block",
+                "beat": "BT-0002",
+                "zone": "Z2",
+                "box": [
+                  76,
+                  420,
+                  800,
+                  456
+                ],
+                "font_px_min": 31
+              },
+              {
+                "role": "block",
+                "beat": "BT-0001",
+                "zone": "Z1",
+                "box": [
+                  73,
+                  -900,
+                  806,
+                  420
+                ],
+                "font_px_min": 37.2
+              }
+            ]
+          },
+          {
+            "t_ms": 44000,
+            "kind": "end",
+            "beat": "AUTO-end-card",
+            "cam": {
+              "x": 700,
+              "y": 4900,
+              "z": 0.3
+            },
+            "els": [
+              {
+                "role": "logo",
+                "box": [
+                  72,
+                  300,
+                  96,
+                  72
+                ]
+              },
+              {
+                "role": "end_card",
+                "box": [
+                  76,
+                  700,
+                  800,
+                  300
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "result": "pass",
+      "measure": {
+        "aspect": "9:16",
+        "safe_ref": "vertical-v1",
+        "samples": 4,
+        "min_font_px": 31,
+        "violations": [],
+        "warnings": [],
+        "platform_fit": {
+          "yt_shorts": true,
+          "fb_reels": true,
+          "tiktok": true
+        },
+        "text_human": "Đạt: 4 mốc đo, 0 vi phạm · chữ nhỏ nhất 31 px."
+      }
+    },
+    {
+      "name": "fail",
+      "aspect": "9:16",
+      "input": {
+        "duration_s": 191,
+        "samples": [
+          {
+            "t_ms": 12300,
+            "kind": "line",
+            "line": "LN-0004",
+            "cam": {
+              "x": 700,
+              "y": 900,
+              "z": 0.62
+            },
+            "els": [
+              {
+                "role": "subtitle",
+                "box": [
+                  60,
+                  1300,
+                  840,
+                  160
+                ]
+              },
+              {
+                "role": "logo",
+                "box": [
+                  912,
+                  1700,
+                  96,
+                  72
+                ]
+              },
+              {
+                "role": "actor_head",
+                "box": [
+                  40,
+                  1300,
+                  360,
+                  170
+                ]
+              }
+            ]
+          },
+          {
+            "t_ms": 15100,
+            "kind": "beat",
+            "beat": "BT-0006",
+            "zone": "Z3",
+            "cam": {
+              "x": 700,
+              "y": 4900,
+              "z": 0.62
+            },
+            "els": [
+              {
+                "role": "subtitle",
+                "box": [
+                  72,
+                  960,
+                  808,
+                  120
+                ],
+                "line": "LN-0005"
+              },
+              {
+                "role": "block",
+                "beat": "BT-0006",
+                "zone": "Z3",
+                "box": [
+                  -26,
+                  380,
+                  1132,
+                  440
+                ],
+                "font_px_min": 20
+              },
+              {
+                "role": "block",
+                "beat": "BT-0005",
+                "zone": "Z2",
+                "box": [
+                  -200,
+                  -700,
+                  1400,
+                  500
+                ],
+                "font_px_min": 12
+              }
+            ]
+          },
+          {
+            "t_ms": 16000,
+            "kind": "line",
+            "line": "LN-0005",
+            "cam": {
+              "x": 700,
+              "y": 4400,
+              "z": 0.4
+            },
+            "els": [
+              {
+                "role": "subtitle",
+                "box": [
+                  72,
+                  960,
+                  808,
+                  120
+                ]
+              },
+              {
+                "role": "block",
+                "beat": "BT-0006",
+                "zone": "Z3",
+                "box": [
+                  -300,
+                  380,
+                  1600,
+                  440
+                ],
+                "font_px_min": 14
+              }
+            ]
+          },
+          {
+            "t_ms": 16500,
+            "kind": "line",
+            "line": "LN-0005",
+            "cam": {
+              "x": 700,
+              "y": 900,
+              "z": 0.62
+            },
+            "els": [
+              {
+                "role": "subtitle",
+                "box": [
+                  60,
+                  1300,
+                  840,
+                  160
+                ],
+                "line": "LN-0004"
+              },
+              {
+                "role": "subtitle",
+                "box": [
+                  72,
+                  1200,
+                  808,
+                  120
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "result": "fail",
+      "measure": {
+        "aspect": "9:16",
+        "safe_ref": "vertical-v1",
+        "samples": 4,
+        "min_font_px": 20,
+        "violations": [
+          {
+            "rule": "S1",
+            "role": "subtitle",
+            "t_ms": 12300,
+            "box": [
+              60,
+              1300,
+              840,
+              160
+            ],
+            "edge": "bottom",
+            "line": "LN-0004",
+            "count": 2
+          },
+          {
+            "rule": "S2",
+            "role": "logo",
+            "t_ms": 12300,
+            "box": [
+              912,
+              1700,
+              96,
+              72
+            ],
+            "edge": "bottom",
+            "count": 1
+          },
+          {
+            "rule": "S3",
+            "role": "block",
+            "t_ms": 15100,
+            "box": [
+              -26,
+              380,
+              1132,
+              440
+            ],
+            "edge": "right",
+            "beat": "BT-0006",
+            "count": 1
+          },
+          {
+            "rule": "S4",
+            "role": "block",
+            "t_ms": 15100,
+            "font_px": 20,
+            "min_font_px": 28,
+            "beat": "BT-0006",
+            "count": 1
+          }
+        ],
+        "warnings": [
+          {
+            "rule": "S5",
+            "role": "actor_head",
+            "t_ms": 12300,
+            "box": [
+              40,
+              1300,
+              360,
+              170
+            ],
+            "edge": "bottom",
+            "count": 1
+          },
+          {
+            "rule": "S5",
+            "role": "subtitle",
+            "t_ms": 16500,
+            "box": [
+              72,
+              1200,
+              808,
+              120
+            ],
+            "edge": "bottom",
+            "tier": "soft",
+            "line": "LN-0005",
+            "count": 1
+          },
+          {
+            "rule": "S6",
+            "preset": "yt_shorts",
+            "duration_s": 191,
+            "max_s": 180
+          },
+          {
+            "rule": "S6",
+            "duration_s": 191,
+            "target_s": [
+              30,
+              60
+            ]
+          }
+        ],
+        "platform_fit": {
+          "yt_shorts": false,
+          "fb_reels": true,
+          "tiktok": true
+        },
+        "text_human": "Phụ đề câu LN-0004 chạm vùng caption của nền tảng (mép dưới). (+3 vi phạm khác)"
+      }
+    },
+    {
+      "name": "unknown",
+      "aspect": "9:16",
+      "input": {
+        "duration_s": 30,
+        "samples": []
+      },
+      "result": "unknown",
+      "measure": {
+        "aspect": "9:16",
+        "safe_ref": "vertical-v1",
+        "samples": 0,
+        "min_font_px": null,
+        "violations": [],
+        "warnings": [],
+        "platform_fit": {
+          "yt_shorts": true,
+          "fb_reels": true,
+          "tiktok": true
+        },
+        "text_human": "Không có số đo vùng an toàn (hoặc số đo hỏng) — chưa kết luận được, bản dựng bị chặn."
+      }
+    }
+  ]
+}

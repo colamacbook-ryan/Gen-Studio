@@ -290,3 +290,42 @@ SPA vanilla (`studio/index.html`, `studio/app.js`, `studio/styles.css`, `studio/
   | Câu rất ngắn «À, ra vậy!» | 0/6 take whisper small chép đúng (nghe "xa vậy", "dạ vội", "Hẹn gặp lại"); medium 1/6 ⇒ dễ bị chặn `gate_fail` sau 2 lần tạo lại |
 - **Giới hạn đã biết**: arm64 (Mac Docker Desktop) chưa kiểm (wheel aarch64 có đủ trong lock); G-PRON offline là heuristic từ lời chép; câu ≤ 3 tiếng hay bị nghe sai; tải lần đầu cần mạng tới huggingface.co.
 - Test: `test/g-offline-provider.test.js` (sidecar giả qua HTTP thật: shape, lỗi, timeout, pipeline tới `awaiting_review`, trộn vendor, chặn khi sidecar tắt), `voice/test_server.py` (hợp đồng, không cần model/numpy: health, 400/404/413/415/503/504, magic bytes, lock, sha256/symlink, pull đúng revision), `test/f-compose.test.js` (cô lập mạng, hạ quyền, lock có hash, installer không hỏi).
+
+## 14. 0.2.0 — F7: tỉ lệ khung (16:9 + clip dọc 9:16) — hợp đồng W2-0
+> Nguồn: Second-Brain `xuong-video/spec/SPEC-0.2.0-F7-aspect.md` v1.1 (audit `audit/CNS-2026-10-29-aspect.md`). Thứ tự thi công: **W2-0 (hợp đồng, file này) → A1 ∥ A2 ∥ A3 → A-INT → G-BE → giao diện**. Các gói A và UI chỉ đọc hợp đồng dưới đây; không gói nào sửa file của gói khác.
+- **Nguồn duy nhất** `render/aspects.json` (dữ liệu) + `render/aspects.js` (hàm thuần, UMD như `camera.js`: Node `require`, trình duyệt `window.GSAspects` với dữ liệu ở `window.GSAspectsData`; không DOM). Mọi hằng số tỉ lệ ở JSON: `size`, `token` (tên tệp), `kinds`, `presets`, `thumb_sizes`, `layout` (16:9 = `{legacy:true}`: engine dùng đúng hằng số cũ, KHÔNG tham số hoá), `safe` (`hard`/`soft` `[x0,y0,x1,y1]`, `verified:false`), `target_s`, `min_font_px`; `presets` (`max_s`, `cover`, `grid_crop`, `source`/`checked`/`verified`); `render` (`cover_frame_after_ms`, `sampling`, `camera_still`); `sources` (URL). Thêm 1:1/4:5 = thêm dữ liệu + mẫu ảnh bìa, không sửa mã. Cắt L-MIN = `9:16.enabled=false`.
+```js
+// render/aspects.js — lỗi: ném AspectError {name:'AspectError', code, text_human, detail}
+list({enabledOnly}) → [{id, size, token, kinds, presets, enabled, default, safe, target_s, min_font_px}]
+get(id) → {id, …định nghĩa} | null            // bản sao; tỉ lệ đã tắt vẫn trả (bài cũ đọc được)
+token(id) → '16x9' | '9x16' | null ; thumbSizes(id) → [[w,h] cạnh dài 1280, [w,h] cạnh dài 1920] | null
+presetsOf(id) → [{id, aspect, platform, max_s, cover, grid_crop?, source, source_url, checked, verified}]
+fit(id, duration_s) → {[preset]: {ok, max_s}}  // max_s null ⇒ ok
+catalog({blocksOf?, templatesOf?}) → {version, default, aspects: list({enabledOnly:true}) (+blocks, +thumbnail_templates), presets}
+                                     // = GET /api/aspects = get_capabilities.aspects (fixture test/fixtures/api-aspects.json)
+thumbSupported(id, templates?) → bool          // ≥ 1 mẫu ảnh bìa cùng aspect (mẫu không khai ⇒ '16:9'); Node mặc định đọc render/thumbs/templates.json
+resolve({lesson, workOrder, channelData, kind, previous}) → {aspect, source:'lesson'|'work_order'|'channel'|'default'|'kind_fallback', warnings:[{code,text_human,detail}], inherited?}
+   // thứ tự lesson.aspect → workOrder.aspect → previous.aspect (update_lesson; NULL ⇒ '16:9') → channelData.default_aspect (bí danh cũ `aspect`) → default
+   // lỗi: aspect_unsupported (tắt/không có) · aspect_mismatch (bài ≠ lệnh) · aspect_kind_unsupported (người chọn tỉ lệ không hỗ trợ kind; tutorial dọc: lời TUTORIAL_BLOCKED)
+   // cảnh báo: aspect_kind_fallback (chỉ mặc định kênh/hệ thống ⇒ tỉ lệ bật đầu tiên hỗ trợ kind) · aspect_channel_unsupported (mặc định kênh đã tắt ⇒ default)
+coverFrameMs(plan) → min(duration_ms − 1, beats[0].t_in + 1500)   // công thức cover.jpg; render.js (A2) gọi hàm này thay công thức tại chỗ
+sampleTimes(plan) → [{t, kind:'line'|'beat'|'end', line?, beat?, zone?}]
+   // line: a_ms+200 và giữa câu (ngoài intro brand) · beat: t_in+1000 của khối trong vùng khi máy quay đứng yên (x,y không đổi, z trôi ≤ 5 %), ngoài intro,
+   // trước toàn cảnh lesson-map, trước t_out · end: thẻ kết +1000. Hai mốc cách < 500 ms ⇒ giữ ưu tiên end > beat > line (mang theo `line` nếu câu còn hiện); ≤ 240.
+layoutVars(layout) → {'--lay-sub-top','--lay-sub-left','--lay-sub-maxw','--lay-sub-font','--lay-sub-tr-display','--lay-actor-scale' (số),'--lay-actor-left-x',
+   '--lay-actor-right-x','--lay-actor-bottom','--lay-logo-{tl,tr}-{x,y}','--lay-chip-display','--lay-lt-display','--lay-end-top' (%),'--lay-end-cx','--lay-end-maxw'}  // legacy ⇒ {}
+safeCheck(id, {duration_s?, samples:[{t_ms, kind, beat?, zone?, line?, cam?, els:[{role, id?, beat?, zone?, line?, box:[x,y,w,h], font_px_min?}]}]}) → {result:'pass'|'fail'|'unknown', measure}
+   // role ∈ subtitle | logo | block | end_card | actor_head | intro. S1 phụ đề ⊂ cứng · S2 logo/thẻ kết/intro ⊂ cứng · S3 khối của beat đang đo (+ cùng vùng), chỉ ở mốc kind 'beat',
+   // ⊂ cứng · S4 font_px_min ≥ min_font_px · S5 (cảnh báo) chữ ra ngoài mềm, đầu nhân vật dưới mép cứng · S6 (cảnh báo) max_s từng preset, ngoài target_s.
+   // measure = {aspect, safe_ref, samples, min_font_px, violations:[{rule, role, t_ms, box?, edge?, line?, beat?, id?, font_px?, count}], warnings, platform_fit, text_human}
+   // fail ⇔ có vi phạm S1–S4; không mẫu / mẫu hỏng / tỉ lệ lạ ⇒ unknown (chặn); tỉ lệ không có safe (16:9) ⇒ pass, applicable:false. Fixture: test/fixtures/measure-safe.json.
+create(data) → API cùng chữ ký trên bộ dữ liệu khác (test L-MIN, trình duyệt)
+```
+- **Hợp đồng giữa các gói A** (SPEC-F7 §10.3): A1 truyền `input.aspect` (từ `lesson_versions.aspect`, ghi giá trị đã `resolve` lúc nộp) vào `buildPlan` và `size: plan.size` cho G-MUX; A2 trả `plan.size`, `plan.layout` (chỉ khi aspect ≠ 16:9, kèm `safe`) và `renderPlan().measures` = mẫu `__measure()` gộp mốc `sampleTimes`, đúng đầu vào `safeCheck`; G-SAFE = `{gate:'G-SAFE', ...safeCheck(lv.aspect, rendered.measures)}` qua `ext.gates`; A3 đọc `thumbSizes`, `presets.tiktok.grid_crop`, đổi `thumbSupported('9:16')` thành true bằng dữ liệu mẫu.
+- **16:9 đóng băng (M14)** — `tools/golden-16x9.js` + `test/fixtures/golden-16x9.json` (ghi trên mã chưa có F7) + `test/h-aspect-golden.test.js`:
+  - sha256 `JSON.stringify(plan)` của 3 bài mẫu viết sẵn trong công cụ (bài thường; bài có brand + logo + 3 phương án ảnh bìa + prob-card morph + illustration; tutorial có PiP), mỗi bài dựng cả không truyền `aspect` lẫn `aspect:'16:9'` ⇒ phải cùng hash; `camera_plan_hash` từng bài;
+  - sha256 manifest từ `buildManifest` THẬT của `server/pipeline.js` (biên dịch lại module kèm một dòng export, không sửa pipeline; bỏ khoá `engine`), `lv.aspect` thiếu/`NULL`/`'16:9'` ⇒ cùng hash — A1 giữ chữ ký `buildManifest(ctx, B, items, plan, tts, judgeP, registry, extra)`;
+  - Chromium thật: `#stage.outerHTML` sau `__seek` ở 3 mốc (20 %, 55 %, cuối −200 ms) cho bài thường và bài thường có brand (logo góc `br`, lower-third, intro), kèm tập quy tắc CSS của `style.css`/`tutorial.css` đang khớp phần tử sân khấu (`css_sha256`): sửa quy tắc 16:9 hay thêm quy tắc trúng phần tử 16:9 đều đỏ; quy tắc `.stage.lay …` không ảnh hưởng. Bài DOM không dùng prob-card (đặt `left` theo `offsetWidth` ⇒ phụ thuộc phông máy). Không chụp ảnh nên không phụ thuộc rasterizer. DOM so chặt khi cùng bản Chromium chính đã ghi (`_chromium`), khác bản mà lệch ⇒ test bỏ qua có lời báo.
+  - Hệ quả cho các gói: A2 không đổi dòng code nhánh legacy của `timeline.js`/`camera.js`/`stage.js`/`style.css`; A3 không thêm khoá vào 4 mẫu ảnh bìa 16:9 cũ (spec ảnh bìa nằm trong plan) — mặc định `aspect`/`canvas` phải suy ra khi đọc, không ghi vào mẫu.
+  - Lệch ⇒ `node tools/golden-16x9.js --dump <thư mục>` ở nhánh gốc và nhánh đang làm rồi diff. Chỉ `--write` lại khi đổi 16:9 có chủ đích đã được duyệt (ghi lý do trong commit).
+- Test: `test/h-aspect-contract.test.js` (lược đồ JSON + bố cục 9:16 trong vùng an toàn + bất biến vùng kề; mọi hàm; resolve đủ nhánh; L-MIN qua `create`; fixture UI so chặt với `catalog()`/`safeCheck`; nạp UMD trong `vm` không DOM), `test/h-aspect-golden.test.js` (M14).
