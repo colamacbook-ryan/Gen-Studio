@@ -2,7 +2,7 @@
 // Kiểm công thức nhân vật phía SERVER (SPEC-0.2.0 §3.4, §3.5, §3.9; gói V). Thuần Node, không DOM, không phụ thuộc npm.
 //   loadEngine({root?}) → { GC, ... } : nạp engine Gen-Chibi (vendor/gen-chibi) vào `node:vm`, có cache. Cắm được: truyền root khác (vd checkout Gen-Chibi 0.26.0) —
 //     mọi API mới của engine (registerDataPack, partAdvice…) chỉ dùng khi có (feature-detect), không gắn cứng phiên bản.
-//   validateRecipe(data, { library, brand, poses, siblings, channelName, strict, root, allowLegacy, shipped }) → { ok, errors:[{path, code, text_human}], warnings:[{path, code, text_human}], gates, mode }
+//   validateRecipe(data, { library, brand, poses, siblings, channelName, strict, root, allowLegacy, shipped, voices }) → { ok, errors:[{path, code, text_human}], warnings:[{path, code, text_human}], gates, mode }
 //     mode do SERVER quyết qua cờ (mặc định TẮT, không đọc từ dữ liệu khách): 'v2' (mặc định — lược đồ §3.5 đầy đủ + cổng engine) · 'legacy' (persona chuỗi / voice {role, ai}; chỉ khi opts.allowLegacy)
 //           · 'light' (giữ chỗ vô hại: không linh kiện/trang bị/màu/tính cách — không dựng được, không chốt được; chỉ khi opts.allowLight). Agent: luôn v2.
 //     strict:true (candidate / cast.approve): chỉ 'v2' qua; legacy và light bị từ chối.
@@ -29,7 +29,7 @@ const ENUMS = {
   gagTrigger: ['on_wrong_answer', 'on_term_first_use', 'on_end_card', 'once_per_lesson'],   // + on_partner_mood:<mood>
   dynamic: ['straight_man_funny_man', 'mentor_student', 'rivals', 'siblings'],
   catchphraseUse: ['intro_or_turn', 'intro', 'turn', 'end', 'any'],
-  voiceProvider: ['gemini'],
+  voiceProvider: ['gemini', 'offline'],   // offline = sidecar giọng trên máy (gói L); tên giọng kiểm theo danh sách quét lúc chạy (opts.voices)
 };
 const TOP_V2 = ['id', 'name', 'role', 'persona', 'catchphrase', 'running_gag', 'dynamic', 'look', 'identity', 'expressions', 'voice', 'variant', 'lines', 'kind', 'version'];
 const TOP_LEGACY = TOP_V2.concat(['project', 'status']);
@@ -264,6 +264,16 @@ function checkSchema(d, mode, GC, add, warn) {
 }
 
 // ---------------------------------------------------------------- luật cứng: không trùng cast cũ (§3.4.1) ----------------------------------------------------------------
+// voice.provider='offline': tên giọng phải có trong danh sách quét lúc chạy (STD-10) — opts.voices = { offline: [id…] } do server đọc từ providers.scan.
+// Chưa quét (không có danh sách) ⇒ chỉ cảnh báo, không chặn.
+function checkVoiceScan(d, o, add, warn) {
+  const v = d && d.voice;
+  if (!isObj(v) || v.provider !== 'offline' || !VOICE_NAME.test(String(v.voice || ''))) return;
+  const list = o.voices && Array.isArray(o.voices.offline) ? o.voices.offline : null;
+  if (!list || !list.length) { warn('voice.voice', 'voice_unscanned', 'Chưa quét được danh sách giọng offline — chưa kiểm được tên giọng. Chủ xưởng bấm Quét lại ở màn Nhà cung cấp.'); return; }
+  if (!list.includes(v.voice)) add('voice.voice', 'unknown_voice', `Giọng offline "${v.voice}" không có trong danh sách quét (${list.slice(0, 8).join(', ')}${list.length > 8 ? '…' : ''}).`);
+}
+
 function checkCollisions(d, mode, others, add, eff, effEquip, rawParts) {
   const myVoice = voiceOf(d), myMust = mustOf(d), myHat = hatOf(d);
   for (const o of others) {
@@ -311,6 +321,7 @@ function validateRecipe(data, opts) {
   for (const t of eng.libErrors) warn('', 'library', 'Thư viện linh kiện: ' + t);
 
   checkSchema(data, mode, GC, add, warn);
+  checkVoiceScan(data, o, add, warn);
   for (const k of slotBoth) add(`look.equip.${k}`, 'slot_conflict', `Slot "${k}" khai ở cả look.parts và look.equip — chỉ được khai một nơi.`);
   if (mode === 'v2' && !hasLook) add('look.parts', 'missing_field', 'Công thức cần ít nhất một linh kiện (look.parts) hoặc trang bị (look.equip).');
   // không tên kênh trong công thức (CNS-096)

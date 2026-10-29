@@ -43,8 +43,16 @@ function register(op, ctx) {
     const agentActor = !actor || actor.type === 'agent' || !(actor.type === 'user' || actor.type === 'system');
     const trusted = !agentActor && !!cur && (cur.origin === 'seed' || cur.origin === 'migration');
     const allowLegacy = trusted, allowLight = !agentActor;
-    return validateRecipe(data, Object.assign({ shipped: shipped && allowLegacy, allowLegacy, allowLight, library: castLib.library(), brand: info.brand, channelName: info.name, siblings: siblingsOf(chId, selfId) }, extra));
+    return validateRecipe(data, Object.assign({ shipped: shipped && allowLegacy, allowLegacy, allowLight, library: castLib.library(), brand: info.brand, channelName: info.name, siblings: siblingsOf(chId, selfId), voices: scannedVoices() }, extra));
   }
+  // giọng offline quét lúc chạy (gói L): gộp providers.scan.voices của vendor offline — nguồn cho kiểm tên giọng khi voice.provider='offline'
+  const scannedVoices = () => {
+    const ids = new Set();
+    for (const r of db.all("SELECT scan FROM providers WHERE workspace_id=? AND vendor='offline' AND deleted_at IS NULL AND scan IS NOT NULL", db.ws)) {
+      const sc = db.json(r).scan; (sc && Array.isArray(sc.voices) ? sc.voices : []).forEach((x) => { if (typeof x === 'string') ids.add(x); });
+    }
+    return { offline: [...ids] };
+  };
   function reject(v) {
     const first = v.errors.slice(0, 3).map((e) => (e.path ? `${e.path}: ` : '') + e.text_human).join(' · ');
     const more = v.errors.length > 3 ? ` (+${v.errors.length - 3} lỗi nữa)` : '';
