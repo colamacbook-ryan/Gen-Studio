@@ -128,8 +128,9 @@ if [ "$VOICE" = 1 ]; then
   else VOICE=0; warn "Chưa dựng được image giọng offline — xưởng vẫn chạy; thử lại: genstudio voice pull"; fi
 fi
 step "Khởi động"
-if [ "$AGENT" = 1 ]; then DC up -d >/dev/null 2>&1 || die "Không khởi động được." "chạy: cd $DIR && docker compose up để xem lỗi"
-else DC up -d studio $([ "$VOICE" = 1 ] && echo voice) >/dev/null 2>&1 || die "Không khởi động được." "chạy: cd $DIR && docker compose up studio để xem lỗi"; fi
+# chỉ bật dịch vụ đã dựng được: image agent/voice hỏng thì không để `up` dựng lại rồi làm hỏng cả bước khởi động (rà W3: COMPOSE_PROFILES=voice + image voice hỏng ⇒ `up -d` dựng lại voice, hỏng ⇒ die dù studio dựng được)
+SVCS="studio"; [ "$AGENT" = 1 ] && SVCS="$SVCS agent"; [ "$VOICE" = 1 ] && SVCS="$SVCS voice"
+DC up -d $SVCS >/dev/null 2>&1 || die "Không khởi động được." "chạy: cd $DIR && docker compose up $SVCS để xem lỗi"
 done_ "Đã chạy nền"
 
 # ---- 7. Healthcheck

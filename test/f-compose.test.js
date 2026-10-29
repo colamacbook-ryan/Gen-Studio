@@ -144,7 +144,8 @@ test('backup không chứa data/.env (khoá chủ) và nhắc cất khoá riêng
 test('install.sh dựng + bật cả agent; studio vẫn chạy nếu agent dựng hỏng', () => {
   const s = read('install.sh');
   assert.match(s, /DC build agent/, 'phải dựng image agent');
-  assert.match(s, /DC up -d >/, 'khi agent dựng được phải bật mọi dịch vụ');
+  assert.match(s, /SVCS="studio"; \[ "\$AGENT" = 1 \] && SVCS="\$SVCS agent"/, 'khi agent dựng được phải bật agent');
+  assert.match(s, /DC up -d \$SVCS >/, 'chỉ bật dịch vụ đã dựng được');
   assert.match(s, /AGENT=0; warn /, 'agent dựng hỏng: cảnh báo, không dừng cài');
 });
 test('Dockerfile không tải phông từ mạng; phông OFL vendor có giấy phép + checksum', () => {
@@ -219,6 +220,10 @@ test('install.sh --voice-offline: không hỏi câu nào (STD-06), dựng + tả
   assert.match(s, /COMPOSE_PROFILES=/);
   assert.match(s, /DC run --rm voice-pull/);
   assert.match(s, /genstudio voice pull/);
+  // voice dựng hỏng ⇒ VOICE=0 và KHÔNG có voice trong danh sách `up` (rà W3: COMPOSE_PROFILES=voice làm `up -d` dựng lại voice rồi die)
+  assert.match(s, /else VOICE=0; warn /);
+  assert.match(s, /\[ "\$VOICE" = 1 \] && SVCS="\$SVCS voice"/);
+  assert.ok(!/DC up -d >/.test(s), 'không `up -d` toàn bộ profile');
   const c = read('cli/genstudio');
   assert.match(c, /voice\)/); assert.match(c, /dc run --rm voice-pull/); assert.match(c, /COMPOSE_PROFILES/);
 });
