@@ -265,3 +265,16 @@ class TestModels(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestConsent(unittest.TestCase):
+    """Chỉ mở preset model card xác nhận người nói đồng ý (23 giọng); SDK đổi tên ⇒ so cả aliases."""
+
+    def test_consented(self):
+        self.assertTrue(server.consented('Đoan Trang'))
+        self.assertTrue(server.consented('Phạm Tuyên', []))
+        self.assertTrue(server.consented('Hải Đăng', ['Minh Quân Pro', 'Minh Quân']))   # đổi tên của Minh Quân
+        self.assertTrue(server.consented('Quốc Tuấn', ['Mạnh Dũng']))
+        self.assertFalse(server.consented('Adam bựa', []))       # SDK 3.8.3 thêm, model card chưa nêu
+        self.assertFalse(server.consented('Thiền Tâm Đức'))
+        self.assertEqual(len(server.CONSENTED_PRESETS), 23)

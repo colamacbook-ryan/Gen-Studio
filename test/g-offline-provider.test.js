@@ -100,7 +100,7 @@ function addOffline(t, b) {
 test('offline.judge trả ĐÚNG bộ khoá của gemini.judge; thuật ngữ thấy chính tả Latin ⇒ english, không thấy ⇒ vietnamese', () => {
   const j = offline.scoreAsr({ transcript: 'Mô hình GPT dùng token và attention để đoán chữ kế tiếp.', words: [{ w: 'Mô', t0: 0, t1: 200, p: 0.9 }] },
     { script: 'Mô hình GPT dùng token và attention để đoán chữ kế tiếp.', terms: ['GPT', 'token', 'attention', 'Large Language Model'] });
-  assert.deepEqual(Object.keys(j).sort(), ['detected_terms', 'extra_speech', 'matches', 'terms', 'transcript', 'word_times']);
+  assert.deepEqual(Object.keys(j).sort(), ['asr', 'detected_terms', 'extra_speech', 'matches', 'terms', 'transcript', 'word_times']); assert.equal(j.asr, true);
   assert.equal(j.matches, true); assert.equal(j.extra_speech, false);
   assert.deepEqual(j.terms, { GPT: 'english', token: 'english', attention: 'english', 'Large Language Model': 'vietnamese' });
   assert.deepEqual(j.detected_terms, ['GPT', 'token', 'attention']);
@@ -263,4 +263,15 @@ test('pipeline: sidecar chưa chạy ⇒ thử lại rồi blocked provider_tran
     assert.equal(r.blocked_reason.detail.vendor, 'offline'); assert.ok(r.blocked_reason.detail.detail, 'chi tiết kỹ thuật cho người cần');
     assert.equal(typeof r.blocked_reason.text_human, 'string');
   } finally { t.clean(); }
+});
+
+// câu cực ngắn + giám khảo ASR: nới ngưỡng ≈ 1 âm tiết; lời khác hẳn vẫn trượt; giám khảo LLM (không asr) giữ ngưỡng gốc
+test('G-SCRIPT: câu ≤ 3 từ với giám khảo ASR nới ngưỡng (xa vậy ≈ ra vậy), lời khác hẳn vẫn trượt; Gemini giữ ngưỡng 0,15', () => {
+  const V = require('../media/gates/voice.js'), s = 'À, ra vậy!';
+  const r = (transcript, asr = true) => V.gateScript({ judge: { asr, matches: false, transcript }, script: s });
+  assert.equal(r('xa vậy').result, 'pass'); assert.equal(r('xa vậy').measure.short_asr, true);
+  assert.equal(r('Hẹn gặp lại').result, 'fail'); assert.equal(r('dạ vội').result, 'fail');
+  assert.equal(r('xa vậy', false).result, 'fail', 'giám khảo LLM: ngưỡng gốc');
+  const long = V.gateScript({ judge: { asr: true, matches: false, transcript: 'Nên luôn kiểm tra nguồn nha' }, script: 'Nên luôn kiểm tra nguồn nhé, nhé các bạn.' });
+  assert.equal(long.measure.short_asr, false); assert.equal(long.result, 'fail');
 });

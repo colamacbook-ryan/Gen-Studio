@@ -162,6 +162,18 @@ def write_wav(pcm16, rate):
 
 
 # ---------------------------------------------------------------- giọng preset
+# Chỉ mở preset mà model card (commit đã ghim trong models.json) xác nhận người nói ĐỒNG Ý cho tổng hợp giọng thương mại
+# (bảng "Preset Voices (23)"). SDK đổi tên vài giọng — so cả tên lẫn aliases. Preset SDK thêm mà model card chưa nêu ⇒ ẩn.
+CONSENTED_PRESETS = frozenset([
+    'Anh Khôi', 'Mai Anh', 'Minh Quân', 'Minh Đức', 'Mạnh Dũng', 'Ngọc Huyền', 'Ngọc Linh', 'Phạm Tuyên', 'Quỳnh Anh',
+    'Thanh Bình', 'Trúc Ly', 'Xuân Vĩnh', 'Đoan Trang', 'Ngọc Trân', 'Quang Sơn', 'Adam', 'Kim Thanh', 'Minh Triết',
+    'Mỹ Duyên', 'Thái Sơn', 'Thùy Dung', 'Thục Đoan', 'Đức Trí'])
+
+
+def consented(name, aliases=()):
+    return any(unicodedata.normalize('NFC', n) in CONSENTED_PRESETS for n in [name, *(aliases or [])])
+
+
 def voice_id(name):
     """'Đoan Trang' → 'DoanTrang' (ASCII, hợp lệ với VOICE_NAME của lược đồ nhân vật)."""
     s = unicodedata.normalize('NFD', name.replace('Đ', 'D').replace('đ', 'd'))
@@ -211,6 +223,8 @@ class Engine:
         voices = []
         for label, name in self.tts.list_preset_voices():
             p = self.tts.get_preset_voice(name)
+            if not consented(name, p.get('aliases') if isinstance(p, dict) else ()):
+                continue
             vid = voice_id(name)
             if not VOICE_ID.match(vid) or vid in self._by_id:
                 continue

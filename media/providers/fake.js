@@ -58,7 +58,7 @@ async function judge({ script = '', terms = [] }) {
   const bad = process.env.GS_FAKE_FAIL === 'pron';
   const tm = {};
   for (const t of terms) tm[t] = bad ? 'vietnamese' : 'english';
-  return { transcript: script, matches: true, extra_speech: false, terms: tm, detected_terms: [], word_times: null };
+  return { asr: false, transcript: script, matches: true, extra_speech: false, terms: tm, detected_terms: [], word_times: null };
 }
 
 module.exports = { tts, judge, probe, wrapWithC2pa, synth, RATE };

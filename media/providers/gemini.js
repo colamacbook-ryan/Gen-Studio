@@ -119,7 +119,7 @@ async function judge({ key, model = 'gemini-3.5-flash', wav: wavBuf, script, ter
   const tm = {};
   for (const t of terms) { const v = j.terms && j.terms[t]; tm[t] = v === 'english' || v === 'vietnamese' ? v : 'unknown'; }
   return {
-    transcript: j.transcript, matches, extra_speech: j.extra_speech === true,
+    asr: false, transcript: j.transcript, matches, extra_speech: j.extra_speech === true,   // asr: giám khảo là LLM (không phải ASR) — G-SCRIPT giữ ngưỡng gốc
     terms: tm, detected_terms: Array.isArray(j.detected_terms) ? j.detected_terms.filter((x) => typeof x === 'string') : [],
     word_times: normWordTimes(j.word_times),
   };

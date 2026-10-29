@@ -136,7 +136,7 @@ function scoreAsr({ transcript, words }, { script, terms }) {
   }
   const wt = Array.isArray(words) ? words.filter((x) => x && typeof x.w === 'string' && Number.isFinite(x.t0) && Number.isFinite(x.t1)).map((x) => ({ w: x.w, t0: x.t0, t1: x.t1 })) : [];
   return {
-    transcript: text, matches: d <= MAX_MATCH_DIST, extra_speech: nHeard > nScript + Math.max(2, Math.ceil(nScript * 0.25)),
+    asr: true, transcript: text, matches: d <= MAX_MATCH_DIST, extra_speech: nHeard > nScript + Math.max(2, Math.ceil(nScript * 0.25)),
     terms: tm, detected_terms: det, word_times: wt.length ? wt : null,
   };
 }

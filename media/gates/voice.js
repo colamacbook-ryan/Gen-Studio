@@ -4,7 +4,7 @@
 const crypto = require('node:crypto');
 const wav = require('../wav');
 
-const DEFAULTS = { edgeMs: 50, edgeMax: 0.3, tailMs: 100, silence: 0.01, scriptMaxDist: 0.15 };
+const DEFAULTS = { edgeMs: 50, edgeMax: 0.3, tailMs: 100, silence: 0.01, scriptMaxDist: 0.15, asrShortWords: 3, asrShortMaxDist: 0.5 };
 
 const G = (gate, result, measure) => ({ gate, result, measure });
 const unknown = (gate, e, extra = {}) => G(gate, 'unknown', { error: String((e && e.message) || e), ...extra });
@@ -66,14 +66,18 @@ function gateScript({ judge, script, opts = {} }) {
   const o = { ...DEFAULTS, ...opts };
   if (!judge || judge.error || typeof judge.matches !== 'boolean') return unknown('G-SCRIPT', (judge && judge.error) || 'Không có kết quả giám khảo');
   const bad = [];
-  if (!judge.matches) bad.push('giám khảo báo không khớp kịch bản');
   if (judge.extra_speech) bad.push('có lời thừa');
-  let d = null;
+  let d = null, maxDist = o.scriptMaxDist;
+  // giám khảo ASR (whisper, judge.asr): câu cực ngắn (≤ asrShortWords từ) thiếu ngữ cảnh nên ASR nghe lệch dù giọng đúng («À, ra vậy!» → «xa vậy»)
+  // ⇒ nới ngưỡng ký tự (≈ sai 1 âm tiết); lời nghe khác hẳn («Hẹn gặp lại») vẫn trượt. Giám khảo LLM (Gemini) giữ ngưỡng gốc.
+  const shortAsr = judge.asr === true && script && normText(script).split(' ').filter(Boolean).length <= o.asrShortWords;
+  if (shortAsr) maxDist = o.asrShortMaxDist;
   if (script && typeof judge.transcript === 'string') {
     d = dist(normText(script), normText(judge.transcript));
-    if (d > o.scriptMaxDist) bad.push('lời chép lệch kịch bản ' + d.toFixed(2));
+    if (d > maxDist) bad.push('lời chép lệch kịch bản ' + d.toFixed(2));
   }
-  return G('G-SCRIPT', bad.length ? 'fail' : 'pass', { matches: judge.matches, extra_speech: !!judge.extra_speech, char_dist: d, problems: bad });
+  if (!judge.matches && !(shortAsr && d !== null && d <= maxDist)) bad.push('giám khảo báo không khớp kịch bản');
+  return G('G-SCRIPT', bad.length ? 'fail' : 'pass', { matches: judge.matches, extra_speech: !!judge.extra_speech, char_dist: d, max_dist: maxDist, short_asr: !!shortAsr, problems: bad });
 }
 
 function gatePron({ judge, termsEffective = [] }) {
