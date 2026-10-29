@@ -29,10 +29,7 @@ const presetName = (id) => PRESET_NAME[id] || id;
 const blockAspects = (e) => (Array.isArray(e && e.aspects) && e.aspects.length ? e.aspects : ['16:9']);
 function blocksOf(aspect) { return registry.all().filter((e) => e.enabled !== false && blockAspects(e).includes(aspect)).map((e) => e.name); }
 function templatesOf(aspect) {
-  const T = require('../../render/thumb.js');
-  // A3: templatesOf(aspect) theo tỉ lệ; trước khi gộp A3 chỉ có templates() (toàn 16:9)
-  if (typeof T.templatesOf === 'function') return T.templatesOf(aspect).map((t) => t.id);
-  return T.templates().filter((t) => (t.aspect || '16:9') === aspect).map((t) => t.id);
+  return require('../../render/thumb.js').templatesOf(aspect).map((t) => t.id);   // hợp đồng A3 (mẫu không khai aspect ⇒ 16:9)
 }
 // GET /api/aspects = get_capabilities.aspects (§3.6): MỘT object
 const catalogFor = () => A.catalog({ blocksOf, templatesOf });

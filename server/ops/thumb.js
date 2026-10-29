@@ -11,8 +11,8 @@ const { gateThumb } = require('../../media/gates/thumb.js');
 const { thumbEnv } = require('./_thumb-data.js');
 const AS = require('../../render/aspects.js');
 
-// mọi mẫu mọi tỉ lệ (A3: templatesOf('*')); trước khi gộp A3 chỉ có templates() (4 mẫu 16:9)
-const allTemplates = () => (typeof T.templatesOf === 'function' ? T.templatesOf('*') : T.templates());
+// mọi mẫu mọi tỉ lệ (hợp đồng A3: templates() không đối số chỉ là 4 mẫu 16:9)
+const allTemplates = () => T.templatesOf('*');
 const EXAMPLE = '{"variants":[{"template":"host-shock-left","headline":"AI bịa chuyện thế nào?","highlight":"bịa","kicker":"SỰ THẬT","face":{"owner":true,"mood":"shock"},"visual":{"beat":0}},' +
   '{"template":"big-visual","headline":"Máy đoán chữ kế tiếp","face":{"cast":"CM-…","mood":"excited"},"visual":{"beat":1}}]}';
 const { J } = require('./_thumb-data.js');
@@ -61,18 +61,8 @@ function register(op, ctx) {
         return { ok: true };
       };
       const errs = T.validateThumbnail(th, { beatIds: ids, beatCount: (lv.beats || []).length, castOk, assetOk, aspect: asp });
-      // mẫu phải cùng tỉ lệ với bài (mẫu không khai `aspect` ⇒ 16:9). Gói A3 báo thumbnail_aspect trong validateThumbnail; ở đây bảo đảm không lọt khi chưa có (không báo trùng).
-      if (typeof T.checkAspect === 'function') errs.push(...T.checkAspect(th, asp));   // A3: kiểm mẫu cùng tỉ lệ (code thumbnail_aspect)
-      if (!errs.some((e) => /thumbnail_aspect/.test(e.text || String(e)))) {
-        const variants = Array.isArray(th.variants) ? th.variants : [];
-        variants.forEach((v, i) => {
-          const tpl = v && allTemplates().find((t) => t.id === v.template);
-          if (tpl && (tpl.aspect || '16:9') !== asp) {
-            const have = AS.thumbSupported(asp) ? allTemplates().filter((t) => (t.aspect || '16:9') === asp).map((t) => t.id).join(', ') : '';
-            errs.push({ path: `thumbnail.variants[${i}].template`, code: 'thumbnail_aspect', text: `thumbnail_aspect: Mẫu "${v.template}" là khung ${tpl.aspect || '16:9'}, bài này ${asp}. ${have ? 'Mẫu dùng được: ' + have + '.' : 'Chưa có mẫu ảnh bìa cho khung ' + asp + ' — bỏ thumbnail (không bắt buộc ở khung này).'}` });
-          }
-        });
-      }
+      // mẫu phải cùng tỉ lệ với bài (mẫu không khai `aspect` ⇒ 16:9) — một nguồn: render/thumb.js checkAspect (code thumbnail_aspect)
+      errs.push(...T.checkAspect(th, asp));
       return errs;
     },
   });

@@ -295,7 +295,7 @@ test('gateThumb: contrastOf/diffRatio nhận canvas; mặc định vẫn 1280×7
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('capabilities ảnh bìa (MCP): templates giữ 4 mẫu 16:9 (hợp đồng cũ), mẫu dọc ở templates_by_aspect, rules.by_aspect có quy cách dọc', async () => {
+test('capabilities ảnh bìa (MCP): templates = mẫu đúng tỉ lệ mặc định của kênh (kênh 16:9 ⇒ 4 mẫu cũ, kênh 9:16 ⇒ mẫu dọc), templates_by_aspect đủ, rules.by_aspect có quy cách dọc', async () => {
   const { templateInfo } = require('../server/mcp-tools/thumb.js');
   const auth = require('../server/auth.js');
   const { createMcp } = require('../server/mcp.js');
@@ -313,5 +313,13 @@ test('capabilities ảnh bìa (MCP): templates giữ 4 mẫu 16:9 (hợp đồng
     assert.deepEqual(out.rules.by_aspect['9:16'].sizes, [[720, 1280], [1080, 1920]]);
     assert.equal(out.rules.by_aspect['9:16'].lines_max, 3);
     assert.equal(templateInfo(T.template('v-big-visual')).headline.lines_max, 2);
+    assert.equal(out.aspect, '16:9');
+    // A-INT: kênh mặc định 9:16 ⇒ `templates` là mẫu dọc (agent không chọn nhầm mẫu 16:9 ⇒ thumbnail_aspect); templates_by_aspect không đổi
+    t.write(b.o, 'channel.update', { channel: b.ch.display_id, data: { default_aspect: '9:16' } });
+    const v = (await mcp.handle({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'get_capabilities', arguments: { channel: b.ch.display_id } } }, c)).result.structuredContent;
+    assert.equal(v.thumbnail.aspect, '9:16'); assert.deepEqual(v.thumbnail.templates.map((x) => x.id), VERT);
+    assert.ok(v.thumbnail.templates.every((x) => x.aspect === '9:16' && x.canvas[1] === 1920));
+    const a916 = v.aspects.aspects.find((a) => a.id === '9:16');
+    for (const id of VERT) assert.ok(a916.thumbnail_templates.includes(id), 'catalog().thumbnail_templates của 9:16 có ' + id);
   } finally { t.clean(); }
 });

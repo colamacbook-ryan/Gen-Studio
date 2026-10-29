@@ -90,11 +90,15 @@ function tools(ctx) {
 
 // get_capabilities.thumbnail: mẫu + quy cách; owner_faces = số ảnh mặt chủ kênh đã khai (0 ⇒ face.owner rơi về KOL host_lead)
 function capabilities(ctx, args) {
-  // `templates` = mẫu 16:9 (hợp đồng cũ, không đổi); mẫu của tỉ lệ khác nằm ở `templates_by_aspect` (cộng thêm).
-  const out = { thumbnail: { templates: T.templates().map(templateInfo), templates_by_aspect: Object.fromEntries(Object.keys(T.RULES.by_aspect).map((a) => [a, T.templatesOf(a).map(templateInfo)])), rules: rules() } };
+  // `templates` = mẫu ĐÚNG TỈ LỆ MẶC ĐỊNH của kênh (templatesOf; kênh 16:9 ⇒ đúng 4 mẫu cũ như hợp đồng 0.1.x, kênh 9:16 ⇒ v-host-top, v-big-visual) để agent
+  // không chọn nhầm mẫu khác tỉ lệ (thumbnail_aspect); `templates_by_aspect` = đủ mọi tỉ lệ (bài có lệnh tỉ lệ khác kênh tra ở đây — get_task.aspect).
+  const byAspect = Object.fromEntries(Object.keys(T.RULES.by_aspect).map((a) => [a, T.templatesOf(a).map(templateInfo)]));
+  const out = { thumbnail: { aspect: '16:9', templates: T.templatesOf('16:9').map(templateInfo), templates_by_aspect: byAspect, rules: rules() } };
   try {
     const { channelOf, chanData } = kit(ctx);
     const d = chanData(channelOf(args && args.channel));
+    const asp = require('../ops/aspect.js').channelDefault(d);
+    if (byAspect[asp]) { out.thumbnail.aspect = asp; out.thumbnail.templates = byAspect[asp]; }
     const faces = d.brand && d.brand.thumb && Array.isArray(d.brand.thumb.faces) ? d.brand.thumb.faces : [];
     out.thumbnail.owner_faces = faces.length;
     out.thumbnail.required = !!(d.policy && d.policy.thumbnail_required === true);

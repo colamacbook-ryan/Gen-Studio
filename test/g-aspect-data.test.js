@@ -177,7 +177,8 @@ test('block_aspect (CNS-342): khối chưa khai hỗ trợ tỉ lệ bị báo �
   const t = tmpDb(), real = registry.all;
   try {
     const b = basics(t.write, t.db);
-    const mk = (aspects) => () => real.call(registry).map((e) => (e.name === 'title' ? Object.assign({}, e, aspects ? { aspects } : {}) : e));
+    // aspects = null ⇒ bỏ hẳn trường (sau khi gộp A2, index.json thật đã khai aspects cho title)
+    const mk = (aspects) => () => real.call(registry).map((e) => { if (e.name !== 'title') return e; const o = Object.assign({}, e); if (aspects) o.aspects = aspects; else delete o.aspects; return o; });
     const beats = () => [{ block: 'title', anchor: { line: 0, word: 'chào' }, params: { text: 'Hi' } }];   // mới mỗi lần: write() gán id nhịp vào object
     registry.all = mk(['16:9']);
     const e = errs(() => t.write(b.o, 'lesson.submit', lessonBody(b, { aspect: '9:16', beats: beats() })));

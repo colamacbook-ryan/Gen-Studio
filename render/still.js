@@ -57,8 +57,12 @@ function armWarm() {
   }, () => {});
 }
 
-// tỉ lệ của một still: opts.aspect → payload.plan.aspect → '16:9'
-function aspectOf(o) { return o.aspect || (o.payload && o.payload.plan && typeof o.payload.plan === 'object' && o.payload.plan.aspect) || '16:9'; }
+// tỉ lệ của một still: opts.aspect → payload.plan.aspect → (mode thumb) tỉ lệ của mẫu ảnh bìa trong spec (A3: spec.template.aspect) → '16:9'
+// A-INT: preview_thumbnail / render_still mode thumb không cần truyền aspect — mẫu dọc tự mở sân khấu 1080×1920.
+function aspectOf(o) {
+  const p = o.payload || {};
+  return o.aspect || (p.plan && typeof p.plan === 'object' && p.plan.aspect) || (o.mode === 'thumb' && p.template && typeof p.template === 'object' && p.template.aspect) || '16:9';
+}
 
 async function runOne(o) {
   const errors = [], asp = aspectOf(o), ad = aspects.get(asp);

@@ -2,7 +2,7 @@
 // F7 gói A3 (SPEC-0.2.0-F7 §5.1, §10.3, CNS-336): dựng ảnh bìa DỌC thật bằng Chromium 1080×1920 + ffmpeg qua đúng đường GSThumb + G-THUMB:
 //   2 mẫu × (ảnh mặt chủ kênh giả · KOL host_lead) ⇒ PNG 1080×1920 → JPEG 720×1280 + 1080×1920 (< 2 MB) ⇒ G-THUMB pass; tất định (L-108: chụp 1:1 cả khung, 2 lần ⇒ cùng byte); 0 lỗi console;
 //   GSThumb tự đặt khung sân khấu theo canvas của mẫu ⇒ KHÔNG phụ thuộc layout sân khấu của A2; mẫu 16:9 dựng liền sau mẫu dọc vẫn ra 1920×1080 như cũ.
-// Hai đường cần A2 (still.js cho phép cao > 1080; renderPlan mở sân khấu theo plan.size) có phép thử riêng, TỰ BẬT khi A2 đã gộp, trước đó skip có lý do.
+// Hai đường cần A2 (still.js cho phép cao > 1080; renderPlan mở sân khấu theo plan.size) là phép thử thật từ A-INT (không skip).
 // Đặt GS_THUMB_OUT=/thư/mục để giữ ảnh mẫu (tự kiểm bằng mắt).
 'use strict';
 const test = require('node:test');
@@ -13,7 +13,7 @@ const { spawnSync } = require('node:child_process');
 const T = require('../render/thumb.js');
 const G = require('../media/gates/thumb.js');
 const still = require('../render/still');
-const { openStage } = require('../render/render');
+const { openStage, renderPlan } = require('../render/render');
 const H = require('./g-thumb-helpers');
 
 const SKIP = H.NO_BROWSER_OR_FFMPEG;
@@ -110,21 +110,37 @@ test('ca âm dựng thật: tiêu đề quá dài bị G-THUMB chặn ở T3 (kh
   } finally { await stage.close(); fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
-// ---- hai đường cần A2: tự bật khi A2 đã gộp (CNS-336) ----
+// ---- hai đường nối A2 × A3 (CNS-336): A-INT gỡ skip — phép thử thật ----
 test.after(() => still.closeStill());
 
-test('renderStill mode thumb 1080×1920 (still.js cho phép cao > 1080) — BẬT LẠI sau khi gộp A2', { skip: SKIP, timeout: 120000 }, async (t) => {
+test('renderStill mode thumb 1080×1920 (still.js theo tỉ lệ, gói A2) — PNG đúng 1080×1920, 0 lỗi', { skip: SKIP, timeout: 120000 }, async () => {
   const [s] = specsOf([VARIANTS[0]]);
-  let r;
-  try { r = await still.renderStill({ mode: 'thumb', payload: Object.assign({}, s), size: [1080, 1920], format: 'png' }); }
-  catch (e) {
-    if (e && e.code === 'still_size') return t.skip('chờ A2: render/still.js hiện chặn cao > 1080 (SPEC F7 §10.3 — A2 sửa still.js theo tỉ lệ); A-INT gỡ skip sau khi gộp');
-    throw e;
-  }
+  const r = await still.renderStill({ mode: 'thumb', payload: Object.assign({}, s), size: [1080, 1920], format: 'png' });
   assert.equal(r.measures.template, 'v-host-top'); assert.deepEqual(r.measures.size, [1080, 1920]);
   assert.deepEqual(r.errors, []);
   // PNG 1080×1920 (IHDR)
   assert.equal(r.buffer.readUInt32BE(16), 1080); assert.equal(r.buffer.readUInt32BE(20), 1920);
 });
 
-test('renderPlan: plan.thumbs dọc → JPEG 720×1280 + 1080×1920 qua đường render.js (renderThumbs theo thumbSizes, viewport theo plan.size) — BẬT LẠI sau khi gộp A2', { skip: 'chờ A2: renderPlan mở sân khấu theo plan.size và renderThumbs hạ JPEG theo aspects.thumbSizes (render/render.js là file của A2); A-INT thay skip bằng phép thử thật' }, () => {});
+test('renderPlan 9:16: plan.thumbs dọc → JPEG 720×1280 + 1080×1920 qua đường render.js (viewport theo plan.size, renderThumbs theo aspects.thumbSizes) ⇒ G-THUMB pass', { skip: SKIP, timeout: 240000 }, async () => {
+  const vplan = H.fixturePlan('9:16'); vplan.duration_ms = 600;
+  assert.equal(vplan.aspect, '9:16'); assert.deepEqual(vplan.size, [1080, 1920]); assert.ok(vplan.layout, 'plan dọc có layout');
+  const specs = T.resolveThumbs({ variants: VARIANTS.slice(0, 2) }, vplan, { beatOrder: H.BEAT_ORDER, faces: [{ asset: FACE, mood: 'shock' }], channelName: 'Lớp AI Bình Dân' });
+  const dir = H.mkdtemp('gs-thumb-vrp-');
+  try {
+    const r = await renderPlan({ plan: Object.assign({}, vplan, { thumbs: specs }), outDir: dir, ffmpegPath: H.FFMPEG });
+    assert.deepEqual(r.errors, []);
+    assert.equal(r.thumbs.length, 2);
+    // khung video của chính bản dựng cũng đúng plan.size (frame JPEG đầu)
+    assert.deepEqual(G.jpegSize(fs.readFileSync(r.framesPattern.replace('%05d', '00000'))), [1080, 1920]);
+    for (const t of r.thumbs) {
+      assert.deepEqual(G.jpegSize(fs.readFileSync(t.jpg1280)), [720, 1280]); assert.deepEqual(G.jpegSize(fs.readFileSync(t.jpg1920)), [1080, 1920]);
+      assert.equal(t.measures.aspect, '9:16'); assert.deepEqual(t.measures.size, [1080, 1920]);
+      if (OUT) { fs.mkdirSync(OUT, { recursive: true }); fs.copyFileSync(t.jpg1920, path.join(OUT, `renderplan-${t.spec.template.id}-${t.index + 1}.jpg`)); }
+    }
+    const g = G.gateThumb({ variants: r.thumbs, ffmpegPath: H.FFMPEG });
+    assert.equal(g.result, 'pass', JSON.stringify(g.measure.variants.map((v) => v.fails)));
+    assert.ok(r.measures && r.measures.samples.length > 0, 'bản dựng dọc có số đo vùng an toàn');
+    assert.ok(Number.isFinite(r.cover_frame_ms));
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});

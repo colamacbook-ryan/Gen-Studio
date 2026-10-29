@@ -59,11 +59,11 @@ function flatPng(file, { bg, box }) {
 }
 
 // ---- plan mẫu: 2 câu, 3 nhịp (BT-0001 title · BT-0002 prob-card · BT-0003 stamp), cast mặc định CM-0001 Anh Gen / CM-0002 Bé Hỏi ----
-function fixturePlan() {
+function fixturePlan(aspect) {   // aspect (F7): bỏ trống = 16:9 như cũ; '9:16' ⇒ plan dọc (plan.size, plan.layout)
   const say = 'Anh Gen ơi, sao A.I. nói sai mà vẫn tự tin thế ạ?', toks = say.split(' ');
   const say2 = 'Câu quen thì Hà Nội chiếm chín mươi hai phần trăm.', toks2 = say2.split(' ');
   const mk = (ts, n) => ({ duration_ms: ts.length * 300 + 200, word_times: ts.map((w, i) => ({ w, t0: i * 300, t1: i * 300 + 280 })), envelope: new Array(n).fill(0.5) });
-  return buildPlan({ fps: 10, lesson: { title: 'T', lines: [{ id: 'LN-1', who: 'CM-0002', say }, { id: 'LN-2', who: 'CM-0001', say: say2 }],
+  return buildPlan({ fps: 10, ...(aspect ? { aspect } : {}), lesson: { title: 'T', lines: [{ id: 'LN-1', who: 'CM-0002', say }, { id: 'LN-2', who: 'CM-0001', say: say2 }],
     beats: [
       { id: 'BT-0001', block: 'title', anchor: { line: 'LN-1', word: 'Anh' }, params: { text: 'Vì sao A.I. sai?' } },
       { id: 'BT-0002', block: 'prob-card', anchor: { line: 'LN-2', word: 'Hà' }, params: { prompt: 'Thủ đô của Việt Nam là', options: [['Hà Nội', 92], ['Huế', 4], ['TP.HCM', 3]], pick: 0, chip: '✓ chắc chắn' } },

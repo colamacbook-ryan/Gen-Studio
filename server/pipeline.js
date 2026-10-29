@@ -357,7 +357,8 @@ async function execute(ctx, run, renderId) {
     const put = (kind, file, mime, meta) => write(SYS, 'asset.put', { kind, bytes: fs.readFileSync(file), mime, meta, source: 'system' });
     const outputs = { mp4: put('video', mp4Path, 'video/mp4', { duration_ms: plan.duration_ms }).id, mix: put('audio', mixPath, 'audio/wav', { role: 'mix' }).id };
     // F7 §3.2: khung bìa trong clip (dùng cho metadata xuất) — chỉ ghi khi tỉ lệ ≠ 16:9 để outputs bài cũ không đổi
-    if ((plan.aspect || '16:9') !== '16:9') outputs.cover_frame_ms = aspects.coverFrameMs(plan);
+    // lấy đúng mốc renderPlan đã chụp cover.jpg (r.cover_frame_ms, cùng công thức aspects.coverFrameMs — một nguồn, CNS-337); thiếu (bản dựng giả trong test) ⇒ tính lại
+    if ((plan.aspect || '16:9') !== '16:9') outputs.cover_frame_ms = Number.isFinite(r.cover_frame_ms) ? r.cover_frame_ms : aspects.coverFrameMs(plan);
     srts.forEach(s => { outputs['srt_' + s.lang] = write(SYS, 'asset.put', { kind: 'subtitle', bytes: Buffer.from(s.text, 'utf8'), mime: 'application/x-subrip', meta: { lang: s.lang }, source: 'system' }).id; });
     if (r.cover && fs.existsSync(r.cover)) {
       const head = fs.readFileSync(r.cover).subarray(0, 4);

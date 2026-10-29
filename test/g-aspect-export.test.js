@@ -29,7 +29,11 @@ function stubDeps() {
     render: { async renderPlan({ plan, outDir }) {
       fs.mkdirSync(outDir, { recursive: true });
       const cover = path.join(outDir, 'cover.png'); fs.writeFileSync(cover, PNG);
-      return { framesPattern: path.join(outDir, 'f%05d.png'), frames: Math.ceil(plan.duration_ms / 1000 * 30), fps: 30, errors: [], sfx: {}, cover };
+      const out = { framesPattern: path.join(outDir, 'f%05d.png'), frames: Math.ceil(plan.duration_ms / 1000 * 30), fps: 30, errors: [], sfx: {}, cover };
+      // như renderPlan thật (gói A2): tỉ lệ không legacy ⇒ trả measures (G-SAFE đo) + cover_frame_ms; 16:9 không có hai khoá này
+      if (plan.layout) Object.assign(out, { cover_frame_ms: A.coverFrameMs(plan), measures: { duration_s: plan.duration_ms / 1000, samples: [
+        { t_ms: 1000, kind: 'line', line: plan.lines[0].id, els: [{ role: 'subtitle', line: plan.lines[0].id, box: [72, 860, 808, 144] }, { role: 'logo', box: [816, 300, 72, 72] }] }] } });
+      return out;
     } },
     mix: { async mix({ out }) { fs.writeFileSync(out, 'RIFFfake-mix'); return out; }, async mux({ out }) { fs.writeFileSync(out, 'fake-mp4'); return out; } },
     gates: { gateWavB: async () => ({ gate: 'G-WAV', result: 'pass', measure: { tier: 'b' } }), voiceGates: realGates.voiceGates, tailSig: realGates.tailSig, summarize: realGates.summarize,
