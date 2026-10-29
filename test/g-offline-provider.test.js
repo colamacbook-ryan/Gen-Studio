@@ -275,3 +275,19 @@ test('G-SCRIPT: câu ≤ 3 từ với giám khảo ASR nới ngưỡng (xa vậy
   const long = V.gateScript({ judge: { asr: true, matches: false, transcript: 'Nên luôn kiểm tra nguồn nha' }, script: 'Nên luôn kiểm tra nguồn nhé, nhé các bạn.' });
   assert.equal(long.measure.short_asr, false); assert.equal(long.result, 'fail');
 });
+
+// W3 (cài thật): whisper chép "92%" còn kịch bản viết "chín mươi hai phần trăm" ⇒ G-SCRIPT trượt oan, 2/2 bài agent giả bị chặn. Đọc số thành chữ cả hai phía.
+test('scoreAsr: số viết bằng chữ số trong lời chép khớp kịch bản viết bằng chữ (và ngược lại)', () => {
+  const say = 'Câu quen, như thủ đô Việt Nam là gì, thì Hà Nội chiếm tới chín mươi hai phần trăm.';
+  const r = offline.scoreAsr({ transcript: 'Câu quen, như Thủ đô Việt Nam là gì, thì Hà Nội chiếm tới 92%.', words: [] }, { script: say, terms: [] });
+  assert.equal(r.matches, true);
+  assert.equal(r.extra_speech, false);
+  assert.equal(r.transcript, 'Câu quen, như Thủ đô Việt Nam là gì, thì Hà Nội chiếm tới 92%.', 'lời chép gốc giữ nguyên để hiển thị');
+  assert.equal(offline.scoreAsr({ transcript: 'Hà Nội chiếm chín mươi hai phần trăm', words: [] }, { script: 'Hà Nội chiếm 92%', terms: [] }).matches, true);
+  assert.equal(offline.scoreAsr({ transcript: 'Hà Nội chiếm 29%', words: [] }, { script: 'Hà Nội chiếm chín mươi hai phần trăm', terms: [] }).matches, false, 'số sai vẫn trượt');
+  const v = offline.viNumbers;
+  assert.equal(v('15 25 21 24 105'), 'mười lăm hai mươi lăm hai mươi mốt hai mươi tư một trăm linh năm');
+  assert.equal(v('1.000 người, năm 2026'), 'một nghìn người, năm hai nghìn không trăm hai mươi sáu');
+  assert.equal(v('0,5 giây'), 'không phẩy năm giây');
+  assert.equal(v('1000000'), 'một triệu');
+});

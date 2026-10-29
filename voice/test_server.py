@@ -246,6 +246,43 @@ class TestModels(unittest.TestCase):
         self.assertEqual(server.verify_model(self.root, spec)[0], True)
         self.assertEqual(urls[-1], 'https://huggingface.co/org/repo/resolve/' + 'a' * 40 + '/w.bin', 'tải đúng revision ghim')
 
+    def test_pull_failure_is_friendly_and_cleans_part(self):
+        # hết đĩa giữa chừng (lỗi thật gặp khi cài W3): không để .part, main trả 1 với lời thân thiện, không stack trace
+        import contextlib
+        import errno as _errno
+        spec = self.manifest['models']['faster-whisper-small']
+
+        class Boom(io.BytesIO):
+            def read(self, n=-1):
+                raise OSError(_errno.ENOSPC, 'No space left on device')
+        with self.assertRaises(OSError):
+            server.pull_model(self.root, spec, log=lambda s: None, opener=lambda req, timeout=None: Boom())
+        self.assertFalse(os.path.exists(os.path.join(self.root, 'm', 'w.bin.part')))
+        msg, fix = server.pull_error(OSError(_errno.ENOSPC, 'x'))
+        self.assertIn('dung lượng', msg)
+        self.assertIn('genstudio voice pull', fix)
+        import urllib.error
+        self.assertIn('huggingface.co', server.pull_error(urllib.error.URLError('down'))[0])
+        self.assertIn('HTTP 404', server.pull_error(urllib.error.HTTPError('u', 404, 'nf', {}, None))[0])
+        orig = server.pull_model
+        server.pull_model = lambda *a, **k: (_ for _ in ()).throw(OSError(_errno.ENOSPC, 'No space left on device'))
+        err = io.StringIO()
+        try:
+            os.environ['GS_VOICE_MODELS'] = self.root
+            mpath = os.path.join(self.root, 'manifest.json')
+            with open(mpath, 'w') as fh:
+                json.dump(self.manifest, fh)
+            os.environ['GS_VOICE_MANIFEST'] = mpath
+            with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+                code = server.main(['server.py', 'pull'])
+        finally:
+            server.pull_model = orig
+            os.environ.pop('GS_VOICE_MODELS', None)
+            os.environ.pop('GS_VOICE_MANIFEST', None)
+        self.assertEqual(code, 1)
+        self.assertIn('Hết dung lượng đĩa', err.getvalue())
+        self.assertNotIn('Traceback', err.getvalue())
+
     def test_manifest_rejects_traversal(self):
         bad = manifest_for(self.root)
         bad['models']['faster-whisper-small'] = dict(bad['models']['faster-whisper-small'], files=[{'path': '../x', 'sha256': 'a' * 64, 'size': 1}])

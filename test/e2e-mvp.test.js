@@ -28,7 +28,7 @@ test('e2e-mvp: lịch → agent giả → pipeline thật → duyệt qua UI →
   const { db } = t.app.ctx;
   try {
     // --- phiên UI của owner (user demo) ---
-    const lg = await request(t.base, 'POST', '/api/login', { body: { username: 'ryan', password: PW }, origin: t.base });
+    const lg = await request(t.base, 'POST', '/api/login', { body: { username: 'owner', password: PW }, origin: t.base });
     assert.equal(lg.status, 200, lg.text);
     const s = { cookie: String(lg.headers['set-cookie']).split(';')[0], csrf: lg.json.csrf };
     const call = ui(t.base, s);

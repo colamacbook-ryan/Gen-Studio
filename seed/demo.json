@@ -1,6 +1,6 @@
 {
   "workspace": { "name": "Gen Studio", "locale": "vi", "timezone": "Asia/Ho_Chi_Minh" },
-  "user": { "username": "ryan", "display_name": "Ryan" },
+  "user": { "username": "owner", "display_name": "Chủ xưởng" },
   "channel": {
     "id": "CH-0001", "name": "Lớp AI Bình Dân", "lang_primary": "vi", "lang_terms": "en",
     "data": {
@@ -58,7 +58,7 @@
       ]
     },
     {
-      "id": "LS-0002", "node": "CU-0002", "title": "Ngữ cảnh (context) là gì?",
+      "id": "LS-0002", "node": "CU-0002", "title": "Ngữ cảnh (context) là gì?", "aspect": "9:16",
       "lines": [
         { "id": "LN-0007", "who": "CM-0002", "say": "Anh Gen ơi, context là gì vậy ạ?", "terms": ["context"], "mood": "curious", "a": 800, "b": 3200 },
         { "id": "LN-0008", "who": "CM-0001", "say": "Context là toàn bộ chữ mà A.I. đang nhìn thấy khi trả lời em.", "terms": ["context", "A.I."], "mood": "calm", "a": 3800, "b": 9000 },
@@ -112,7 +112,8 @@
       ["G-WAV", { "edge_peak_db": -44 }], ["G-SCRIPT", { "matched": 3, "total": 3 }],
       ["G-PRON", { "ok": 2, "total": 2, "terms": ["context", "A.I."] }],
       ["G-LOUD", { "lufs": -15.8, "tp": -1.6 }], ["G-SYNC", { "ok": 2, "total": 2 }],
-      ["G-MOTION", { "longest_still_s": 0.9 }], ["G-FRAMES", { "got": 360, "expected": 360 }], ["G-MUX", { "av_offset_frames": 0 }]
+      ["G-MOTION", { "longest_still_s": 0.9 }], ["G-FRAMES", { "got": 360, "expected": 360 }], ["G-MUX", { "av_offset_frames": 0 }],
+      ["G-SAFE", { "aspect": "9:16", "applicable": true, "samples": 6, "violations": [], "warnings": [], "text_human": "Chữ và khối nằm trong vùng an toàn của khung dọc." }]
     ]
   },
   "runs": [

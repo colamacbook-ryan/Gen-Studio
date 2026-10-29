@@ -37,7 +37,7 @@ async function runAspect(aspect) {
   const { db } = t.app.ctx;
   let runner = null;
   try {
-    const lg = await request(t.base, 'POST', '/api/login', { body: { username: 'ryan', password: PW }, origin: t.base });
+    const lg = await request(t.base, 'POST', '/api/login', { body: { username: 'owner', password: PW }, origin: t.base });
     assert.equal(lg.status, 200, lg.text);
     const call = ui(t.base, { cookie: String(lg.headers['set-cookie']).split(';')[0], csrf: lg.json.csrf });
 

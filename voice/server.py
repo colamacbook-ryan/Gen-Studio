@@ -8,6 +8,7 @@ Chạy:  python server.py serve | pull | verify
 Hợp đồng HTTP: docs/ARCHITECTURE.md §13 (repo gen-studio).
 """
 import base64
+import errno
 import hashlib
 import io
 import json
@@ -17,6 +18,7 @@ import sys
 import threading
 import time
 import unicodedata
+import urllib.error
 import urllib.request
 import wave
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -102,6 +104,19 @@ def verify_model(root, spec):
     return True, 'ok', None
 
 
+def pull_error(e):
+    """Lỗi khi tải model → (lời thân thiện, cách sửa) cho người dùng; không in stack trace."""
+    if isinstance(e, OSError) and e.errno == errno.ENOSPC:
+        return 'Hết dung lượng đĩa khi tải model giọng offline (cần khoảng 1 GB trống).', 'giải phóng đĩa rồi chạy lại: genstudio voice pull'
+    if isinstance(e, urllib.error.HTTPError):
+        return 'huggingface.co trả lỗi HTTP %s khi tải model.' % e.code, 'thử lại sau: genstudio voice pull'
+    if isinstance(e, (urllib.error.URLError, TimeoutError, ConnectionError)):
+        return 'Không kết nối được huggingface.co để tải model.', 'kiểm mạng/proxy rồi chạy lại: genstudio voice pull'
+    if isinstance(e, RuntimeError):
+        return str(e), 'chạy lại: genstudio voice pull (nếu vẫn sai, báo lỗi kèm dòng này)'
+    return 'Tải model giọng offline thất bại.', 'chạy lại: genstudio voice pull'
+
+
 def pull_model(root, spec, log=print, opener=None):
     """Tải từng tệp ở đúng revision qua HTTPS, kiểm sha256 + size trước khi đổi tên (.part → tên thật)."""
     base = model_dir(root, spec)
@@ -115,16 +130,21 @@ def pull_model(root, spec, log=print, opener=None):
         part = dst + '.part'
         h, n, t0 = hashlib.sha256(), 0, time.time()
         req = urllib.request.Request(url, headers={'User-Agent': 'gen-studio-voice/' + VERSION})
-        with (opener or urllib.request.urlopen)(req, timeout=60) as r, open(part, 'wb') as out:
-            while True:
-                b = r.read(1 << 20)
-                if not b:
-                    break
-                n += len(b)
-                if n > int(f['size']):
-                    break
-                h.update(b)
-                out.write(b)
+        try:
+            with (opener or urllib.request.urlopen)(req, timeout=60) as r, open(part, 'wb') as out:
+                while True:
+                    b = r.read(1 << 20)
+                    if not b:
+                        break
+                    n += len(b)
+                    if n > int(f['size']):
+                        break
+                    h.update(b)
+                    out.write(b)
+        except BaseException:
+            if os.path.exists(part):
+                os.remove(part)   # hỏng giữa chừng (mạng, hết đĩa): không để lại .part chiếm chỗ
+            raise
         if n != int(f['size']) or h.hexdigest() != f['sha256']:
             os.remove(part)
             raise RuntimeError('Tệp %s/%s sai kích thước hoặc sha256 — từ chối.' % (spec['repo'], f['path']))
@@ -494,7 +514,12 @@ def main(argv):
         for kind, mid in sel.items():
             spec = manifest['models'][mid]
             print('◐ %s (%s @ %s, %s)' % (mid, spec['repo'], spec['revision'][:12], spec['license']), flush=True)
-            pull_model(root, spec, log=lambda s: print(s, flush=True))
+            try:
+                pull_model(root, spec, log=lambda s: print(s, flush=True))
+            except (OSError, RuntimeError) as e:
+                msg, fix = pull_error(e)
+                print('✗ %s\n   → %s\n   Chi tiết kỹ thuật: %s: %s' % (msg, fix, type(e).__name__, e), file=sys.stderr, flush=True)
+                return 1
         print('✓ Đã tải đủ model vào %s' % root)
         return 0
     if cmd == 'verify':
