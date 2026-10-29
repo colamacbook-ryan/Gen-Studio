@@ -1,0 +1,160 @@
+{
+  "_doc": "Phản hồi mẫu GET /api/aspects (= get_capabilities.aspects, SPEC-0.2.0-F7 §3.5–3.6) — HỢP ĐỒNG cho giao diện (UI-0…). Mọi khoá trừ `blocks`/`thumbnail_templates` = render/aspects.js catalog() (test/h-aspect-contract.test.js so chặt); `blocks` (registry theo tỉ lệ, gói A2) và `thumbnail_templates` (mẫu ảnh bìa theo tỉ lệ, gói A3) là giá trị DỰ KIẾN sau W2-A — route thật phải trả đúng lược đồ này.",
+  "version": 1,
+  "default": "16:9",
+  "aspects": [
+    {
+      "id": "16:9",
+      "size": [
+        1920,
+        1080
+      ],
+      "token": "16x9",
+      "kinds": [
+        "lesson",
+        "tutorial"
+      ],
+      "presets": [
+        "yt_long"
+      ],
+      "enabled": true,
+      "default": true,
+      "safe": null,
+      "target_s": null,
+      "min_font_px": null,
+      "blocks": [
+        "title",
+        "concept-chip",
+        "token-row",
+        "prob-card",
+        "stamp",
+        "takeaway",
+        "lesson-map",
+        "end-card",
+        "illustration",
+        "screen",
+        "cursor",
+        "focus",
+        "callout",
+        "keystroke"
+      ],
+      "thumbnail_templates": [
+        "host-shock-left",
+        "host-shock-right",
+        "duo-versus",
+        "big-visual"
+      ]
+    },
+    {
+      "id": "9:16",
+      "size": [
+        1080,
+        1920
+      ],
+      "token": "9x16",
+      "kinds": [
+        "lesson"
+      ],
+      "presets": [
+        "yt_shorts",
+        "fb_reels",
+        "tiktok"
+      ],
+      "enabled": true,
+      "default": false,
+      "safe": {
+        "ref": "vertical-v1",
+        "hard": [
+          60,
+          220,
+          940,
+          1440
+        ],
+        "soft": [
+          65,
+          288,
+          888,
+          1248
+        ],
+        "verified": false,
+        "sources": [
+          "S1",
+          "S2",
+          "S3",
+          "M2",
+          "T2"
+        ]
+      },
+      "target_s": [
+        30,
+        60
+      ],
+      "min_font_px": 28,
+      "blocks": [
+        "title",
+        "concept-chip",
+        "token-row",
+        "prob-card",
+        "stamp",
+        "takeaway",
+        "lesson-map",
+        "end-card",
+        "illustration"
+      ],
+      "thumbnail_templates": [
+        "v-host-top",
+        "v-big-visual"
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "id": "yt_long",
+      "aspect": "16:9",
+      "platform": "youtube",
+      "max_s": null,
+      "cover": "upload",
+      "source": null,
+      "source_url": null,
+      "checked": null,
+      "verified": null
+    },
+    {
+      "id": "yt_shorts",
+      "aspect": "9:16",
+      "platform": "youtube",
+      "max_s": 180,
+      "cover": "upload_desktop|frame",
+      "source": "Y1",
+      "source_url": "https://support.google.com/youtube/answer/15424877",
+      "checked": "2026-10-29",
+      "verified": true
+    },
+    {
+      "id": "fb_reels",
+      "aspect": "9:16",
+      "platform": "facebook",
+      "max_s": null,
+      "cover": "frame|upload",
+      "source": "M1",
+      "source_url": "https://about.fb.com/news/2025/06/making-it-easier-create-videos-facebook/",
+      "checked": "2026-10-29",
+      "verified": false
+    },
+    {
+      "id": "tiktok",
+      "aspect": "9:16",
+      "platform": "tiktok",
+      "max_s": 1800,
+      "cover": "frame",
+      "grid_crop": [
+        3,
+        4
+      ],
+      "source": "T1",
+      "source_url": "https://support.tiktok.com/en/using-tiktok/creating-videos/creator-tools-on-tiktok",
+      "checked": "2026-10-29",
+      "verified": false
+    }
+  ]
+}
