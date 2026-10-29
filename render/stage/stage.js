@@ -72,6 +72,10 @@
     var E = { world: $('world'), shake: $('shake'), hud: $('hud'), chip: $('chipTop'), sub: $('sub'), full: $('layerFull'), track: $('layerTrack'), pip: $('pip') };
     if (plan.style.brand && window.GSBrand) window.GSBrand.apply(root, plan.style.brand);   // nhận diện kênh (gói B): biến CSS, logo, lower-third, intro
     if (plan.layout) applyLayout(root, plan);   // F7: sau brand ⇒ biến bố cục thắng (CNS-343)
+    // 0.2.x clip dài: cỡ phụ đề theo bài (plan.style.sub_px) + cỡ xuất nhỏ hơn cỡ thiết kế (plan.output) ⇒ CSS zoom cả sân khấu, Chromium vẽ thẳng ở cỡ xuất (chụp 1:1, không clip.scale — L-108)
+    if (plan.style.sub_px) { root.style.setProperty('--sub-size', plan.style.sub_px + 'px'); root.style.setProperty('--sub-who-size', Math.round(plan.style.sub_px * 0.92) + 'px'); }
+    if (plan.style.sub_maxw) root.style.setProperty('--sub-maxw', plan.style.sub_maxw + 'px');
+    if (plan.output) root.style.zoom = String(plan.output[0] / plan.size[0]);
     var reg = registerCast(plan), assets = reg.assets, dir = Dir.makeDirector(plan);
 
     // chip góc trái: tiêu đề bài, hiện khi máy quay rời vùng đầu
@@ -125,11 +129,13 @@
 
     // phụ đề
     var subs = plan.lines.map(function (l) {
-      var html = U.esc(l.say); (l.terms || []).forEach(function (t) { html = html.split(U.esc(t)).join('\u0001' + U.esc(t) + '\u0002'); });
+      var html = U.esc(l.text || l.say); (l.terms || []).forEach(function (t) { html = html.split(U.esc(t)).join('\u0001' + U.esc(t) + '\u0002'); });
       return { line: l, html: html };
     });
     var br = plan.style.brand, brandInk = br && br.tokens && /^#[0-9a-fA-F]{6}$/.test(String(br.tokens.ink || '')) ? br.tokens.ink : null;
     S = { actorFx: actorFx, plan: plan, E: E, ink: inkFilter, brandInk: brandInk, recs: recs, dir: dir, actors: actors, assets: assets, subs: subs, curSub: null, subC: [], subOn: -1, chipT: chipT, ov: ov, impacts: impacts, firstSeek: true };
+    S.poseFade = plan.style.pose_fade_ms > 0 ? plan.style.pose_fade_ms : 0;
+    if (!plan.layout && plan.style.sub_page) { S.paging = { cap: plan.style.sub_page, tr: false, balance: true }; S.subPage = -1; }   // 0.2.x clip dài: câu dài lật trang (≤ cap ký tự/trang) thay vì phủ 3–4 dòng
     if (plan.layout) {   // F7: tâm khung + phụ đề lật trang
       var ls = plan.layout.subtitle || {};
       S.half = [plan.size[0] / 2, plan.size[1] / 2]; S.lastT = 0;
@@ -176,12 +182,20 @@
     toks.forEach(function (k, i) { if (len > 0 && len + 1 + k.n > cap) { starts.push(i); len = k.n; } else len += (len > 0 ? 1 : 0) + k.n; });
     return starts;
   }
+  // 0.2.x clip dài (phụ đề lật trang ở 16:9): số trang như paginate nhưng chia ĐỀU độ dài giữa các trang ⇒ không còn trang cuối 1–2 chữ mồ côi
+  function paginateBalanced(toks, cap) {
+    var total = toks.reduce(function (a, k) { return a + k.n + 1; }, -1), pages = paginate(toks, cap).length;
+    if (pages < 2) return [0];
+    var target = total / pages, starts = [0], len = 0;
+    toks.forEach(function (k, i) { var add = (len > 0 ? 1 : 0) + k.n; if (len > 0 && starts.length < pages && (len + add > cap || len + add / 2 > target)) { starts.push(i); len = k.n; } else len += add; });
+    return starts;
+  }
   function drawSubPaged(t) {
     var E = S.E, P = S.paging, s = null;
     S.subs.forEach(function (x) { if (t >= x.line.a_ms - 120 && t <= x.line.b_ms + 300) s = x; });
     if (s !== S.curSub) {
       S.curSub = s; S.subOn = -1; S.subPage = -1;
-      if (s && !s.toks) { s.toks = subTokens(s); s.pages = paginate(s.toks, P.cap); }
+      if (s && !s.toks) { s.toks = subTokens(s); s.pages = P.balance ? paginateBalanced(s.toks, P.cap) : paginate(s.toks, P.cap); }
       if (!s) { E.sub.innerHTML = ''; S.subC = []; }
     }
     E.sub.style.opacity = s ? 1 : 0;
@@ -208,14 +222,35 @@
     var so = { t: t / 1000, director: d };
     if (a.outline) { so.outline = a.outline; if (S.brandInk) so.ink = S.brandInk; }   // nhân vật của pack: viền nướng vào path + màu mực theo brand ngay trong engine (không hậu xử lý chuỗi)
     var raw = GC.svgString(asset, r.state, so);
-    if (raw !== a.lastRaw) { a.lastRaw = raw; a.last = S.ink && !a.outline ? S.ink(raw) : raw; a.el.innerHTML = a.last; stats.svgRedraws++; }   // inkFilter chỉ chạy khi chuỗi SVG đổi (CNS-088)
+    if (S.poseFade) poseFade(a, t, r, raw, so, asset);   // 0.2.x clip dài: hoà tư thế cũ → mới (không giật khi đổi động tác)
+    else if (raw !== a.lastRaw) { a.lastRaw = raw; a.last = S.ink && !a.outline ? S.ink(raw) : raw; a.el.innerHTML = a.last; stats.svgRedraws++; }   // inkFilter chỉ chạy khi chuỗi SVG đổi (CNS-088)
     if (a.mode === 'pip') { a.el.style.transform = 'scale(' + (0.52 * a.sc * (r.talking ? 1.04 : 1)) + ')'; return; }   // PiP: không chạy vào/ra theo máy quay
     var ts = t / 1000, outP = S.ov ? U.eio(U.seg(ts, S.ov.t_in / 1000, S.ov.t_in / 1000 + 1.5)) : 0, zoom = r.talking ? 1.05 : 1, tx = 0, ty = outP * 30;
     if (a.side === 0) ty += (1 - U.eb(U.seg(ts, 0.5, 1.1))) * 300; else tx = U.lerp(520, 0, U.eo(U.seg(ts, 0, 0.95)));
+    if (r.dx) tx += r.dx;   // 0.2.x: act.move (chạy ra khỏi khung, ló đầu vào)
     var fx = S.actorFx[a.id];
     if (fx && fx.pip > 0) { pipPose(a, fx, tx, ty + a.oy, a.sc * zoom * U.lerp(1, 0.82, outP), r.talking); return; }
     if (a.clipped) { a.el.style.clipPath = ''; a.clipped = false; }
     a.el.style.transform = 'translate(' + tx + 'px,' + (ty + a.oy) + 'px) scale(' + (a.sc * zoom * U.lerp(1, 0.82, outP)) + ')';
+  }
+
+  // ---- hoà tư thế (plan.style.pose_fade_ms, 0.2.x clip dài) ----
+  // Engine Gen-Chibi không nội suy giữa hai động tác/hoạt động: đổi `motion`/`activity`/`state` là tư thế nhảy trong 1 khung (đo được như cú giật).
+  // Khi khoá tư thế (state|motion|activity|view|facing) vừa đổi trong ≤ pose_fade_ms, vẽ thêm tư thế CŨ (đạo diễn tại t − k·33 ms, cùng t) đè lên và mờ dần 1 → 0.
+  // Tất định: chỉ phụ thuộc (plan, t) — tua tới/lui ra cùng kết quả. L-42: chỉ trong lúc chuyển mới có hai SVG; mỗi khung ≤ ceil(fade/33) lần gọi đạo diễn (thuần JS).
+  function poseKey(r) { var d = r.director; return r.state + '|' + (d.motion || '') + '|' + (d.activity || '') + '|' + (d.view || '') + '|' + (d.facing || ''); }
+  function poseFade(a, t, r, raw, so, asset) {
+    if (!a.pfNew) { a.el.innerHTML = '<div class="pf"></div><div class="pf"></div>'; a.pfNew = a.el.children[0]; a.pfOld = a.el.children[1]; a.pfOldRaw = ''; }
+    if (raw !== a.lastRaw) { a.lastRaw = raw; a.pfNew.innerHTML = S.ink && !a.outline ? S.ink(raw) : raw; stats.svgRedraws++; }
+    var F = S.poseFade, step = 1000 / 30, k = poseKey(r), old = null, el = 0;
+    for (var j = 1; j * step <= F + 0.5; j++) { var q = S.dir.act(a.id, t - j * step); if (poseKey(q) !== k) { old = q; el = (j - 0.5) * step; break; } }
+    var op = old ? U.clamp(1 - el / F) : 0;
+    if (op > 0.02) {
+      var o2 = { t: so.t, director: old.director }; if (so.outline) o2.outline = so.outline; if (so.ink) o2.ink = so.ink;
+      var oraw = GC.svgString(asset, old.state, o2);
+      if (oraw !== a.pfOldRaw) { a.pfOldRaw = oraw; a.pfOld.innerHTML = S.ink && !a.outline ? S.ink(oraw) : oraw; }
+      a.pfOld.style.opacity = U.f3(U.eio(op)); a.pfOld.style.visibility = '';
+    } else if (a.pfOld.style.visibility !== 'hidden') { a.pfOld.style.visibility = 'hidden'; a.pfOld.style.opacity = '0'; }
   }
 
   // PiP tròn do khối pip-swap lái (0.2.x): nội suy từ chỗ đứng sân khấu tới vòng tròn {cx, cy, r} (toạ độ khung), vòng cắt thu theo log (không pop).

@@ -39,7 +39,16 @@
     spark: '<path class="y" d="M60 8 L72 48 L112 60 L72 72 L60 112 L48 72 L8 60 L48 48 Z"/>',
     loop: '<path class="n" stroke-width="10" d="M88 44 A32 32 0 1 0 92 70"/><path class="i" d="M76 40 L100 30 L98 56 Z"/>',
     money: '<rect class="l" x="8" y="30" width="104" height="60" rx="8"/><circle class="w" cx="60" cy="60" r="16"/><path class="n" d="M22 44 v32 M98 44 v32"/>',
-    question: '<circle class="b" cx="60" cy="60" r="48"/><path class="n" style="stroke:var(--v-on-ink)" stroke-width="11" d="M44 46 a16 16 0 1 1 22 15 q-6 3 -6 12"/><circle cx="60" cy="90" r="6" style="fill:var(--v-on-ink)" stroke="none"/>'
+    question: '<circle class="b" cx="60" cy="60" r="48"/><path class="n" style="stroke:var(--v-on-ink)" stroke-width="11" d="M44 46 a16 16 0 1 1 22 15 q-6 3 -6 12"/><circle cx="60" cy="90" r="6" style="fill:var(--v-on-ink)" stroke="none"/>',
+    // 0.2.x clip dài (so sánh đời thường): kéo thợ may · hũ muối · muôi nếm · kẻ giả danh · ngôi nhà · trà sữa · ổ đĩa · thước đo
+    scissors: '<circle class="w" cx="32" cy="88" r="16"/><circle class="w" cx="88" cy="88" r="16"/><path class="g" d="M44 76 L92 14 L98 20 L56 82 Z"/><path class="g" d="M76 76 L28 14 L22 20 L64 82 Z"/><circle class="i" cx="60" cy="56" r="5"/>',
+    salt: '<rect class="w" x="30" y="40" width="60" height="70" rx="14"/><path class="g" d="M34 40 a26 14 0 0 1 52 0 v-12 a8 8 0 0 0 -8 -8 h-36 a8 8 0 0 0 -8 8 Z"/><path class="n" d="M48 22 v-6 M60 20 v-8 M72 22 v-6"/><rect class="y" x="40" y="62" width="40" height="26" rx="5"/><path class="n" stroke-width="4" d="M48 75 h24"/>',
+    ladle: '<path class="t" d="M56 14 h8 v58 h-8 Z"/><path class="g" d="M26 70 h68 a34 34 0 0 1 -68 0 Z"/><path class="n" d="M38 82 q22 12 44 0"/><path class="n" stroke-width="4" d="M84 50 q8 -10 0 -20 M96 54 q8 -10 0 -20"/>',
+    mask: '<circle class="t" cx="60" cy="54" r="34"/><path class="i" d="M24 50 q36 -22 72 0 l-4 12 q-32 -14 -64 0 Z"/><circle class="w" cx="46" cy="56" r="7"/><circle class="w" cx="74" cy="56" r="7"/><path class="g" d="M20 108 a40 34 0 0 1 80 0 Z"/><path class="n" d="M48 76 q12 8 24 0"/><path class="r" d="M76 96 h22 v14 h-22 Z"/>',
+    house: '<path class="r" d="M10 58 L60 16 L110 58 L102 66 L60 32 L18 66 Z"/><rect class="w" x="24" y="56" width="72" height="54"/><rect class="t" x="50" y="76" width="22" height="34"/><rect class="b" x="32" y="66" width="14" height="14"/><rect class="b" x="76" y="66" width="14" height="14"/>',
+    boba: '<path class="t" d="M30 36 h60 l-8 70 a6 6 0 0 1 -6 6 h-32 a6 6 0 0 1 -6 -6 Z"/><path class="w" d="M26 28 h68 v10 h-68 Z"/><path class="n" stroke-width="7" d="M66 28 L76 4"/><circle class="i" cx="48" cy="96" r="5" stroke="none"/><circle class="i" cx="60" cy="90" r="5" stroke="none"/><circle class="i" cx="72" cy="98" r="5" stroke="none"/><circle class="i" cx="56" cy="102" r="5" stroke="none"/>',
+    drive: '<rect class="g" x="12" y="36" width="96" height="52" rx="10"/><path class="n" d="M12 70 h96"/><circle class="l" cx="92" cy="79" r="5"/><rect class="y" x="22" y="44" width="40" height="18" rx="4"/>',
+    ruler: '<rect class="y" x="8" y="42" width="104" height="36" rx="6"/><path class="n" stroke-width="4" d="M22 42 v14 M36 42 v8 M50 42 v14 M64 42 v8 M78 42 v14 M92 42 v8"/>'
   };
   var NAMES = Object.keys(P);
   var I = {

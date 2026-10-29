@@ -91,6 +91,10 @@
       });
       list.push.apply(list, done);
     });
+    function actWindow(a, l, t, tail) {
+      var a0 = l.a_ms + (Number.isFinite(a.from_ms) ? a.from_ms : 0), a1 = Number.isFinite(a.to_ms) ? l.a_ms + a.to_ms : l.b_ms + tail;
+      return t >= a0 && t < a1 ? { a: a, t0: a0 } : null;
+    }
     function within(list, t) { for (var i = 0; i < list.length; i++) if (t >= list[i].a && t < list[i].b) return list[i]; return null; }
 
     var api = {
@@ -138,6 +142,23 @@
           canBlink = !d.eyes || ['normal', 'happy', 'half', 'smug'].indexOf(d.eyes) >= 0;
         }
 
+        // 0.2.x clip dài — động tác/đạo cụ của gói nhân vật theo câu: line.act (người nói) · line.react (người nghe; who = id, thiếu ⇒ mọi người không nói).
+        // {activity?|motion?, state?, eyes?, brows?, view?, from_ms?, to_ms?, move?: {from, to, ms} (lệch ngang px: chạy ra khỏi khung / ló đầu vào)} — mốc tương đối đầu câu; thiếu ⇒ cả câu (react: đến hết câu + 600 ms). Ghi đè mood, giữ miệng theo tiếng.
+        if (t < endT) {
+          var ax = null;
+          if (l && l.act) ax = actWindow(l.act, l, t, 0);
+          else if (!l) { var ol = lineAt(null, t) || lineAt(null, t - 600); if (ol && ol.react && (!ol.react.who || ol.react.who === who) && ol.who !== who) ax = actWindow(ol.react, ol, t, 600); }
+          var axT0 = ax ? ax.t0 : 0;
+          var dx = 0;
+          if (ax) {
+            var mv = ax.a.move; ax = ax.a;
+            if (mv && typeof mv === 'object') { var k = Math.min(1, Math.max(0, (t - axT0) / Math.max(1, mv.ms || 600))); k = 1 - Math.pow(1 - k, 3); dx = (mv.from || 0) + ((mv.to || 0) - (mv.from || 0)) * k; }
+            if (ax.activity) { d.activity = ax.activity; delete d.motion; delete d.view; } else if (ax.motion) { d.motion = ax.motion; delete d.view; }
+            if (ax.state) state = ax.state; if (ax.eyes) d.eyes = ax.eyes; if (ax.brows) d.brows = ax.brows; if (ax.view) d.view = ax.view;
+            canBlink = !d.eyes || ['normal', 'happy', 'half', 'smug'].indexOf(d.eyes) >= 0;
+          }
+        }
+
         // PiP (tutorial): gõ phím → typing; bấm chuột → point về phía màn hình (màn hình nằm ở phía ngược với chỗ đứng của PiP)
         if (pip && cursor && t < endT) {
           var typing = (cursor.typing || []).some(function (x) { return t >= x.t0 && t <= x.t1; });
@@ -148,7 +169,9 @@
 
         var lv = api.level(who, t), mo = D.mouthOf(lv); if (mo) d.mouth = mo;
         if (canBlink && blink(ts, idx === 0 ? 0.3 : 1.9)) d.eyes = 'closed';
-        return { state: state, director: d, talking: talking, mood: moodName };
+        var res = { state: state, director: d, talking: talking, mood: moodName };
+        if (dx) res.dx = dx;   // 0.2.x: lệch ngang do act.move (chỉ khi khác 0)
+        return res;
       }
     };
     api.schedule = function () { return { tics: tics, gags: gags, endT: endT }; };

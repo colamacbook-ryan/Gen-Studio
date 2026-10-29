@@ -264,7 +264,9 @@ test('scheduler: schedule.mix mở đúng số lệnh mỗi tỉ lệ (Σn = per
     const b = basics(t.write, t.db), ch = b.ch.display_id;
     for (let i = 1; i <= 9; i++) t.write(b.o, 'curriculum.save', { channel: ch, title: 'Mục ' + i, ord: i });
     const ctx = { db: t.db, write: t.write };
-    const now = new Date('2026-10-29T12:00:00Z');   // sau 06:00 giờ địa phương mọi múi giờ gần VN
+    // mốc lịch phải SAU lúc tạo kênh (đồng hồ thật): ngày mai 12:00Z (sau 06:00 giờ địa phương mọi múi giờ gần VN) — mốc cố định 2026-10-29 cũ hỏng khi đồng hồ thật vượt qua nó
+    const day = (k) => { const d = new Date(); d.setUTCDate(d.getUTCDate() + 1 + k); d.setUTCHours(12, 0, 0, 0); return d; };
+    const now = day(0);
     const sched = (extra) => ({ time: '00:01', per_run: 3, ...extra });
     // parse: mix đúng được giữ, sai thì rơi về không có mix (per_run giữ nghĩa tổng)
     assert.deepEqual(scheduler.parseSchedule(sched({ mix: [{ aspect: '9:16', n: 1 }, { aspect: '16:9', n: 2 }] })).mix, [{ aspect: '9:16', n: 1 }, { aspect: '16:9', n: 2 }]);
@@ -280,13 +282,13 @@ test('scheduler: schedule.mix mở đúng số lệnh mỗi tỉ lệ (Σn = per
     // 2) không mix: lệnh theo kênh (NULL). Đóng 3 lệnh cũ để mục giáo trình được mở tiếp; dùng slot của ngày hôm sau
     t.db.run("UPDATE work_orders SET state='cancelled'");
     t.write(b.o, 'channel.update', { channel: ch, data: { schedule: sched() } });
-    assert.equal(scheduler.openScheduled(ctx, new Date('2026-10-30T12:00:00Z')).length, 3);
+    assert.equal(scheduler.openScheduled(ctx, day(1)).length, 3);
     assert.deepEqual(aspectsOf(), [null, null, null]);
     // 3) mix lưu tay sai (không qua write()) ⇒ bỏ qua, không làm hỏng tick
     t.db.run("UPDATE work_orders SET state='cancelled'");
     const cur = t.db.get('SELECT id, current_version FROM channels WHERE display_id=?', ch);
     t.db.run("UPDATE channel_versions SET data=? WHERE entity_id=? AND version=?", JSON.stringify({ schedule: sched({ mix: [{ aspect: '9:16', n: 9 }] }) }), cur.id, cur.current_version);
-    assert.equal(scheduler.openScheduled(ctx, new Date('2026-10-31T12:00:00Z')).length, 3);
+    assert.equal(scheduler.openScheduled(ctx, day(2)).length, 3);
     assert.deepEqual(aspectsOf(), [null, null, null]);
   } finally { t.clean(); }
 });

@@ -2,7 +2,7 @@
 // Khối `compare-split` (K3): so sánh đời thường — 1 hoặc 2 khung phẳng (vd tổng đài viên | thư ký cầm chìa), 0–4 nhịp hành động neo theo chữ,
 // cuối cùng gắn NHÃN thuật ngữ (CHATBOT / AGENT) lên từng khung — hình trước, chữ sau.
 // Tham số: { panels: [{ title?: ≤24, art: tên biểu tượng (render/blocks/icons.js) | đường dẫn/mã asset, props?: ≤2 biểu tượng phụ, label?: ≤16, tone?: cool|warm|mint|rose|plain }] (1–2),
-//   steps?: [{ panel: 0|1, text: ≤26, icon?: biểu tượng, at?: cue }] (≤4), label_at?: cue, vs?: ≤6 (mặc định "vs" khi 2 khung, "" = ẩn) }
+//   steps?: [{ panel: 0|1, text: ≤26, icon?: biểu tượng, at?: cue }] (≤4), label_at?: cue, vs?: ≤6 (mặc định "vs" khi 2 khung, "" = ẩn), source?: ≤90 (dòng nguồn trích dẫn dưới khung) }
 // Nhịp mặc định: khung vào 0–0,7 s · nhịp i ở 1,4 + 1,6·i s · nhãn sau nhịp cuối 1,2 s. Mỗi nhịp ≤ 3 khớp động (thẻ nhịp, hình nảy, viền sáng).
 // 9:16: cùng bố cục (khung nội dung 9:16 vẫn nằm ngang), chữ ≥ 40 px thế giới.
 // Ngân sách (L-42): ≤ 8 phần tử động cùng lúc; chỉ transform/opacity; lắng sau nhãn 1 s.
@@ -10,7 +10,7 @@
   'use strict';
   var isNode = typeof module === 'object' && module.exports;
   var U = isNode ? require('./util') : root.GSUtil, I = isNode ? require('./icons') : root.GSIcons;
-  var TONES = ['cool', 'warm', 'mint', 'rose', 'plain'];
+  var TONES = ['cool', 'warm', 'mint', 'rose', 'plain'], SRC_H = 58;   // source?: dòng nguồn nhỏ dưới khung (≥ 28 px thế giới ⇒ ≥ 18 px@720)
   function lay(p, aspect) {
     var v = aspect === '9:16', n = p.panels.length, gap = v ? 70 : 90;
     var pw = n === 2 ? (v ? 470 : 610) : (v ? 760 : 900), W = n * pw + (n - 1) * gap;
@@ -36,7 +36,7 @@
         label: { type: 'string', maxLength: 16 }, tone: { type: 'string', enum: TONES } } } },
       steps: { type: 'array', maxItems: 4, items: { type: 'object', required: ['panel', 'text'], additionalProperties: false, properties: {
         panel: { type: 'integer', minimum: 0, maximum: 1 }, text: { type: 'string', minLength: 1, maxLength: 26 }, icon: { type: 'string', enum: I.names() }, at: { type: 'cue' } } } },
-      label_at: { type: 'cue' }, vs: { type: 'string', maxLength: 6 } } },
+      label_at: { type: 'cue' }, vs: { type: 'string', maxLength: 6 }, source: { type: 'string', maxLength: 90 } } },
     check: function (p) {
       var e = [];
       if (Array.isArray(p.panels) && Array.isArray(p.steps)) p.steps.forEach(function (s, i) { if (s && typeof s.panel === 'number' && s.panel >= p.panels.length) e.push('params.steps[' + i + '].panel: chỉ có ' + p.panels.length + ' khung (đánh số từ 0)'); });
@@ -47,7 +47,7 @@
     assetsOf: function (p) { return (p.panels || []).map(function (x) { return x.art; }).filter(function (a) { return a && !artIsIcon(a); }); },
     mapAssets: function (p, fn) { return Object.assign({}, p, { panels: p.panels.map(function (x) { return artIsIcon(x.art) ? x : Object.assign({}, x, { art: fn(x.art) }); }) }); },
     settleFor: function (p, ctx) { return timing(p, ctx && ctx.cues).label + 1.0; },
-    footprint: function (aspect, p) { var L = lay(p && p.panels ? p : { panels: [{ art: 'key' }, { art: 'key' }] }, aspect); return { w: L.W, h: L.H }; },
+    footprint: function (aspect, p) { var L = lay(p && p.panels ? p : { panels: [{ art: 'key' }, { art: 'key' }] }, aspect); return { w: L.W, h: L.H + (p && p.source ? SRC_H : 0) }; },
     sfx: [{ at: 'in', name: 'swish', vol: 0.3 }],
     sfxTimed: function (p, cues) {
       var T = timing(p, cues), out = [{ t: 0, name: 'swish', vol: 0.3 }];
@@ -65,7 +65,9 @@
           '<div class="cp-s"></div><div class="cp-lb" style="font-size:' + L.lfs + 'px"></div><i class="cp-hl"></i></div>';
       });
       if (L.n === 2) { var vs = p.vs === undefined ? 'vs' : p.vs; if (vs) h += '<div class="cp-vs" style="left:' + (L.pw + L.gap / 2) + 'px;top:' + L.H / 2 + 'px"></div>'; }
+      if (p.source) h += '<div class="cp-src" style="top:' + (L.H + 16) + 'px"></div>';
       box.innerHTML = h;
+      if (p.source) box.querySelector('.cp-src').textContent = p.source;
       var fr = [].slice.call(box.querySelectorAll('.cp-f'));
       fr.forEach(function (f, i) {
         var x = p.panels[i]; f.querySelector('.cp-t').textContent = x.title || ''; f.querySelector('.cp-lb').textContent = x.label || '';

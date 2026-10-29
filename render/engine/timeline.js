@@ -95,13 +95,20 @@ function buildLines(lesson, clips, fps, leadMs) {
     const a = cursor, b = a + dur; cursor = b + (Number.isFinite(l.pause_ms) ? l.pause_ms : GAP_MS);
     const words = rel.map(x => ({ w: x.w, t0: a + Math.round(x.t0), t1: a + Math.round(x.t1) }));
     const envelope = Array.isArray(c.envelope) && c.envelope.length ? c.envelope : synthEnvelope(rel, dur, 30);
-    return { id: l.id, who: l.who, say: l.say, lang: l.lang || 'vi', terms: l.terms || [], subtitle: l.subtitle || null, mood: l.mood || null,
+    const o = { id: l.id, who: l.who, say: l.say, lang: l.lang || 'vi', terms: l.terms || [], subtitle: l.subtitle || null, mood: l.mood || null,
       a_ms: a, b_ms: b, words, envelope, env_fps: 30 };
+    // 0.2.x clip dài: `text` = phụ đề đúng chính tả khi `say` là lời phiên âm cho TTS; `act`/`react` = động tác/đạo cụ của gói nhân vật (người nói / người nghe).
+    // Chỉ thêm khoá khi bài có ⇒ plan cũ trùng byte (golden 16:9).
+    if (typeof l.text === 'string' && l.text.trim() && l.text !== l.say) o.text = l.text;
+    if (l.act && typeof l.act === 'object') o.act = l.act;
+    if (l.react && typeof l.react === 'object') o.react = l.react;
+    return o;
   });
 }
 
 // ---------- bố cục trang vở ----------
-function layout(beats) {
+function layout(beats, pitch) {
+  const PX = pitch ? pitch[0] : PITCH_X, PY = pitch ? pitch[1] : PITCH_Y;   // 0.2.x: world_pitch (clip dài: vùng cách xa hơn ⇒ không ló thẻ hàng xóm ở mép khung)
   // beats đã sắp theo t_in; trả {zones, world}
   const zones = []; let prev = null;
   const lay = [];
@@ -120,7 +127,7 @@ function layout(beats) {
   });
   zones.forEach(z => {
     const col0 = z.idx % COLS, row = Math.floor(z.idx / COLS), col = row % 2 ? COLS - 1 - col0 : col0;
-    z.cx = ORIGIN_X + col * PITCH_X; z.cy = ORIGIN_Y + row * PITCH_Y + (col % 2 ? 30 : 0);
+    z.cx = ORIGIN_X + col * PX; z.cy = ORIGIN_Y + row * PY + (col % 2 ? 30 : 0);
     z.x = Math.round(z.cx - z.w / 2); z.y = Math.round(z.cy - z.h / 2);
     let y = z.y; z.members.forEach(b => { b.slot = { x: Math.round(z.cx - b._fp.w / 2), y: Math.round(y), w: b._fp.w, h: b._fp.h }; y += b._fp.h + STACK_GAP; });
   });
@@ -186,6 +193,33 @@ function v2Fields(input, lesson) {
 // Bố cục mặc định của chỗ đứng: trái x=-40, phải x=1500 (như sân khấu v0.1.x); mode: stage | pip | hidden
 function actorLayout(side, over) { return Object.assign({ mode: 'stage', x: side === 'left' ? -40 : 1500, y: 0, scale: 1 }, over || {}); }
 
+// Cỡ xuất [w, h]: cùng tỉ lệ với cỡ thiết kế, cạnh ≥ 320, nhỏ hơn hoặc bằng cỡ thiết kế (chỉ thu, không phóng); trùng cỡ thiết kế ⇒ null (không khoá mới).
+function outputSize(out, size) {
+  if (out === undefined || out === null) return null;
+  if (!Array.isArray(out) || out.length !== 2 || !out.every(n => Number.isInteger(n) && n >= 320)) throw new PlanError('output_invalid', 'Cỡ xuất phải là [rộng, cao] số nguyên ≥ 320.', { output: out });
+  if (out[0] > size[0] || out[1] > size[1]) throw new PlanError('output_invalid', 'Cỡ xuất ' + out.join('×') + ' lớn hơn cỡ thiết kế ' + size.join('×') + ' (chỉ thu nhỏ).', { output: out, size });
+  if (Math.abs(out[0] / out[1] - size[0] / size[1]) > 0.01) throw new PlanError('output_invalid', 'Cỡ xuất ' + out.join('×') + ' khác tỉ lệ khung ' + size.join('×') + '.', { output: out, size });
+  return out[0] === size[0] && out[1] === size[1] ? null : out.slice();
+}
+
+function worldPitch(p) {
+  if (p === undefined || p === null) return null;
+  if (!Array.isArray(p) || p.length !== 2 || !(p[0] >= 1200 && p[0] <= 4000 && p[1] >= 800 && p[1] <= 3000)) throw new PlanError('world_pitch_invalid', 'world_pitch phải là [ngang 1200–4000, dọc 800–3000].', { world_pitch: p });
+  return p;
+}
+// khung nội dung tuỳ chọn của máy quay (clip dài): [rộng 600–1800, cao 400–1000] ⇒ camera.frameOf(zone, hint, box); thiếu ⇒ {} (như cũ)
+// nhịp lia máy quay tuỳ chọn {min_ms, max_ms} (mặc định 800–1700): clip dài lia chậm hơn để chữ không nhoè/nhấp nháy khi lướt qua
+function panPace(c) {
+  if (c === undefined || c === null) return {};
+  if (typeof c !== 'object' || !(c.min_ms >= 400 && c.max_ms >= c.min_ms && c.max_ms <= 4000)) throw new PlanError('camera_pace_invalid', 'camera_pace phải là {min_ms ≥ 400, max_ms ≥ min_ms, ≤ 4000}.', { camera_pace: c });
+  return { pace: { min: c.min_ms, max: c.max_ms } };
+}
+function frameBox(b) {
+  if (b === undefined || b === null) return {};
+  if (!Array.isArray(b) || b.length !== 2 || !(b[0] >= 600 && b[0] <= 1800 && b[1] >= 400 && b[1] <= 1000)) throw new PlanError('frame_box_invalid', 'frame_box phải là [rộng 600–1800, cao 400–1000].', { frame_box: b });
+  return { frame: (q, h) => camera.frameOf(q, h, b) };
+}
+
 function buildPlan(input) {
   const lesson0 = input.lesson || {};
   const kind = input.kind || lesson0.kind || 'lesson';
@@ -207,7 +241,7 @@ function buildLessonPlan(input) {
   const castIn = dflt ? dflt.cast : input.cast, parts = input.parts || (dflt ? dflt.parts : []);
   // nhận diện kênh (gói B, SPEC §4.5): intro bật ⇒ LEAD_MS = max(1100, intro.duration_ms + 300); khối mở đầu vào đúng lúc intro tan; outro.hold_ms thay END_HOLD_MS
   const bi = input.brand && input.brand.intro && input.brand.intro.enabled && input.brand.intro.kind !== 'none' ? Math.min(3000, input.brand.intro.duration_ms | 0) : 0;
-  const leadMs = bi ? Math.max(LEAD_MS, bi + 300) : LEAD_MS, introMs = bi || INTRO_MS;
+  const leadMs = bi ? Math.max(LEAD_MS, bi + 300) : (Number.isFinite(input.lead_ms) ? Math.max(200, Math.min(3000, Math.round(input.lead_ms))) : LEAD_MS), introMs = bi || INTRO_MS;   // + 0.2.x: lead_ms (clip dài vào thẳng cảnh đầu)
   const endHoldMs = input.brand && input.brand.outro && input.brand.outro.hold_ms > 0 ? input.brand.outro.hold_ms : END_HOLD_MS;
   const lines = buildLines(lesson, input.clips, fps, leadMs);
   const byId = {}; lines.forEach(l => { byId[l.id] = l; });
@@ -242,7 +276,7 @@ function buildLessonPlan(input) {
   if (beats.length && registry.get(beats[0].block).intro) beats[0].t_in = Math.min(beats[0].t_in, introMs);
   // toàn cảnh + thẻ kết: dùng beat của bài nếu có, không thì tự thêm
   let ov = beats.filter(b => b.block === 'lesson-map').pop();
-  const noOv = !!(lay && lay.overview === false);   // F7 CNS-346: tỉ lệ tắt toàn cảnh tự thêm ⇒ thẻ kết theo ngay sau câu cuối
+  const noOv = !!(lay && lay.overview === false) || input.overview === false;   // + 0.2.x: bài dài tắt toàn cảnh tự thêm (input.overview=false)   // F7 CNS-346: tỉ lệ tắt toàn cảnh tự thêm ⇒ thẻ kết theo ngay sau câu cuối
   if (!ov && noOv) ov = null;
   else if (!ov) { ov = { id: 'AUTO-lesson-map', block: 'lesson-map', params: {}, anchor: null, line: null, t_anchor: lastEnd + OVERVIEW_LEAD_MS, t_in: lastEnd + OVERVIEW_LEAD_MS, _order: 1e6 }; beats.push(ov); }
   let end = beats.filter(b => b.block === 'end-card').pop();
@@ -256,7 +290,7 @@ function buildLessonPlan(input) {
 
   // morph: prob-card liền ngay trước (không khối nào chen giữa) → cùng một thẻ
   beats.forEach((b, i) => { const d = registry.get(b.block); const p = beats[i - 1]; if (d.morphs && p && p.block === b.block) b.morphFrom = p.id; });
-  const { zones, world } = lay ? layoutLay(beats, lay.world, AD.size, aspect) : layout(beats);
+  const { zones, world } = lay ? layoutLay(beats, lay.world, AD.size, aspect) : layout(beats, worldPitch(input.world_pitch));
   const duration = Math.round(Math.max(lastEnd + TAIL_MS, end.t_in + endHoldMs));
 
   // t_out: chuỗi morph kết thúc khi link kế tiếp vào; còn lại ở lại trang đến hết clip
@@ -269,7 +303,7 @@ function buildLessonPlan(input) {
   const hints = {};
   (Array.isArray(lesson.camera_hints) ? lesson.camera_hints : []).forEach(h => { const b = beats.find(x => x.id === h.beat); if (b) { const zi = zones.findIndex(q => q.id === b.zone); if (zi >= 0) hints[zi] = h; } });
   const cam = camera.build(Object.assign({ zones: zones.map(z => ({ cx: z.cx, cy: z.cy, w: z.w, h: z.h, x: z.x, y: z.y, tIn: z.tIn, tLast: z.tLast })), hints, overviewT: ov ? ov.t_in : null, durationMs: duration },
-    lay ? camera.layOpts(lay.camera, AD.size) : {}));
+    lay ? camera.layOpts(lay.camera, AD.size) : Object.assign(frameBox(input.frame_box), panPace(input.camera_pace))));
 
   // slot toàn cảnh
   if (ov) ov.slot = { x: 0, y: 0, w: world.w, h: world.h };
@@ -306,9 +340,15 @@ function buildLessonPlan(input) {
     style: { world, zones: zones.map(z => ({ id: z.id, x: z.x, y: z.y, w: z.w, h: z.h, cx: z.cx, cy: z.cy, beats: z.beats })),
       meta: { title: lesson.title || '', tag: lesson.tag || '' }, brand: input.brand || null }   // brand: nhận diện kênh đã chuẩn hoá + hash (gói B; null ⇒ giao diện mặc định v0.1.x)
   };
+  // 0.2.x clip dài: cỡ xuất khác cỡ thiết kế (vd 1280×720 từ sân khấu 1920×1080 — sân khấu thu bằng CSS zoom, chụp 1:1) + cỡ phụ đề; chỉ khi bài yêu cầu
+  const os = outputSize(input.output, plan.size); if (os) plan.output = os;
+  if (input.style && Number.isFinite(input.style.sub_px)) plan.style.sub_px = Math.max(24, Math.min(80, Math.round(input.style.sub_px)));
+  if (input.style && Number.isFinite(input.style.sub_maxw)) plan.style.sub_maxw = Math.max(600, Math.min(1800, Math.round(input.style.sub_maxw)));   // bề rộng tối đa phụ đề (px thiết kế) — lọt giữa hai nhân vật
+  if (input.style && Number.isFinite(input.style.pose_fade_ms) && input.style.pose_fade_ms > 0) plan.style.pose_fade_ms = Math.min(400, Math.round(input.style.pose_fade_ms));   // hoà tư thế khi đổi động tác (stage.js poseFade)
+  if (input.style && Number.isFinite(input.style.sub_page)) plan.style.sub_page = Math.max(20, Math.min(400, Math.round(input.style.sub_page)));   // ký tự tối đa mỗi trang phụ đề
   // F7 §3.2: `layout` (bản phân giải của aspects.json → layout, kèm `safe`) CHỈ khi không legacy ⇒ plan 16:9 không có khoá mới (trùng byte golden)
   if (lay) plan.layout = Object.assign({}, lay, { safe: AD.safe });
   return plan;
 }
 
-module.exports = { buildPlan, validateAnchors, anchorTime, PlanError, LEAD_MS, KINDS, FRAME_PLACES };
+module.exports = { buildPlan, validateAnchors, anchorTime, outputSize, PlanError, LEAD_MS, KINDS, FRAME_PLACES };
