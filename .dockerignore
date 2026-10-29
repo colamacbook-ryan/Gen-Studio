@@ -9,3 +9,5 @@ node_modules
 !.env.example
 dist
 test
+__pycache__
+voice/test_*.py

@@ -1,0 +1,213 @@
+{
+ "schema": 1,
+ "note": "Model gi\u1ecdng offline ghim theo commit Hugging Face + sha256 t\u1eebng t\u1ec7p. S\u1eeda t\u1ec7p n\u00e0y = \u0111\u1ed5i model: c\u1eadp nh\u1eadt ASSET_MANIFEST.md c\u00f9ng l\u00fac.",
+ "models": {
+  "vieneu-v3-turbo-fp32": {
+   "kind": "tts",
+   "repo": "pnnbao-ump/VieNeu-TTS-v3-Turbo",
+   "revision": "61b85e3d937fbbacb387714180e8182823512523",
+   "license": "Apache-2.0",
+   "source": "https://huggingface.co/pnnbao-ump/VieNeu-TTS-v3-Turbo",
+   "dir": "vieneu-v3-turbo",
+   "onnx_subdir": "onnx_update",
+   "files": [
+    {
+     "path": "README.md",
+     "sha256": "5d5bb2de661fabc0e073b3b844dc131696fac3dddd5ea882d10fd9a849108eb7",
+     "size": 15458
+    },
+    {
+     "path": "onnx_update/config.json",
+     "sha256": "17d89d414ee302a82db7b330bf57b4cdf8541569392119c81f552178cafcb79b",
+     "size": 2152
+    },
+    {
+     "path": "onnx_update/tokenizer.json",
+     "sha256": "6cc6bcbe380b8c37bd9f2514e37c5dfa3e00e122c6e3125dae5c4afe48e39158",
+     "size": 22320
+    },
+    {
+     "path": "onnx_update/vieneu_prefill.onnx",
+     "sha256": "27f8b064f6b57b5448e95d095f1959588c005d614678045c2b97ecccf3b7a0f7",
+     "size": 324499
+    },
+    {
+     "path": "onnx_update/vieneu_decode_step.onnx",
+     "sha256": "bedc379cea61ea5d616312750d95ad3924e055856662d19187a889a5edc24ceb",
+     "size": 306134
+    },
+    {
+     "path": "onnx_update/vieneu_acoustic_cached.onnx",
+     "sha256": "f631e3387c788c3d8b9a5ac5df94952af5bc4c4d1049ff8a751e76a246fff2d4",
+     "size": 7207223
+    },
+    {
+     "path": "onnx_update/vieneu_backbone_shared.data",
+     "sha256": "c7c072193db33d0542457e2612c7272c44c4279d1cafaf0aa4c379964911db2f",
+     "size": 415319040
+    },
+    {
+     "path": "onnx_update/vieneu_v3_heads.npz",
+     "sha256": "fb22484baa424bbb775133a6e5f0d00d6299b2b256fbe3312a864b85b9aed01e",
+     "size": 52219622
+    }
+   ]
+  },
+  "vieneu-v3-turbo-int8": {
+   "kind": "tts",
+   "repo": "pnnbao-ump/VieNeu-TTS-v3-Turbo",
+   "revision": "61b85e3d937fbbacb387714180e8182823512523",
+   "license": "Apache-2.0",
+   "source": "https://huggingface.co/pnnbao-ump/VieNeu-TTS-v3-Turbo",
+   "dir": "vieneu-v3-turbo",
+   "onnx_subdir": "onnx_int8",
+   "files": [
+    {
+     "path": "README.md",
+     "sha256": "5d5bb2de661fabc0e073b3b844dc131696fac3dddd5ea882d10fd9a849108eb7",
+     "size": 15458
+    },
+    {
+     "path": "onnx_int8/config.json",
+     "sha256": "a9f8d9c4b4736448ab355d1a98cfe48f5e39aecf2916c37b0806c228612e9a2d",
+     "size": 2152
+    },
+    {
+     "path": "onnx_int8/tokenizer.json",
+     "sha256": "6cc6bcbe380b8c37bd9f2514e37c5dfa3e00e122c6e3125dae5c4afe48e39158",
+     "size": 22320
+    },
+    {
+     "path": "onnx_int8/vieneu_prefill.onnx",
+     "sha256": "c6a80dabf67c820de798f8deb7d4e0f37d81b5d76e33fbe20ab5a67f2d371f4e",
+     "size": 1090823
+    },
+    {
+     "path": "onnx_int8/vieneu_decode_step.onnx",
+     "sha256": "2c5b30bd8ccb751c58d651f44c074df10c4113efd08719adaa8e3dec6a6ce2ca",
+     "size": 1062040
+    },
+    {
+     "path": "onnx_int8/vieneu_acoustic_cached.onnx",
+     "sha256": "f631e3387c788c3d8b9a5ac5df94952af5bc4c4d1049ff8a751e76a246fff2d4",
+     "size": 7207223
+    },
+    {
+     "path": "onnx_int8/vieneu_backbone_shared.data",
+     "sha256": "bb683925f7c8d826fadca4f8a0252ae4d5fc5b7837c14f6857e18f4c6666588d",
+     "size": 103891968
+    },
+    {
+     "path": "onnx_int8/vieneu_v3_heads.npz",
+     "sha256": "fb22484baa424bbb775133a6e5f0d00d6299b2b256fbe3312a864b85b9aed01e",
+     "size": 52219622
+    }
+   ]
+  },
+  "moss-audio-tokenizer-nano": {
+   "kind": "codec",
+   "repo": "OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano-ONNX",
+   "revision": "ceff0d0749bfb3fa2d61149794ec6feef0d1e1ae",
+   "license": "Apache-2.0",
+   "source": "https://huggingface.co/OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano-ONNX",
+   "dir": "moss-audio-tokenizer-nano",
+   "files": [
+    {
+     "path": "README.md",
+     "sha256": "3c7b9e9ef1c8c5e5c829a077a1d32c1f7aea1668f2bf17ead318ff04bf1e6fe4",
+     "size": 4892
+    },
+    {
+     "path": "codec_browser_onnx_meta.json",
+     "sha256": "3e291c883bb7d11ff2fe8e964e3e495519760358859f35c951254c7741592731",
+     "size": 17036
+    },
+    {
+     "path": "moss_audio_tokenizer_decode_full.onnx",
+     "sha256": "0fbbafe3fd4afa2a019af5c5ced204af6e2d1db044fa40f021525d2aee95b4ac",
+     "size": 681902
+    },
+    {
+     "path": "moss_audio_tokenizer_decode_shared.data",
+     "sha256": "e69d52e0f4e84ca27850557ee54face46632d3a5a16c89bd246c7c408466dcad",
+     "size": 44198912
+    },
+    {
+     "path": "moss_audio_tokenizer_decode_step.onnx",
+     "sha256": "9527c86a29e1837edec1f74db57d5eeaadb3a715af3382703566460afed25855",
+     "size": 351400
+    }
+   ]
+  },
+  "faster-whisper-small": {
+   "kind": "judge",
+   "repo": "Systran/faster-whisper-small",
+   "revision": "536b0662742c02347bc0e980a01041f333bce120",
+   "license": "MIT",
+   "source": "https://huggingface.co/Systran/faster-whisper-small",
+   "dir": "faster-whisper-small",
+   "files": [
+    {
+     "path": "README.md",
+     "sha256": "329373481008c7c38654aff8ecdcf0163c211557cc7ba8e2ef6f2f84b4f75ec8",
+     "size": 1998
+    },
+    {
+     "path": "config.json",
+     "sha256": "b55496ac7940a7ae47d2c01eab40edfd8701feec1229d9cce3b40014383fb828",
+     "size": 2370
+    },
+    {
+     "path": "model.bin",
+     "sha256": "3e305921506d8872816023e4c273e75d2419fb89b24da97b4fe7bce14170d671",
+     "size": 483546902
+    },
+    {
+     "path": "tokenizer.json",
+     "sha256": "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab",
+     "size": 2203239
+    },
+    {
+     "path": "vocabulary.txt",
+     "sha256": "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913",
+     "size": 459861
+    }
+   ]
+  },
+  "faster-whisper-medium": {
+   "kind": "judge",
+   "repo": "Systran/faster-whisper-medium",
+   "revision": "08e178d48790749d25932bbc082711ddcfdfbc4f",
+   "license": "MIT",
+   "source": "https://huggingface.co/Systran/faster-whisper-medium",
+   "dir": "faster-whisper-medium",
+   "files": [
+    {
+     "path": "README.md",
+     "sha256": "a30144a6232423e5e4e9e17952b5a543a506dc0cb9de02fd9d875d7ec40fef83",
+     "size": 2005
+    },
+    {
+     "path": "config.json",
+     "sha256": "3622a2ddc41ec0e0fd4e68c13c6830f03b90c38d89aaad184de02c8c642cf807",
+     "size": 2257
+    },
+    {
+     "path": "model.bin",
+     "sha256": "9b45e1009dcc4ab601eff815b61d80e60ce3fd8c74c1a14f4a282258286b51ae",
+     "size": 1527906378
+    },
+    {
+     "path": "tokenizer.json",
+     "sha256": "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab",
+     "size": 2203239
+    },
+    {
+     "path": "vocabulary.txt",
+     "sha256": "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913",
+     "size": 459861
+    }
+   ]
+  }
+ }
+}
