@@ -20,6 +20,8 @@ const grid = {
     // 0.2.0 (thêm sẵn, SPEC §13.2): loại bài (lesson | tutorial…) và bài có đặc tả ảnh bìa không
     kind: { label: 'Loại', type: 'enum', expr: 'lv.kind' },
     thumbnail: { label: 'Ảnh bìa', type: 'bool', expr: 'lv.thumbnail IS NOT NULL' },
+    // F7: tỉ lệ khung của version hiện hành (NULL = 16:9); lọc được bằng `aspect:9:16`
+    aspect: { label: 'Tỉ lệ', type: 'enum', expr: "COALESCE(lv.aspect,'16:9')" },
   },
   sort: '-updated_at',
   footer: rows => ({ count: rows.length, total_duration_ms: sum(rows, 'duration_ms') }),

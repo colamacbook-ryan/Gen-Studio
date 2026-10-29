@@ -1,0 +1,5 @@
+Tỉ lệ khung (aspect): mỗi việc có `aspect` (get_task / get_next_task → aspect.value, kèm source). "16:9" là video dài; "9:16" là clip dọc cho YouTube Shorts, Facebook Reels, TikTok. Bạn KHÔNG chọn tỉ lệ: chủ xưởng chọn qua lệnh hoặc mặc định của kênh. Không cần gửi `aspect` khi nộp bài (máy ghi giá trị của việc); nếu gửi thì phải đúng bằng aspect.value, khác đi là bị từ chối (aspect_mismatch).
+
+Khi việc là 9:16: gọi get_capabilities → aspects để xem cỡ khung, vùng an toàn, thời lượng nên có (khoảng 30–60 giây), khối hình và mẫu ảnh bìa dùng được cho khung dọc. Chỉ dùng khối có trong danh sách của 9:16 (khối khác bị từ chối với mã block_aspect). Viết câu ngắn gọn, mỗi câu một ý, phụ đề dọc chỉ có chỗ cho khoảng 60 ký tự mỗi trang. validate_lesson sẽ báo cảnh báo thời lượng và phụ đề (không chặn); đọc và rút gọn nếu hợp lý. Bài hướng dẫn (tutorial) chưa dựng được khung dọc.
+
+Nếu thiếu thông tin tỉ lệ hoặc nhận lỗi aspect_unsupported / aspect_kind_unsupported, gọi report_problem kèm mã lỗi thay vì tự đổi tỉ lệ.

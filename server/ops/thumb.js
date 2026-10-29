@@ -9,7 +9,10 @@
 const T = require('../../render/thumb.js');
 const { gateThumb } = require('../../media/gates/thumb.js');
 const { thumbEnv } = require('./_thumb-data.js');
+const AS = require('../../render/aspects.js');
 
+// mọi mẫu mọi tỉ lệ (A3: templatesOf('*')); trước khi gộp A3 chỉ có templates() (4 mẫu 16:9)
+const allTemplates = () => (typeof T.templatesOf === 'function' ? T.templatesOf('*') : T.templates());
 const EXAMPLE = '{"variants":[{"template":"host-shock-left","headline":"AI bịa chuyện thế nào?","highlight":"bịa","kicker":"SỰ THẬT","face":{"owner":true,"mood":"shock"},"visual":{"beat":0}},' +
   '{"template":"big-visual","headline":"Máy đoán chữ kế tiếp","face":{"cast":"CM-…","mood":"excited"},"visual":{"beat":1}}]}';
 const { J } = require('./_thumb-data.js');
@@ -22,7 +25,7 @@ const SCHEMA = {
     description: `Ảnh bìa: ${T.RULES.variants_min}–${T.RULES.variants_max} phương án {template, headline (≤ ${T.RULES.words_max} từ, ≤ ${T.RULES.chars_max} ký tự), highlight? (1 từ), kicker? (≤ ${T.RULES.kicker_words_max} từ), face:{owner:true|cast:"CM-…", mood}, sidekick?:{cast, mood}, visual:{beat: số thứ tự nhịp | BT-… } hoặc {asset:"AS-…"}}. Gọi propose_thumbnail_text để lấy khung chữ; get_capabilities → thumbnail.templates để biết mẫu. null = bỏ ảnh bìa (kênh bắt buộc thì bị từ chối).`,
     properties: {
       variants: { type: 'array', minItems: T.RULES.variants_min, maxItems: T.RULES.variants_max, items: { type: 'object', required: ['template', 'headline', 'face', 'visual'], properties: {
-        template: { type: 'string', enum: T.templates().map((t) => t.id) }, headline: { type: 'string' }, highlight: { type: 'string' }, kicker: { type: 'string' },
+        template: { type: 'string', enum: allTemplates().map((t) => t.id) }, headline: { type: 'string' }, highlight: { type: 'string' }, kicker: { type: 'string' },
         face: { type: 'object', properties: { owner: { type: 'boolean' }, cast: { type: 'string' }, mood: MOOD_ENUM } },
         sidekick: { type: 'object', properties: { cast: { type: 'string' }, mood: MOOD_ENUM } },
         visual: { type: 'object', properties: { beat: { type: ['integer', 'string'] }, asset: { type: 'string' } } } } } },
@@ -42,7 +45,9 @@ function register(op, ctx) {
     validate(lv, c) {
       const th = lv.values.thumbnail;
       const pol = (lv.channelData && lv.channelData.policy) || {};
-      const required = pol.thumbnail_required === true || lv.kind === 'tutorial';
+      // F7: tỉ lệ ĐÃ PHÂN GIẢI (ops/aspect.js `resolve` chạy trước mọi validate). Ảnh bìa chỉ bắt buộc khi có ≥ 1 mẫu cùng tỉ lệ (thumbSupported), còn không thì không đòi thứ không thể làm.
+      const asp = AS.get(lv.values.aspect) ? lv.values.aspect : '16:9';
+      const required = (pol.thumbnail_required === true || lv.kind === 'tutorial') && AS.thumbSupported(asp);
       if (th === null || th === undefined) {
         return required ? [{ path: 'thumbnail', text: `thumbnail_required: ${lv.kind === 'tutorial' ? 'Bài hướng dẫn' : 'Kênh này'} bắt buộc có ảnh bìa (policy.thumbnail_required). Thêm thumbnail, ví dụ ${EXAMPLE} — gọi propose_thumbnail_text để lấy khung chữ.` }] : [];
       }
@@ -55,7 +60,20 @@ function register(op, ctx) {
         if (!/^image\//.test(a.mime || '')) return { ok: false, text: `Asset ${ref} không phải ảnh (mime ${a.mime || '?'}).` };
         return { ok: true };
       };
-      return T.validateThumbnail(th, { beatIds: ids, beatCount: (lv.beats || []).length, castOk, assetOk });
+      const errs = T.validateThumbnail(th, { beatIds: ids, beatCount: (lv.beats || []).length, castOk, assetOk, aspect: asp });
+      // mẫu phải cùng tỉ lệ với bài (mẫu không khai `aspect` ⇒ 16:9). Gói A3 báo thumbnail_aspect trong validateThumbnail; ở đây bảo đảm không lọt khi chưa có (không báo trùng).
+      if (typeof T.checkAspect === 'function') errs.push(...T.checkAspect(th, asp));   // A3: kiểm mẫu cùng tỉ lệ (code thumbnail_aspect)
+      if (!errs.some((e) => /thumbnail_aspect/.test(e.text || String(e)))) {
+        const variants = Array.isArray(th.variants) ? th.variants : [];
+        variants.forEach((v, i) => {
+          const tpl = v && allTemplates().find((t) => t.id === v.template);
+          if (tpl && (tpl.aspect || '16:9') !== asp) {
+            const have = AS.thumbSupported(asp) ? allTemplates().filter((t) => (t.aspect || '16:9') === asp).map((t) => t.id).join(', ') : '';
+            errs.push({ path: `thumbnail.variants[${i}].template`, code: 'thumbnail_aspect', text: `thumbnail_aspect: Mẫu "${v.template}" là khung ${tpl.aspect || '16:9'}, bài này ${asp}. ${have ? 'Mẫu dùng được: ' + have + '.' : 'Chưa có mẫu ảnh bìa cho khung ' + asp + ' — bỏ thumbnail (không bắt buộc ở khung này).'}` });
+          }
+        });
+      }
+      return errs;
     },
   });
 

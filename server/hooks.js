@@ -11,21 +11,24 @@ function deepMerge(base, over) {
   return out;
 }
 
-// Cột của lesson_versions mà gói W1 sở hữu (0003). Gửi cột này khi chưa có phần mở rộng nào đăng ký ⇒ lỗi rõ (tính năng chưa bật / F4 bị cắt, §13.4).
-const EXT_COLUMNS = ['variant', 'thumbnail', 'screens', 'host', 'music'];
+// Cột của lesson_versions mà gói W1 sở hữu (0003) + `aspect` (0005, F7). Gửi cột này khi chưa có phần mở rộng nào đăng ký ⇒ lỗi rõ (tính năng chưa bật / F4 bị cắt, §13.4).
+const EXT_COLUMNS = ['variant', 'thumbnail', 'screens', 'host', 'music', 'aspect'];
 
 function createExt() {
   // ---- lessonExt: phần mở rộng lược đồ bài (T: thumbnail · U: kind/variant/screens/host/music) ----
   // register({ name, columns:[cột lesson_versions], kinds?:[loại bài mới nhận], schema?:{properties:{…}}  // gộp vào inputSchema validate/submit/update_lesson
+  //            resolve?(lv, ctx) → giá trị  (F7, CNS-330; MỘT cột ⇒ trả giá trị, nhiều cột ⇒ trả {cột: giá trị})
   //            validate?(lv, ctx) → [{path,text}] | [chuỗi] })
-  //   lv  = { kind, values:{[cột]: giá trị đã gộp (payload hoặc kế thừa version trước)}, payload, lines, beats, channel, channelData, prev, isNew }
+  //   lv  = { kind, values:{[cột]: giá trị đã gộp (payload hoặc kế thừa version trước)}, payload, lines, beats, channel, channelData, prev, isNew, workOrder, out }
   //   ctx = { db, err, byRef, nonEmpty, ext }
+  //   `resolve` của MỌI phần mở rộng chạy TRƯỚC mọi `validate` (write.js): giá trị trả thay lv.values[cột] rồi mới kiểm + lưu, nên `validate` của gói khác (vd ops/thumb.js)
+  //   đọc lv.values.<cột> đã phân giải. Ném lỗi có {code, text_human} ⇒ thành lỗi nộp bài (kèm code). `lv.out[tên]` = chỗ phần mở rộng đặt thông tin phụ trả về cho validate_lesson.
   const exts = [];
   const lessonExt = {
     register(def) {
       if (!def || !def.name) throw new Error('lessonExt.register cần name');
       if (exts.some((e) => e.name === def.name)) throw new Error('lessonExt trùng tên: ' + def.name);
-      const e = { name: def.name, columns: (def.columns || []).filter((c) => c !== 'kind'), kinds: def.kinds || [], schema: def.schema || null, validate: def.validate || null,
+      const e = { name: def.name, columns: (def.columns || []).filter((c) => c !== 'kind'), kinds: def.kinds || [], schema: def.schema || null, validate: def.validate || null, resolve: def.resolve || null,
         ownsKind: (def.columns || []).includes('kind') };
       for (const c of e.columns) if (exts.some((x) => x.columns.includes(c))) throw new Error('lessonExt: cột ' + c + ' đã có chủ');
       exts.push(e);

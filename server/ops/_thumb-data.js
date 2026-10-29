@@ -42,7 +42,7 @@ function previewPlan(db, B) {
       if (!p) continue;
       params = Object.assign({}, params, { asset: p });
     }
-    const fp = def && def.footprint ? def.footprint('16:9', params) : { w: 1000, h: 600 };
+    const fp = def && def.footprint ? def.footprint((B.lv && B.lv.aspect) || '16:9', params) : { w: 1000, h: 600 };   // F7: footprint theo tỉ lệ của bài (NULL = 16:9)
     beats.push({ id: b.display_id, block: b.block_type, params, slot: { x: 0, y: 0, w: fp.w, h: fp.h } });
   }
   const cast = {};

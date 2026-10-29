@@ -65,8 +65,8 @@ test('Sửa brand/policy của kênh: owner ✓, agent ✗ (policy_field) — c�
 test('server/ops/*: module stub là no-op (không đăng ký op nào) và có chủ; gói đã làm thật (B, O, V, U) bị loại khỏi kiểm no-op; U chỉ thêm asset.attest/revoke_attest (ownerUi)', () => {
   const dir = path.join(ROOT, 'server/ops');
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.js') && !f.startsWith('_'));   // `_*.js` = tiện ích (vd _thumb-data.js của gói T), bộ nạp bỏ qua
-  assert.deepEqual(files.sort(), ['brand.js', 'cast.js', 'overview.js', 'publish.js', 'safe.js', 'thumb.js', 'tutorial.js']);
-  const DONE = ['brand.js', 'publish.js', 'cast.js', 'tutorial.js', 'safe.js'];   // gói B, O, V, U đã thay stub bằng bản thật; safe.js = G-SAFE (F7 A2, chỉ ext.gates — test/g-gate-safe.test.js)
+  assert.deepEqual(files.sort(), ['aspect.js', 'brand.js', 'cast.js', 'overview.js', 'publish.js', 'safe.js', 'thumb.js', 'tutorial.js']);
+  const DONE = ['aspect.js', 'brand.js', 'publish.js', 'cast.js', 'tutorial.js', 'safe.js'];   // gói B, O, V, U đã thay stub bằng bản thật; aspect.js = F7 (A1, bản thật ngay từ đầu); safe.js = G-SAFE (F7 A2, chỉ ext.gates — test/g-gate-safe.test.js)
   for (const f of files.filter(x => !DONE.includes(x))) {
     const m = require(path.join(dir, f));
     assert.equal(typeof m.register, 'function', f); assert.ok(m.OWNER, f + ' ghi rõ gói sở hữu');
@@ -166,7 +166,7 @@ test('lessonExt: kind/cột ext — chưa đăng ký ⇒ từ chối rõ; đăng
   try {
     const bb = basics(w.write, w.db);
     const ext = w.write.ext.lessonExt;
-    assert.deepEqual(ext.kinds(), ['lesson', 'tutorial']); assert.deepEqual(ext.columns().sort(), ['host', 'music', 'screens', 'thumbnail', 'variant']);
+    assert.deepEqual(ext.kinds(), ['lesson', 'tutorial']); assert.deepEqual(ext.columns().sort(), ['aspect', 'host', 'music', 'screens', 'thumbnail', 'variant']);   // + aspect (F7)
     assert.deepEqual(ext.schemaProps().thumbnail, { type: 'object' });
     assert.deepEqual(ext.unowned(), [], 'mọi cột 0003 đã có chủ (T giả + U thật)');
     // lưu + validate

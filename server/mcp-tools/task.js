@@ -4,11 +4,26 @@
 const state = require('../state.js');
 const queue = require('../queue.js');
 const { kit } = require('./_kit.js');
+const aspects = require('../../render/aspects.js');
 
 const MAX_PROBLEM_ATTEMPTS = 3;   // agent báo lỗi quá 3 lần → stalled, chủ xưởng xử lý
 
 function tools(ctx) {
-  const { db, write, S, O, need, actorOf, assigned } = kit(ctx);
+  const { db, write, S, O, need, actorOf, assigned, chanData } = kit(ctx);
+
+  // F7 §3.5: tỉ lệ ĐÃ PHÂN GIẢI của việc (§3.3: lệnh → version trước của bài (revise/unblock kế thừa) → mặc định kênh → mặc định hệ thống) kèm nguồn.
+  // Lệnh mang tỉ lệ đã bị tắt ⇒ {value:null, error} thay vì làm hỏng cả get_next_task.
+  function aspectOf(wo) {
+    const prev = wo.lesson_id ? db.get('SELECT aspect, kind FROM lesson_versions WHERE lesson_id=? ORDER BY version DESC LIMIT 1', wo.lesson_id) : null;
+    const ch = db.json(db.get('SELECT * FROM channels WHERE id=?', wo.channel_id));
+    try {
+      const r = aspects.resolve({ workOrder: wo, channelData: ch ? chanData(ch) : {}, kind: (prev && prev.kind) || 'lesson', previous: prev ? { aspect: prev.aspect } : null });
+      return Object.assign({ value: r.aspect, source: r.source }, r.warnings.length ? { warnings: r.warnings } : {});
+    } catch (e) {
+      if (e && e.name === 'AspectError') return { value: null, source: null, error: { code: e.code, text_human: e.text_human } };
+      throw e;
+    }
+  }
 
   function taskView(wo) {
     const ch = db.get('SELECT display_id, name FROM channels WHERE id=?', wo.channel_id);
@@ -17,8 +32,10 @@ function tools(ctx) {
     const t = { work_order: wo.display_id, kind: wo.kind, state: wo.state, brief: wo.brief, attempts: wo.attempts, channel: ch, curriculum_node: cu, lesson: ls, review_notes: [], blocked: null };
     if (wo.review_id) t.review_notes = db.all('SELECT pin_kind, pin_ref, at_ms, text FROM review_notes WHERE review_id=? ORDER BY rowid', wo.review_id);
     if (wo.render_id) { const r = db.json(db.get('SELECT display_id, state, blocked_reason FROM renders WHERE id=?', wo.render_id)); if (r && r.blocked_reason) t.blocked = { render: r.display_id, reason: r.blocked_reason }; }
+    t.aspect = aspectOf(wo);
     t.how_to = wo.kind === 'new_lesson' ? 'Soạn bài mới và nộp bằng submit_lesson (work_order = ' + wo.display_id + ').'
       : 'Sửa bài ' + (ls ? ls.display_id : '') + ' bằng update_lesson (work_order = ' + wo.display_id + '), theo ghi chú/lý do chặn.';
+    if (t.aspect.value && t.aspect.value !== '16:9') t.how_to += ` Bài này dựng ${t.aspect.value} — xem get_capabilities.aspects (cỡ khung, vùng an toàn, khối và mẫu ảnh bìa dùng được); không gửi tỉ lệ khác (aspect_mismatch).`;
     return t;
   }
   const taskText = (t) => `Việc ${t.work_order} (${t.kind}, ${t.state}) — kênh ${t.channel && t.channel.display_id}${t.curriculum_node ? ', mục ' + t.curriculum_node.display_id + ' "' + t.curriculum_node.title + '"' : ''}${t.lesson ? ', bài ' + t.lesson.display_id : ''}.\n${t.brief || ''}\n${t.review_notes.map((n) => `- ghi chú ${n.pin_ref}: ${n.text}`).join('\n')}${t.blocked ? '\nLý do chặn: ' + (t.blocked.reason.text_human || t.blocked.reason.code) : ''}\n${t.how_to}`;

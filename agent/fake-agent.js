@@ -62,13 +62,18 @@ async function handleTask(client, task) {
     return 'unsupported';
   }
   const must = async (name, args) => { const r = await client.call(name, args); if (r.isError) throw new Error(name + ' lỗi: ' + r.text); return r; };
-  let spec = loadSample(process.env.GS_FAKE_SAMPLE);
+  // F7: mẫu theo `aspect` của việc (get_task → aspect.value): 9:16 ⇒ lesson-vertical. KHÔNG gửi `aspect` khi nộp — tỉ lệ đến từ lệnh/kênh và server ghi giá trị đã phân giải (CNS-330).
+  const wantAspect = task.aspect && task.aspect.value;
+  let spec = loadSample(process.env.GS_FAKE_SAMPLE || (wantAspect && wantAspect !== '16:9' ? 'lesson-vertical' : 'lesson'));
   // 0.2.0 (gói T): kênh bật policy.thumbnail_required (kênh TẠO MỚI mặc định bật) mà mẫu chưa có ảnh bìa ⇒ nộp ảnh bìa của mẫu lesson-thumb, như agent thật phải làm (get_capabilities → thumbnail.required)
   if (!(spec.extra && spec.extra.thumbnail)) {
     const caps = await must('get_capabilities', { channel: task.channel.display_id });
-    if (caps.data.thumbnail && caps.data.thumbnail.required) {
+    // ảnh bìa theo tỉ lệ (F7): chỉ nộp khi tỉ lệ của việc có mẫu ảnh bìa (get_capabilities.aspects[].thumbnail_templates); khung dọc chưa có mẫu ⇒ không đòi, không nộp
+    const asp = wantAspect || '16:9', tpls = (((caps.data.aspects || {}).aspects || []).find(a => a.id === asp) || {}).thumbnail_templates;
+    const tplOk = !Array.isArray(tpls) || tpls.length > 0;
+    if (caps.data.thumbnail && caps.data.thumbnail.required && tplOk) {
       const th = JSON.parse(JSON.stringify(loadSample('lesson-thumb').extra.thumbnail)), last = Math.max(0, spec.beats.length - 1);
-      th.variants.forEach(v => { if (v.visual && Number.isInteger(v.visual.beat)) v.visual.beat = Math.min(v.visual.beat, last); });
+      th.variants.forEach((v, i) => { if (v.visual && Number.isInteger(v.visual.beat)) v.visual.beat = Math.min(v.visual.beat, last); if (Array.isArray(tpls) && asp !== '16:9') v.template = tpls[i % tpls.length]; });
       spec = Object.assign({}, spec, { extra: Object.assign({}, spec.extra, { thumbnail: th }) });
     }
   }

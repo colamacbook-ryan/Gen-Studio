@@ -49,6 +49,7 @@ function createWorkOrder(db, f) {
         review_id: f.review_id || null, render_id: f.render_id || null, agent_id: f.agent_id || null,
         state: f.state || 'open', brief: f.brief || null, attempts: 0, opened_at: db.now(),
         closed_at: null, summary: f.summary || null, created_by: f.created_by || 'system',
+        ...(f.aspect ? { aspect: f.aspect } : {}),   // F7: NULL = theo kênh; revise/unblock không đặt ⇒ bài kế thừa tỉ lệ version trước
       }, { prefix: 'WO' });
       db.emitChange({ entity: 'work_order', id: wo.display_id });
       return wo;

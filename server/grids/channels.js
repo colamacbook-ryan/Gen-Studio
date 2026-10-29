@@ -13,6 +13,8 @@ const grid = {
     lang_terms: { label: 'Ngôn ngữ thuật ngữ', type: 'enum', expr: 'ch.lang_terms' },
     version: { label: 'Version', type: 'num', expr: 'ch.current_version' },
     schedule: { label: 'Lịch', type: 'text', expr: "COALESCE(json_extract((SELECT data FROM channel_versions v WHERE v.entity_id=ch.id AND v.version=ch.current_version),'$.schedule.time'), json_extract((SELECT data FROM channel_versions v WHERE v.entity_id=ch.id AND v.version=ch.current_version),'$.schedule.cron'))" },
+    // F7: tỉ lệ mặc định (default_aspect, bí danh cũ `aspect`; thiếu = 16:9)
+    default_aspect: { label: 'Tỉ lệ mặc định', type: 'enum', expr: "COALESCE(json_extract((SELECT data FROM channel_versions v WHERE v.entity_id=ch.id AND v.version=ch.current_version),'$.default_aspect'), json_extract((SELECT data FROM channel_versions v WHERE v.entity_id=ch.id AND v.version=ch.current_version),'$.aspect'), '16:9')" },
   },
   sort: 'display_id',
   footer: rows => ({ count: rows.length }),
