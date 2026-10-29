@@ -1,3 +1,91 @@
 /* © 2026 Gen Labs — All rights reserved.
-   Kiểu của gói UI-R2 — Phòng chiếu (ảnh bìa, cảnh báo nhân vật chưa chốt, bảng cổng động). STUB do P0b tạo (đã nối sẵn trong studio/index.html để gói không phải sửa index.html); gói UI-R2 thêm quy tắc vào đây.
-   Dùng token của styles.css (var(--…)); không tự đặt màu hex mới ngoài token. */
+   Kiểu của gói UI-R2 — Phòng chiếu: player theo tỉ lệ (9:16 dọc), lớp phủ vùng UI nền tảng, số đo G-SAFE, tab Ảnh bìa, cảnh báo nhân vật chưa chốt,
+   công tắc Đã đăng, làn Con trỏ. Chỉ dùng token của styles.css (var(--…)). */
+
+/* ---- player theo tỉ lệ ---- */
+.vid-stage{display:flex;align-items:center;justify-content:center;gap:16px;width:100%;max-width:1000px;min-height:0}
+.vid-box.portrait{width:auto;height:calc(100vh - 300px);min-height:540px;max-height:none;max-width:none;flex:0 0 auto}
+.vid-stage.portrait{flex:1;align-items:stretch;justify-content:center}
+.vid-stage.portrait .vid-box{align-self:center}
+.theater-body.is-portrait .vid-area{justify-content:flex-start;padding-top:12px}
+.theater-body.is-portrait .timeline{flex-basis:148px;height:148px}
+.theater-body.is-portrait .l-beat{height:36px}
+.ov-layer,.ov-mark{position:absolute;inset:0;pointer-events:none}
+.ov-layer svg{width:100%;height:100%;display:block}
+.safe-lab{fill:#ECEAE6;font:600 40px var(--sans);paint-order:stroke;stroke:rgba(8,8,10,.85);stroke-width:8px}
+.ov-box{position:absolute;border:2px solid var(--danger);box-shadow:0 0 0 9999px rgba(8,8,10,.35);border-radius:2px;animation:ovpulse .9s ease-out 2}
+@keyframes ovpulse{50%{border-color:var(--warn)}}
+.ov-btn.on{border-color:var(--ember);color:var(--ember);background:var(--ember-soft)}
+
+/* thông tin tỉ lệ: hàng dưới video (16:9) hoặc cột cạnh video (9:16) */
+.asp-info{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;width:100%;max-width:1000px;font-size:12px}
+.asp-info.side{flex:0 0 240px;width:240px;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px;padding:12px;border:1px solid var(--b1);border-radius:6px;background:var(--surface);align-self:center}
+.asp-row{display:flex;align-items:center;gap:8px}
+.asp-legend{margin:0;line-height:1.5}
+.asp-legend .lg-hard,.asp-legend .lg-soft{display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:-1px;border-radius:2px}
+.asp-legend .lg-hard{background:repeating-linear-gradient(45deg,rgba(229,96,77,.55) 0 3px,rgba(229,96,77,.2) 3px 6px)}
+.asp-legend .lg-soft{border:1.5px dashed var(--warn);margin-right:8px}
+.linkish{background:none;border:0;padding:0;color:var(--ember);display:inline-flex;align-items:center;gap:4px;cursor:pointer;font:inherit}
+.linkish:hover{color:#F2B85C;text-decoration:underline}
+
+/* ---- công tắc Đã đăng ---- */
+.sw{display:inline-flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;position:relative}
+.sw-input{position:absolute;opacity:0;width:32px;height:18px;margin:0;cursor:pointer}
+.sw-track{width:32px;height:18px;border-radius:9px;background:var(--raised);border:1px solid var(--b2);position:relative;transition:background .15s ease-out}
+.sw-track::after{content:"";position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--tx2);transition:transform .15s ease-out}
+.sw-input:checked+.sw-track{background:var(--ok);border-color:var(--ok)}
+.sw-input:checked+.sw-track::after{transform:translateX(14px);background:#111012}
+.sw-input:focus-visible+.sw-track{outline:2px solid var(--ember);outline-offset:2px}
+.sw-input:disabled+.sw-track{opacity:.5}
+
+/* ---- cột phải: tab, cổng, G-SAFE ---- */
+.tabs.small.rv-tabs{padding:0 12px;margin:0;border-bottom:1px solid var(--b1);height:36px}
+.rv-pane{display:flex;flex-direction:column;flex:1;min-height:0}
+.rv-pane[hidden]{display:none!important}
+.gate-row{grid-template-columns:84px 90px 1fr auto}
+.gate-more{width:24px;height:24px}
+.gate-more[aria-expanded="true"]{color:var(--ember)}
+.safe-detail{padding:4px 0 8px 12px;border-left:2px solid var(--b2);margin:4px 0 4px 4px;display:flex;flex-direction:column;gap:4px}
+.safe-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.safe-item{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:baseline;min-height:24px;border-bottom:1px solid var(--b1)}
+.safe-item .rule{font-size:11px}
+.blk.gmark{background:var(--danger);width:8px!important;height:8px;top:2px!important;border-radius:50%;padding:0;min-width:8px}
+.cast-warn-box:empty{display:none}
+.cast-warn-box{padding:8px 12px 0}
+.cast-warn{margin:0 0 8px}
+.cast-warn .banner-main{align-items:flex-start}
+.cast-warn ul{margin:0;padding:0;list-style:none;flex:1;display:flex;flex-direction:column;gap:2px}
+.decide-line{display:flex;align-items:center;gap:8px;color:var(--tx)}
+
+/* ---- tab Ảnh bìa ---- */
+.thumb-panel{gap:12px}
+.thumb-head{display:flex;align-items:center;gap:8px}
+.thumb-head .btn.on{border-color:var(--ember);color:var(--ember)}
+.thumb-grid{display:grid;grid-template-columns:1fr;gap:12px}
+.thumb-grid.vert{grid-template-columns:repeat(3,1fr);gap:8px}
+.thumb-card{display:flex;flex-direction:column;gap:6px;padding:6px;background:var(--sunken);border:1px solid var(--b1);border-radius:6px;text-align:left;color:var(--tx)}
+.thumb-card:not(:disabled):hover{border-color:var(--b2);background:var(--raised)}
+.thumb-card.on{border-color:var(--ember);box-shadow:inset 0 0 0 1px var(--ember)}
+.thumb-card.failed{opacity:.6}
+.thumb-card:disabled{cursor:default}
+.thumb-img{position:relative;width:100%;background:#000;border-radius:4px;overflow:hidden;display:grid;place-items:center}
+.thumb-img img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb-grid.shelf .thumb-card{align-items:flex-start}
+.thumb-on{position:absolute;left:6px;top:6px;display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px;border-radius:4px;background:var(--ember);color:#111012;font-size:11px;font-weight:600}
+.thumb-on .ico{width:12px;height:12px}
+.thumb-meta{display:flex;flex-direction:column;gap:2px;min-width:0}
+.thumb-l1{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px;flex-wrap:wrap}
+.thumb-l1 .ico{width:12px;height:12px;vertical-align:-2px}
+.thumb-hl{font-size:12px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thumb-grid.vert .thumb-l1{flex-direction:column;align-items:flex-start}
+
+/* ---- làn Con trỏ (bài hướng dẫn: bàn dựng cao 168 → 196) ---- */
+.timeline.has-cursor{flex-basis:196px;height:196px}
+.l-cursor{height:28px}
+.blk.cur-blk.x-cur{background:var(--ember)}
+.blk.cur-blk.x-foc{background:var(--lane-beat)}
+.blk.cur-blk.x-cal{background:var(--lane-voice)}
+.blk.cur-blk.x-key{background:var(--lane-sfx)}
+.blk.cur-blk.x-scr{background:var(--idle)}
+.blk.cur-blk.pt{width:10px!important;height:10px;min-width:10px;border-radius:50%;padding:0;top:9px!important}
+.blk.cur-blk.bad{outline:2px solid var(--danger);outline-offset:1px}
