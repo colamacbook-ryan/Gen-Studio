@@ -27,6 +27,14 @@ for f in install.sh cli/genstudio tools/*.sh; do
   [[ -f "$f" ]] || continue
   bash -n "$f" 2>/dev/null && ok "bash -n $f" || bad "lỗi cú pháp bash: $f"
 done
+# test hợp đồng sidecar giọng offline (Python thuần, không cần model/numpy/mạng — gói L)
+if [[ -f voice/test_server.py ]]; then
+  if command -v python3 >/dev/null 2>&1; then
+    pyout="$(mktemp)"
+    if python3 -m unittest discover -s voice -p 'test_*.py' >"$pyout" 2>&1; then ok "python3 -m unittest voice/ ($(grep -oE 'Ran [0-9]+ tests' "$pyout"))"; else tail -30 "$pyout"; bad "test sidecar giọng offline đỏ"; fi
+    rm -f "$pyout"
+  else bad "thiếu python3 để chạy voice/test_server.py"; fi
+fi
 # test Node (bỏ qua êm nếu chưa có thư mục test)
 if [[ -d test ]] && ls test/*.test.js >/dev/null 2>&1; then
   # in đúng lần chạy đỏ (chạy lại để in sẽ che test chập chờn)

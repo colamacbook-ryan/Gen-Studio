@@ -111,7 +111,7 @@ function loadBundle(db, render) {
 // Nhà cung cấp chưa chọn model: lấy mục ưu tiên đầu tiên có trong kết quả quét của cùng vendor (bất kỳ hàng nào đã quét);
 // chưa quét lần nào thì dùng mục ưu tiên đầu. Không đoán được thì chặn rõ ràng thay vì gọi model "null".
 // bảng tĩnh — không dựng đường dẫn require từ dữ liệu DB
-const PREFERRED_BY_VENDOR = { gemini: require('../media/providers/gemini.js').PREFERRED };
+const PREFERRED_BY_VENDOR = { gemini: require('../media/providers/gemini.js').PREFERRED, offline: require('../media/providers/offline.js').PREFERRED };
 function defaultModel(db, pv, kind) {
   const byVendor = Object.hasOwn(PREFERRED_BY_VENDOR, pv.vendor) ? PREFERRED_BY_VENDOR[pv.vendor] : {};
   const prefer = Object.hasOwn(byVendor, kind) ? byVendor[kind] : [];
@@ -168,7 +168,8 @@ async function callProvider(ctx, prov, fn) {
         throw new Wait(new Date(Date.now() + secs * 1000).toISOString(), e.text_human || 'Nhà cung cấp hết lượt, sẽ chạy tiếp khi có lượt.');
       }
       if (e.code === 'auth') throw new Block('provider_auth', 'Khoá nhà cung cấp bị từ chối. Kiểm tra lại khoá ở màn Nhà cung cấp.', { vendor: prov.vendor });
-      if (e.code === 'transient') throw new Block('provider_transient', 'Nhà cung cấp lỗi tạm thời nhiều lần liên tiếp.', { vendor: prov.vendor, message: e.message });
+      // offline: chữ của adapter đã nói rõ bước kế tiếp (genstudio voice pull) — giữ nguyên thay vì câu chung (CNS-205)
+      if (e.code === 'transient') throw new Block('provider_transient', prov.vendor === 'offline' && e.text_human ? e.text_human : 'Nhà cung cấp lỗi tạm thời nhiều lần liên tiếp.', Object.assign({ vendor: prov.vendor, message: e.message }, prov.vendor === 'offline' ? { detail: e.detail || null } : {}));
       throw new Block('provider_bad_output', e.text_human || 'Nhà cung cấp trả dữ liệu không dùng được.', { vendor: prov.vendor, message: e.message });
     }
   }
@@ -199,7 +200,8 @@ async function execute(ctx, run, renderId) {
 
   const B = loadBundle(db, render);
   const tts = pickProvider(ctx, 'tts'), judgeP = pickProvider(ctx, 'judge');
-  const prov = D('providers').get(config);
+  // adapter theo vendor của TỪNG kind (vd giọng offline + giám khảo Gemini)
+  const provT = D('providers').get(config, tts.vendor), provJ = D('providers').get(config, judgeP.vendor);
   const wavm = D('wav'), gates = D('gates');
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-render-'));
   const keep = process.env.GS_KEEP_TMP === '1';
@@ -221,7 +223,7 @@ async function execute(ctx, run, renderId) {
       }
     }
     const synth = async it => {
-      const r = await callProvider(ctx, tts, () => prov.tts({ key: tts.key, model: tts.model, voice: it.voice, text: it.l.say, style: it.style || undefined }));
+      const r = await callProvider(ctx, tts, () => provT.tts({ key: tts.key, model: tts.model, voice: it.voice, text: it.l.say, style: it.style || undefined }));
       it.fresh = { raw: r.raw, wav: r.wav, duration_ms: r.duration_ms };
     };
     for (let i = 0; i < missing.length; i++) { alive(); await synth(missing[i]); progress(0.02 + 0.18 * (i + 1) / missing.length); }
@@ -238,7 +240,7 @@ async function execute(ctx, run, renderId) {
       for (let attempt = 1; ; attempt++) {
         alive();
         const base = [...new Set([...(it.l.terms_declared || []), ...extractTerms(it.l.say), ...glossaryTerms(B.channelData, it.l.say)])];
-        const j = await callProvider(ctx, judgeP, () => prov.judge({ key: judgeP.key, model: judgeP.model, wav: it.fresh.wav, script: it.l.say, terms: base }));
+        const j = await callProvider(ctx, judgeP, () => provJ.judge({ key: judgeP.key, model: judgeP.model, wav: it.fresh.wav, script: it.l.say, terms: base }));
         const judged = j && j.terms ? Object.keys(j.terms) : [];
         const termsEffective = [...new Set([...base, ...(j.detected_terms || []).filter(t => judged.includes(t))])];
         const others = items.filter(o => o !== it && o.hash !== it.hash).map(o => o.sig);
@@ -434,7 +436,8 @@ function buildManifest(ctx, B, items, plan, tts, judgeP, registry, extra) {
   return {
     lesson_version: { lesson: B.lesson.display_id, version: B.lv.version },
     lines, channel: { id: B.channel.display_id, version: B.channel.current_version }, cast, blocks,
-    providers: { tts: { vendor: tts.vendor, model: tts.model }, judge: { vendor: judgeP.vendor, model: judgeP.model }, align: { method: 'judge_word_times|chars' } },
+    // align.method: giám khảo offline cho mốc từ bằng ASR (whisper); Gemini giữ chuỗi cũ để manifest bản dựng đang dở không lệch
+    providers: { tts: { vendor: tts.vendor, model: tts.model }, judge: { vendor: judgeP.vendor, model: judgeP.model }, align: { method: judgeP.vendor === 'offline' ? 'asr_word_times|chars' : 'judge_word_times|chars' } },
     engine: { app: ctx.config.version, gen_chibi: gc, chromium: ctx.config.chromiumPath || 'auto', ffmpeg: ffmpegVersion(ctx) },
     camera_plan_hash: crypto.createHash('sha256').update(JSON.stringify(plan.camera || [])).digest('hex'),
     aspect: '16:9', fps: plan.fps || FPS, size: plan.size,
@@ -628,7 +631,7 @@ function exportRender(ctx, render, opts = {}) {
 // ---------- quét provider (STD-10) ----------
 async function scanProvider(ctx, pv, actor) {
   const { db, config } = ctx;
-  const mod = dep(ctx, 'providers').get(config);
+  const mod = dep(ctx, 'providers').get(config, pv.vendor);
   const key = pv.secret_name ? secrets.get(db, db.ws, pv.secret_name) : null;
   let res;
   try { res = await mod.probe({ key }); } catch (e) {
@@ -636,9 +639,10 @@ async function scanProvider(ctx, pv, actor) {
     throw e;
   }
   const mine = (res.models || []).find(m => m.kind === pv.kind && (!pv.model || m.model === pv.model)) || (res.models || []).find(m => m.kind === pv.kind) || null;
-  const scan = { available: mine ? !!mine.available : false, voices: res.voices || [], quota: mine ? mine.quota : { value: null, source: 'unknown' }, models: res.models || [], scanned_at: new Date().toISOString() };
+  const scan = { available: mine ? !!mine.available : false, voices: res.voices || [], quota: mine ? mine.quota : { value: null, source: 'unknown' }, models: res.models || [], scanned_at: new Date().toISOString(),
+    ...(res.service ? { service: res.service } : {}) };   // offline: trạng thái sidecar (missing/loading/ready…) + giọng có tên hiển thị
   ctx.write(actor && actor.type ? actor : SYS, 'provider.scan_result', { provider: pv.display_id, scan });
-  return { models: (res.models || []).map(m => ({ model: m.model, kind: m.kind, available: m.available, quota: m.quota })), voices: scan.voices, scan };
+  return { models: (res.models || []).map(m => ({ model: m.model, kind: m.kind, available: m.available, quota: m.quota })), voices: scan.voices, ...(res.service ? { service: res.service } : {}), scan };
 }
 
 module.exports = { startWorkers, startHeartbeat, requeueRender, exportRender, scanProvider, pickProvider, extractTerms, assetFile, localParts, nextMidnightIso, wsTz, aggregateGates, SYS };

@@ -10,6 +10,7 @@ import { authCard } from './authorize.js';
 import { onDebounced } from '../components/bus.js';
 import { toText, statusTone } from '../components/util.js';
 import { badge } from '../components/states.js';
+import { ensureOffline, offlineStatus, PULL_CMD } from './voice-offline.js';
 
 const PAIR_WINDOW_MS = 10 * 60 * 1000; // cửa sổ ghép 10 phút (PRODUCT-SPEC A3)
 const STEPS = ['owner', 'provider', 'agent', 'channel'];
@@ -76,10 +77,46 @@ export function mount(container, ctx) {
       }, t('common.next'));
   }
 
-  function providerStep() {
+  // Bước Giọng đọc: hai lựa chọn — Gemini (cần khoá) hoặc giọng offline trên máy (không khoá, gói L). Mỗi lựa chọn một nút chính.
+  let voiceMode = 'gemini';
+  function voiceCards() {
+    const card = (id, title, hint) => h('button', { type: 'button', class: 'opt-card' + (voiceMode === id ? ' active' : ''), 'aria-pressed': voiceMode === id ? 'true' : 'false',
+      onclick: () => { if (voiceMode !== id) { voiceMode = id; draw(); } } }, h('strong', null, title), h('div', { class: 'muted small' }, hint));
+    return h('div', { class: 'opt-cards' }, card('gemini', t('voff.opt_gemini'), t('voff.opt_gemini_hint')), card('offline', t('voff.opt_offline'), t('voff.opt_offline_hint')));
+  }
+  function providerStep() { return voiceMode === 'offline' ? offlineStep() : geminiStep(); }
+
+  function offlineStep() {
+    const result = h('div', { class: 'scan' });
+    return formShell(t('setup.provider.title'), t('voff.opt_offline_hint'), [voiceCards(), result],
+      async (msg, row) => {
+        clear(result);
+        const ids = await ensureOffline();
+        row.hidden = true; // đã bật: không mời bật lần nữa
+        result.append(h('div', { class: 'muted mono' }, t('voff.enabled')));
+        const scanBox = h('div');
+        result.append(scanBox, h('button', { type: 'button', class: 'btn primary', onclick: next }, t('common.next')));
+        // quét cả hai hàng (giọng + giám khảo); dịch vụ chưa chạy ⇒ báo lỗi thân thiện + lệnh cần chạy, vẫn đi tiếp được
+        async function runScan() {
+          clear(scanBox);
+          try {
+            let scan = null;
+            for (const id of ids.filter(Boolean)) scan = await post('/api/providers/' + encodeURIComponent(id) + '/scan', {});
+            const st = offlineStatus(scan);
+            if (st) scanBox.append(st);
+            if (!scan || !scan.service || !scan.service.ready) scanBox.append(h('button', { type: 'button', class: 'btn', onclick: runScan }, t('prov.scan')));
+          } catch (ex) {
+            scanBox.append(errorBanner(ex), connectCard(PULL_CMD), h('button', { type: 'button', class: 'btn', onclick: runScan }, t('prov.scan')));
+          }
+        }
+        await runScan();
+      }, t('voff.enable'), skipBtn());
+  }
+
+  function geminiStep() {
     const k = input('password', 'su-key', { autocomplete: 'new-password' });
     const result = h('div', { class: 'scan' });
-    return formShell(t('setup.provider.title'), t('setup.provider.hint'), [inField(t('prov.key'), k), result],
+    return formShell(t('setup.provider.title'), t('setup.provider.hint'), [voiceCards(), inField(t('prov.key'), k), result],
       async (msg, row) => {
         clear(result);
         const key = k.value.trim();

@@ -23,10 +23,13 @@ curl -fsSL -H "Authorization: Bearer $GS_GITHUB_TOKEN" -H "Accept: application/v
 - Lần đầu mất vài phút để dựng image.
 - Cuối cùng installer in ra một **link thiết lập**, chỉ dùng được một lần trong 30 phút. Lỡ hết hạn thì chạy `genstudio open` để lấy link mới.
 - Muốn đổi cổng hoặc thư mục: thêm `--port 7600` và/hoặc `--dir ~/xuong` vào cuối lệnh `bash`.
+- **Chưa có khoá Gemini?** Thêm `--voice-offline` vào cuối lệnh `bash` để cài **giọng offline trên máy** (xem mục 7).
 
 ## 4. Thiết lập lần đầu (trên trình duyệt)
 1. **Chủ xưởng:** tên, tên đăng nhập, mật khẩu (≥ 12 ký tự).
-2. **Giọng đọc:** dán khoá Gemini rồi bấm *Lưu và quét*. Cùng một khoá dùng cho cả giọng đọc lẫn giám khảo phát âm.
+2. **Giọng đọc:** chọn một trong hai:
+   - **Gemini (cần khoá):** dán khoá Gemini rồi bấm *Lưu và quét*. Cùng một khoá dùng cho cả giọng đọc lẫn giám khảo phát âm.
+   - **Giọng offline trên máy (không cần khoá):** bấm *Bật giọng offline*. Màn hình báo *sẵn sàng* khi model đã tải; nếu báo *chưa tải model* thì chạy lệnh nó hiện (`genstudio voice pull`) rồi bấm *Quét lại*.
 3. **Agent:**
    - Trong Terminal chạy `genstudio agent-login` một lần để đăng nhập Claude Code chính chủ vào container agent.
    - Quay lại trình duyệt, bấm **Bật agent nội bộ**. Vài giây sau một thẻ xin quyền hiện ra; bấm **Duyệt**.
@@ -43,8 +46,17 @@ claude mcp add --transport http gen-studio http://localhost:7490/mcp
 ```
 Mở Claude Code và gõ `/mcp`, chọn *gen-studio*, rồi *Authenticate*. Trình duyệt sẽ mở trang **Cấp phép**; chọn phạm vi và bấm **Duyệt**.
 
+## 7. (Tuỳ chọn) Giọng offline trên máy — không cần khoá
+Giọng **VieNeu-TTS** đọc tiếng Việt (25 giọng có sẵn) và giám khảo **faster-whisper** nghe-chép để chấm cổng — chạy hoàn toàn trên máy bạn, không gửi dữ liệu ra ngoài.
+- Bật: `genstudio voice pull` (hoặc cài với `--voice-offline`). Lần đầu tải khoảng **1 GB** model từ huggingface.co (mỗi tệp được kiểm sha256; sai là từ chối).
+- Kiểm: `genstudio voice status` → `● ready … 25 giọng`.
+- Cần khoảng **2 GB RAM** trống và 4 nhân CPU; mỗi câu sinh chậm hơn Gemini một chút (xem ARCHITECTURE §13).
+- Tuỳ chọn trong `.env`: `GS_VOICE_PRECISION=int8` (máy yếu, nhanh hơn ~40 %, chất lượng thấp hơn chút), `GS_VOICE_JUDGE=medium` (giám khảo chính xác hơn, chậm gấp đôi), rồi chạy lại `genstudio voice pull`.
+- Có cả Gemini lẫn offline: xưởng dùng nhà cung cấp **đang bật** có ID nhỏ nhất cho từng việc (giọng / giám khảo). Muốn đổi: màn **Nhà cung cấp** → chọn hàng → *Tắt nhà cung cấp này*. Trộn được, ví dụ giọng offline + giám khảo Gemini.
+- Giới hạn: giám khảo offline chấm phát âm thuật ngữ tiếng Anh bằng cách nghe-chép (thấy đúng chữ tiếng Anh ⇒ đạt), chặt hơn Gemini; câu rất ngắn (vd «À, ra vậy!») dễ bị nghe sai và phải tạo lại. Mac (Apple Silicon) chưa được kiểm.
+
 ## Lệnh hay dùng
-`genstudio status` · `genstudio logs` · `genstudio open` · `genstudio backup` · `genstudio update` · `genstudio stop`
+`genstudio status` · `genstudio logs` · `genstudio open` · `genstudio backup` · `genstudio update` · `genstudio stop` · `genstudio voice status|pull`
 
 ## Lưu ý
 - Gemini gói miễn phí cho khoảng **10 lượt giọng/ngày/model**, đủ để thử. Muốn ra clip đều mỗi ngày cần gói trả phí.

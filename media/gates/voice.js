@@ -90,4 +90,4 @@ function voiceGates({ wav: wavBuf, raw, judge, script, termsEffective = [], othe
   return [gateWavA({ wav: wavBuf, raw, otherTails, opts }), gateScript({ judge, script, opts }), gatePron({ judge, termsEffective })];
 }
 
-module.exports = { voiceGates, gateWavA, gateScript, gatePron, tailSig };
+module.exports = { voiceGates, gateWavA, gateScript, gatePron, tailSig, normText, dist };   // normText/dist dùng chung với giám khảo offline (một công thức)

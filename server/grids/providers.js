@@ -14,6 +14,9 @@ const grid = {
     model: { label: 'Model', type: 'text', expr: 'pv.model', search: true },
     enabled: { label: 'Bật', type: 'bool', expr: 'pv.enabled' },
     models_ready: { label: 'Model sẵn sàng', type: 'num', expr: "(SELECT COUNT(*) FROM json_each(COALESCE(pv.scan,'{}'),'$.models') m WHERE json_extract(m.value,'$.available'))" },
+    // gói L (giọng offline): trạng thái sidecar + giọng quét được (STD-10). Gemini không có service ⇒ trống.
+    service_state: { label: 'Dịch vụ', type: 'enum', expr: "json_extract(pv.scan,'$.service.state')" },
+    voices: { label: 'Giọng', type: 'text', expr: "(SELECT group_concat(v.value, ', ') FROM json_each(COALESCE(pv.scan,'{}'),'$.voices') v)" },
     calls_today: { label: 'Lượt hôm nay', type: 'num', expr: "COALESCE((SELECT u.calls FROM provider_usage u WHERE u.provider_id=pv.id AND u.day=strftime('%Y-%m-%d','now')),0)" },
   },
   sort: 'display_id',

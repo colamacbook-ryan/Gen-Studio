@@ -2,18 +2,20 @@
 # gen-studio — cài một lệnh (Linux, macOS). Không hỏi câu nào; mỗi bước một dòng.
 #   curl -fsSL https://raw.githubusercontent.com/colamacbook-ryan/gen-studio/main/install.sh | bash
 # Tuỳ chọn: --dir <thư mục> (mặc định ~/gen-studio) · --port <cổng> (7490) · --version vX.Y.Z (mặc định: mới nhất)
+#           --voice-offline: thêm giọng offline trên máy (không cần khoá Gemini; tải ~1 GB model lần đầu)
 # Repo riêng tư: đặt GS_GITHUB_TOKEN (fine-grained, Contents: Read-only); token không bao giờ được in ra hay ghi vào .env.
 # © 2026 Gen Labs — All rights reserved.
 set -euo pipefail
 
 REPO="colamacbook-ryan/gen-studio"
-DIR="$HOME/gen-studio"; PORT=7490; VERSION=""
+DIR="$HOME/gen-studio"; PORT=7490; VERSION=""; VOICE=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --dir) DIR="${2:?--dir cần một thư mục}"; shift 2 ;;
     --port) PORT="${2:?--port cần một cổng}"; shift 2 ;;
     --version) VERSION="${2:?--version cần vX.Y.Z}"; shift 2 ;;
-    -h|--help) sed -n 2,6p "$0"; exit 0 ;;
+    --voice-offline) VOICE=1; shift ;;
+    -h|--help) sed -n 2,7p "$0"; exit 0 ;;
     *) echo "✗ Tuỳ chọn lạ: $1 — chạy: bash install.sh --help" >&2; exit 2 ;;
   esac
 done
@@ -87,6 +89,13 @@ fi
 # bí mật ghép nội bộ (studio + agent): sinh một lần, giữ nguyên khi cập nhật
 grep -q '^GS_PAIRING_SECRET=.' .env || echo "GS_PAIRING_SECRET=gsp_$(head -c 32 /dev/urandom | base64 | tr '+/' '-_' | tr -d '=\n')" >> .env
 PORT="$(sed -n 's/^GS_PORT=//p' .env | head -1)"
+# giọng offline (profile compose `voice`): bật bằng --voice-offline; bản cài đã bật thì giữ khi cập nhật. Không hỏi câu nào (STD-06).
+PROFILES="$(sed -n 's/^COMPOSE_PROFILES=//p' .env | head -1)"
+case ",$PROFILES," in *,voice,*) VOICE=1 ;; esac
+if [ "$VOICE" = 1 ] && ! printf ',%s,' "$PROFILES" | grep -q ',voice,'; then
+  PROFILES="${PROFILES:+$PROFILES,}voice"
+  if grep -q '^COMPOSE_PROFILES=' .env; then sed -i.bak "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=$PROFILES/" .env && rm -f .env.bak; else echo "COMPOSE_PROFILES=$PROFILES" >> .env; fi
+fi
 done_ "Cổng $PORT"
 
 # ---- 5. Khoá thiết lập một lần
@@ -109,9 +118,18 @@ AGENT=1
 step "Dựng image agent (Claude Code CLI)"
 if DC build agent >/dev/null 2>&1; then done_ "Image agent sẵn sàng"
 else AGENT=0; warn "Chưa dựng được image agent — xưởng vẫn chạy; agent nội bộ bật sau bằng: genstudio update"; fi
+# giọng offline: dựng image voice + tải model (ghim revision + sha256); hỏng thì xưởng vẫn chạy, báo cách làm lại
+if [ "$VOICE" = 1 ]; then
+  step "Dựng image giọng offline"
+  if DC build voice >/dev/null 2>&1; then done_ "Image voice sẵn sàng"
+    step "Tải model giọng offline (~1 GB, lần đầu vài phút)"
+    if DC run --rm voice-pull; then done_ "Model giọng offline đã kiểm sha256"
+    else warn "Chưa tải xong model giọng offline — chạy lại sau: genstudio voice pull"; fi
+  else VOICE=0; warn "Chưa dựng được image giọng offline — xưởng vẫn chạy; thử lại: genstudio voice pull"; fi
+fi
 step "Khởi động"
 if [ "$AGENT" = 1 ]; then DC up -d >/dev/null 2>&1 || die "Không khởi động được." "chạy: cd $DIR && docker compose up để xem lỗi"
-else DC up -d studio >/dev/null 2>&1 || die "Không khởi động được." "chạy: cd $DIR && docker compose up studio để xem lỗi"; fi
+else DC up -d studio $([ "$VOICE" = 1 ] && echo voice) >/dev/null 2>&1 || die "Không khởi động được." "chạy: cd $DIR && docker compose up studio để xem lỗi"; fi
 done_ "Đã chạy nền"
 
 # ---- 7. Healthcheck
@@ -136,3 +154,4 @@ echo
 echo "Mở liên kết này để thiết lập chủ sở hữu (dùng một lần):"
 echo "  http://localhost:$PORT/#/setup?k=$(cat "$KEYF")"
 echo "Quản lý: genstudio status · logs · backup · update"
+[ "$VOICE" = 1 ] || echo "Chưa có khoá Gemini? Giọng offline trên máy (không cần khoá): genstudio voice pull"
