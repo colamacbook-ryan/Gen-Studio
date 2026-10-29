@@ -15,13 +15,13 @@
       "thumb_sizes": [[720, 1280], [1080, 1920]],
       "layout": {
         "world": { "cols": 1, "pitch": [0, 2000], "origin": [700, 900], "zone_max_h": 900, "min": [1400, 2400], "pad": [700, 1100] },
-        "camera": { "frame_box": [800, 500], "content_center": [476, 650], "z": [0.5, 1.1], "overview_pad_h": 160 },
+        "camera": { "frame_box": [800, 460], "content_center": [476, 606], "z": [0.5, 1.1], "overview_pad_h": 160 },
         "overview": false,
-        "actors": { "scale": 0.8, "x": [40, 680], "bottom": 260 },
-        "subtitle": { "top": 960, "left": 72, "max_w": 808, "font_px": 44, "lines_max": 2, "chars_per_line": 30, "paging": true, "show_translation": false },
-        "logo": { "tl": [72, 300], "tr": [816, 300], "remap": { "bl": "tl", "br": "tr" } },
+        "actors": { "scale": 1.4, "x": [5, 520], "bottom": 300 },
+        "subtitle": { "top": 868, "left": 72, "max_w": 808, "font_px": 44, "lines_max": 2, "chars_per_line": 25, "paging": true, "show_translation": false },
+        "logo": { "tl": [72, 296], "tr": [816, 296], "remap": { "bl": "tl", "br": "tr" } },
         "chip_top": false, "lower_third": false,
-        "end_card": { "top_pct": 40, "center_x": 476, "max_w": 800 }
+        "end_card": { "top_pct": 34, "center_x": 476, "max_w": 800 }
       },
       "safe": { "ref": "vertical-v1", "hard": [60, 220, 940, 1440], "soft": [65, 288, 888, 1248], "verified": false,
         "sources": ["S1", "S2", "S3", "M2", "T2"] }

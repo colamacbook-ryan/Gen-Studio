@@ -73,7 +73,16 @@ async function handleTask(client, task) {
     const tplOk = !Array.isArray(tpls) || tpls.length > 0;
     if (caps.data.thumbnail && caps.data.thumbnail.required && tplOk) {
       const th = JSON.parse(JSON.stringify(loadSample('lesson-thumb').extra.thumbnail)), last = Math.max(0, spec.beats.length - 1);
-      th.variants.forEach((v, i) => { if (v.visual && Number.isInteger(v.visual.beat)) v.visual.beat = Math.min(v.visual.beat, last); if (Array.isArray(tpls) && asp !== '16:9') v.template = tpls[i % tpls.length]; });
+      // mẫu tỉ lệ khác 16:9: đổi sang mẫu cùng tỉ lệ; mẫu không có chỗ cho sidekick ⇒ bỏ sidekick (như agent thật đọc templates_by_aspect[].has_sidekick)
+      const info = ((caps.data.thumbnail || {}).templates_by_aspect || {})[asp] || [];
+      th.variants.forEach((v, i) => {
+        if (v.visual && Number.isInteger(v.visual.beat)) v.visual.beat = Math.min(v.visual.beat, last);
+        if (Array.isArray(tpls) && asp !== '16:9') {
+          v.template = tpls[i % tpls.length];
+          const ti = info.find(x => x.id === v.template);
+          if (v.sidekick && !(ti && ti.has_sidekick)) delete v.sidekick;
+        }
+      });
       spec = Object.assign({}, spec, { extra: Object.assign({}, spec.extra, { thumbnail: th }) });
     }
   }

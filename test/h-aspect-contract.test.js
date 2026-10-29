@@ -226,11 +226,11 @@ test('layoutVars: 16:9 (legacy) không có biến mới; 9:16 đủ biến --lay
   assert.deepEqual(A.layoutVars(DATA.aspects['16:9'].layout), {}); assert.deepEqual(A.layoutVars(null), {}); assert.deepEqual(A.layoutVars(undefined), {});
   const v = A.layoutVars(DATA.aspects['9:16'].layout);
   assert.deepEqual(v, {
-    '--lay-sub-top': '960px', '--lay-sub-left': '72px', '--lay-sub-maxw': '808px', '--lay-sub-font': '44px', '--lay-sub-tr-display': 'none',
-    '--lay-actor-scale': 0.8, '--lay-actor-left-x': '40px', '--lay-actor-right-x': '680px', '--lay-actor-bottom': '260px',
-    '--lay-logo-tl-x': '72px', '--lay-logo-tl-y': '300px', '--lay-logo-tr-x': '816px', '--lay-logo-tr-y': '300px',
+    '--lay-sub-top': '868px', '--lay-sub-left': '72px', '--lay-sub-maxw': '808px', '--lay-sub-font': '44px', '--lay-sub-tr-display': 'none',
+    '--lay-actor-scale': 1.4, '--lay-actor-left-x': '5px', '--lay-actor-right-x': '520px', '--lay-actor-bottom': '300px',
+    '--lay-logo-tl-x': '72px', '--lay-logo-tl-y': '296px', '--lay-logo-tr-x': '816px', '--lay-logo-tr-y': '296px',
     '--lay-chip-display': 'none', '--lay-lt-display': 'none',
-    '--lay-end-top': '40%', '--lay-end-cx': '476px', '--lay-end-maxw': '800px',
+    '--lay-end-top': '34%', '--lay-end-cx': '476px', '--lay-end-maxw': '800px',
   });
   for (const k of Object.keys(v)) assert.match(k, /^--lay-[a-z0-9-]+$/);
   const L = copy(DATA.aspects['9:16'].layout); L.subtitle.top = 900; L.lower_third = true;
