@@ -152,7 +152,14 @@ if [ -f cli/genstudio ]; then
 fi
 
 echo
-echo "Mở liên kết này để thiết lập chủ sở hữu (dùng một lần):"
-echo "  http://localhost:$PORT/#/setup?k=$(cat "$KEYF")"
+# chạy lại để cập nhật: xưởng đã có chủ thì máy chủ đã xoá khoá thiết lập ⇒ không in link rỗng (lỗi thật W3 khi nâng cấp 0.1.1 → 0.2.0: "cat: data/run/admin-key: No such file")
+if curl -fsS "http://127.0.0.1:$PORT/api/setup/state" 2>/dev/null | grep -q '"owner":true'; then
+  echo "Đã cập nhật lên ${VER} — dữ liệu và cấu hình giữ nguyên. Mở xưởng: http://localhost:$PORT"
+elif [ -s "$KEYF" ]; then
+  echo "Mở liên kết này để thiết lập chủ sở hữu (dùng một lần):"
+  echo "  http://localhost:$PORT/#/setup?k=$(cat "$KEYF")"
+else
+  echo "Lấy liên kết thiết lập: genstudio open"
+fi
 echo "Quản lý: genstudio status · logs · backup · update"
 [ "$VOICE" = 1 ] || echo "Chưa có khoá Gemini? Giọng offline trên máy (không cần khoá): genstudio voice pull"

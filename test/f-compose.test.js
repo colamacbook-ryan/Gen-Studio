@@ -227,3 +227,13 @@ test('install.sh --voice-offline: không hỏi câu nào (STD-06), dựng + tả
   const c = read('cli/genstudio');
   assert.match(c, /voice\)/); assert.match(c, /dc run --rm voice-pull/); assert.match(c, /COMPOSE_PROFILES/);
 });
+
+// W3 (nâng cấp thật 0.1.1 → 0.2.0 bằng cách chạy lại installer): xưởng đã có chủ thì khoá thiết lập đã bị xoá ⇒ installer in link rỗng + lỗi `cat`.
+test('install.sh chạy lại trên xưởng đã có chủ: không in link thiết lập rỗng', () => {
+  const s = read('install.sh');
+  const tail = s.slice(s.lastIndexOf('# ---- 8.'));
+  assert.match(tail, /api\/setup\/state[^\n]*"owner":true/, 'hỏi máy chủ đã có chủ chưa');
+  assert.match(tail, /elif \[ -s "\$KEYF" \]/, 'chỉ in link khi còn khoá');
+  const i = tail.indexOf('setup?k=$(cat'), j = tail.indexOf('elif [ -s "$KEYF" ]');
+  assert.ok(j > 0 && i > j, 'cat khoá chỉ nằm trong nhánh có khoá');
+});
