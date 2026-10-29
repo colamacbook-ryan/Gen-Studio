@@ -222,3 +222,73 @@ test('sân khấu v5: text_floor ⇒ lớp .tf (sàn chữ), chip ẩn, người
     assert.deepEqual(errors, []);
   } finally { await st.close(); }
 });
+
+test('exit_ms: thẻ mờ + trượt ra trước lúc máy quay rời vùng, rồi ẩn — không biến mất trong 1 khung; thiếu thì như cũ; sai thì báo lỗi', { skip: SKIP, timeout: 120000 }, async () => {
+  const two = BEATS.concat([{ id: 'B2', block: 'concept-chip', anchor: { line: 'L2', word: 'Khoan' }, params: { text: 'Lỗi ở cách giao việc' } }]);
+  const mk = (x) => buildPlan(Object.assign({ lesson: { title: 'K', lines: LINES, beats: two }, clips: clipsOf(LINES), aspect: '16:9', fps: 30, overview: false, camera_pace: { min_ms: 700, max_ms: 1200, cut_px: 700 } }, x || {}));
+  const a = mk(), p = mk({ exit_ms: 250 });
+  assert.equal(a.beats[0].t_leave, undefined); assert.equal(a.style.exit_ms, undefined);
+  const b1 = p.beats.find((b) => b.id === 'B1'), b2 = p.beats.find((b) => b.id === 'B2');
+  assert.equal(b1.t_leave, b2.t_in - 33, 'rời vùng đúng lúc cắt cảnh'); assert.equal(b2.t_leave, undefined, 'vùng cuối ở lại');
+  assert.throws(() => mk({ exit_ms: 50 }), /exit_ms/);
+  assert.throws(() => buildPlan({ lesson: { title: 'K', lines: LINES, beats: two }, clips: clipsOf(LINES), aspect: '16:9', fps: 30, exit_ms: 250 }), /exit_ms/);
+  const errors = [], st = await openStage({ width: 1920, height: 1080, errors });
+  try {
+    await st.ev('window.__load(' + JSON.stringify(Object.assign({}, p, { fontCss: '' })) + ')');
+    const probe = '(function(){var e=document.querySelector(".b-app"),f="";for(var x=e;x&&x.id!=="stage";x=x.parentElement)if(x.style.filter){f=x.style.filter;break;}var m=/opacity\\(([\\d.]+)\\)/.exec(f);return JSON.stringify({o:m?+m[1]:1,v:getComputedStyle(e).visibility});})()';
+    const at = async (t) => { await st.ev('window.__seek(' + t + ')'); return JSON.parse(await st.ev(probe)); };
+    const frames = []; for (let t = b1.t_leave - 400; t < b1.t_leave + 100; t += 1000 / 30) frames.push(await at(Math.round(t)));
+    const shown = frames.filter((f) => f.v === 'visible');
+    assert.ok(shown.length >= 8, 'thẻ còn hiện trước lúc rời');
+    for (let i = 1; i < shown.length; i++) assert.ok(shown[i].o <= shown[i - 1].o + 1e-6, 'độ đục giảm dần');
+    assert.ok(shown[shown.length - 1].o < 0.15, 'khung cuối trước khi ẩn đã gần trong suốt: ' + shown[shown.length - 1].o);
+    assert.equal(frames[frames.length - 1].v, 'hidden');
+    const mid = await at(b1.t_leave - 125); assert.ok(mid.o > 0.2 && mid.o < 0.8, 'giữa lúc ra: ' + mid.o);
+    assert.equal((await at(b1.t_leave - 600)).o, 1, 'tua lùi ⇒ hiện lại nguyên vẹn (tất định)');
+    assert.deepEqual(errors, []);
+  } finally { await st.close(); }
+});
+
+test('shot: bố cục cảnh (dialogue/side/demo/closeup) đặt lại người dẫn, chuyển cảnh nội suy (không nhảy khung), nền giấy che thẻ ở dialogue/closeup; tất định', { skip: SKIP, timeout: 120000 }, async () => {
+  const sh = registry.get('shot');
+  assert.ok(registry.validate('shot', { kind: 'closeup', host: 'CM-0002' }).ok);
+  assert.equal(registry.validate('shot', { kind: 'zoom' }).ok, false);
+  const plan = { actors: [{ id: 'A' }, { id: 'B' }] };
+  const tg = sh.targets(plan, { kind: 'closeup', host: 'B' });
+  assert.ok(tg.actors.B.s > 2 && tg.actors.B.cx === 960 && tg.actors.A.cx < 0 && tg.bd === 1, 'cận mặt B, A ra khỏi khung');
+  assert.equal(sh.targets(plan, { kind: 'normal' }).actors.A, null);
+  const beats = BEATS.concat([{ id: 'S1', block: 'shot', anchor: { line: 'L1', word: 'Chết' }, params: { kind: 'dialogue' } },
+    { id: 'S2', block: 'shot', anchor: { line: 'L2', word: 'Khoan' }, params: { kind: 'closeup', host: 'CM-0001', dur_s: 0.4 } }]);
+  const p = buildPlan({ lesson: { title: 'K', lines: LINES, beats }, clips: clipsOf(LINES), aspect: '16:9', fps: 30, overview: false }), errors = [];
+  const s2 = p.beats.find((b) => b.id === 'S2');
+  const st = await openStage({ width: 1920, height: 1080, errors });
+  try {
+    await st.ev('window.__load(' + JSON.stringify(Object.assign({}, p, { fontCss: '' })) + ')');
+    const nhi = 'document.querySelectorAll(".actor")[0]';   // CM-0001 = người đầu của cast
+    const scale = async (t) => { await st.ev('window.__seek(' + t + ')'); const m = /scale\(([\d.]+)\)/.exec(await st.ev(nhi + '.style.transform')); return m ? +m[1] : NaN; };
+    const seq = []; for (let t = s2.t_in - 100; t <= s2.t_in + 500; t += 1000 / 30) seq.push(await scale(Math.round(t)));
+    for (let i = 1; i < seq.length; i++) assert.ok(seq[i] - seq[i - 1] < 0.6, 'không nhảy khung: ' + seq.join(','));
+    assert.ok(seq[seq.length - 1] > seq[0] * 1.5, 'cận mặt to hơn hẳn cảnh đối thoại');
+    const bd = '(function(){var o=0;document.querySelectorAll(".b-shot .sh-bd").forEach(function(e){if(getComputedStyle(e.parentElement).visibility!=="hidden")o=Math.max(o,+e.style.opacity||0);});return o;})()';
+    await st.ev('window.__seek(' + (s2.t_in + 600) + ')'); assert.equal(+(await st.ev(bd)), 1);
+    const a1 = await st.ev(nhi + '.style.transform');
+    await st.ev('window.__seek(' + (p.duration_ms - 50) + ')'); await st.ev('window.__seek(' + (s2.t_in + 600) + ')');
+    assert.equal(await st.ev(nhi + '.style.transform'), a1, 'tua tới rồi lùi: y hệt');
+    assert.deepEqual(errors, []);
+  } finally { await st.close(); }
+});
+
+test('sub_clause: phụ đề lật trang ở ranh giới vế câu, không trang mồ côi một chữ; thiếu thì như cũ', { skip: SKIP, timeout: 120000 }, async () => {
+  const say = 'Đó là cụm thứ hai: Vị đúng. Nói rõ thế nào là đúng, nó tự nếm, nhưng lần nếm cuối là của mình.';
+  const lines = [L('L1', 'CM-0001', say)];
+  const mk = (st) => buildPlan({ lesson: { title: 'K', lines, beats: [] }, clips: clipsOf(lines), aspect: '16:9', fps: 30, overview: false, style: Object.assign({ sub_page: 40 }, st) });
+  assert.equal(mk({}).style.sub_clause, undefined); const p = mk({ sub_clause: true }); assert.equal(p.style.sub_clause, true);
+  const st = await openStage({ width: 1920, height: 1080, errors: [] });
+  try {
+    await st.ev('window.__load(' + JSON.stringify(Object.assign({}, p, { fontCss: '' })) + ')');
+    const l = p.lines[0], pages = [];
+    for (let t = l.a_ms; t <= l.b_ms; t += 50) { await st.ev('window.__seek(' + t + ')'); const tx = (await st.ev('[].map.call(document.querySelectorAll("#sub .c"),function(e){return e.textContent}).join(" ")')); if (pages[pages.length - 1] !== tx) pages.push(tx); }
+    assert.ok(pages.length >= 2, pages.join(' | '));
+    pages.forEach((pg, i) => { assert.ok(pg.split(' ').length > 1, 'mồ côi: ' + pg); if (i < pages.length - 1) assert.match(pg, /[,.:;!?]$/, 'ngắt giữa vế: ' + pages.join(' | ')); });
+  } finally { await st.close(); }
+});

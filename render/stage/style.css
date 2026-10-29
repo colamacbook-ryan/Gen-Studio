@@ -389,3 +389,7 @@ html, body { margin: 0; padding: 0; width: 1920px; height: 1080px; overflow: hid
 /* v5 sau critic vòng 4: chữ phụ viết tay đậm màu mực (không xám), tiêu đề giấy nhớ dùng phông chính (Patrick Hand vẽ «g» như «q») */
 .stage.tf .hand { color: var(--v-ink); }
 .stage.tf .b-sticky .sk-h { font-family: var(--f-display); font-weight: 700; font-size: 27px; letter-spacing: -.02em; right: 8px; }
+/* shot (0.2.x v7, HUD đầu lớp: sau nhân vật/giấy nhớ/phụ đề, trên thẻ trang vở) — nền giấy che thẻ ở cảnh dialogue/closeup */
+.b-shot { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+.b-shot .sh-bd { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; opacity: 0; pointer-events: none;
+  background: radial-gradient(ellipse 60% 70% at 50% 62%, var(--v-card) 0, var(--v-paper) 72%); }

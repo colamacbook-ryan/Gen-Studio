@@ -136,9 +136,9 @@
       return { line: l, html: html };
     });
     var br = plan.style.brand, brandInk = br && br.tokens && /^#[0-9a-fA-F]{6}$/.test(String(br.tokens.ink || '')) ? br.tokens.ink : null;
-    S = { actorFx: actorFx, plan: plan, E: E, ink: inkFilter, brandInk: brandInk, recs: recs, dir: dir, actors: actors, assets: assets, subs: subs, curSub: null, subC: [], subOn: -1, chipT: chipT, ov: ov, impacts: impacts, firstSeek: true };
+    S = { actorFx: actorFx, plan: plan, E: E, ink: inkFilter, brandInk: brandInk, recs: recs, dir: dir, actors: actors, assets: assets, subs: subs, curSub: null, subC: [], subOn: -1, chipT: chipT, ov: ov, impacts: impacts, firstSeek: true, exitMs: plan.style && plan.style.exit_ms || 0 };
     S.poseFade = plan.style.pose_fade_ms > 0 ? plan.style.pose_fade_ms : 0;
-    if (!plan.layout && plan.style.sub_page) { S.paging = { cap: plan.style.sub_page, tr: false, balance: true }; S.subPage = -1; }   // 0.2.x clip dài: câu dài lật trang (≤ cap ký tự/trang) thay vì phủ 3–4 dòng
+    if (!plan.layout && plan.style.sub_page) { S.paging = { cap: plan.style.sub_page, tr: false, balance: true, clause: !!plan.style.sub_clause }; S.subPage = -1; }   // 0.2.x clip dài: câu dài lật trang (≤ cap ký tự/trang) thay vì phủ 3–4 dòng
     if (plan.layout) {   // F7: tâm khung + phụ đề lật trang
       var ls = plan.layout.subtitle || {};
       S.half = [plan.size[0] / 2, plan.size[1] / 2]; S.lastT = 0;
@@ -193,12 +193,36 @@
     toks.forEach(function (k, i) { var add = (len > 0 ? 1 : 0) + k.n; if (len > 0 && starts.length < pages && (len + add > cap || len + add / 2 > target)) { starts.push(i); len = k.n; } else len += add; });
     return starts;
   }
+  // 0.2.x v7 (style.sub_clause): lật trang ở ranh giới vế câu — quy hoạch động chọn chỗ ngắt: mỗi trang ≤ cap ký tự, phạt ngắt không sau dấu câu,
+  // phạt trang một chữ (mồ côi), ưu tiên trang dài đều; cho phép thêm 1 trang nếu nhờ đó ngắt đúng vế. Thuần (cùng toks ⇒ cùng kết quả).
+  function paginateClause(toks, cap) {
+    var n = toks.length, minP = paginate(toks, cap).length;
+    if (minP < 2) return [0];
+    var punct = toks.map(function (k) { return /[,.:;!?…»)]$/.test(String(k.h).replace(/<[^>]*>/g, '')); });
+    var lenOf = function (a, b) { var L = -1; for (var i = a; i < b; i++) L += toks[i].n + 1; return L; };
+    var best = null;
+    [minP, minP + 1].forEach(function (P) {
+      if (P > n) return;
+      var target = lenOf(0, n) / P, INF = 1e18, C = [], from = [];
+      for (var p = 0; p <= P; p++) { C.push([]); from.push([]); for (var i = 0; i <= n; i++) { C[p].push(INF); from[p].push(-1); } }
+      C[0][0] = 0;
+      for (var q = 1; q <= P; q++) for (var b = 1; b <= n; b++) for (var a = q - 1; a < b; a++) {
+        if (C[q - 1][a] >= INF) continue;
+        var L = lenOf(a, b); if (L > cap) continue;
+        var cost = C[q - 1][a] + (L - target) * (L - target) / 10 + (b - a === 1 ? 900 : 0) + (b < n && !punct[b - 1] ? 260 : 0);
+        if (cost < C[q][b]) { C[q][b] = cost; from[q][b] = a; }
+      }
+      var total = C[P][n] + (P > minP ? 150 : 0);
+      if (C[P][n] < INF && (!best || total < best.c)) { var st = [], b2 = n; for (var q2 = P; q2 > 0; q2--) { var a2 = from[q2][b2]; st.unshift(a2); b2 = a2; } best = { c: total, st: st }; }
+    });
+    return best ? best.st : paginateBalanced(toks, cap);
+  }
   function drawSubPaged(t) {
     var E = S.E, P = S.paging, s = null;
     S.subs.forEach(function (x) { if (t >= x.line.a_ms - 120 && t <= x.line.b_ms + 300) s = x; });
     if (s !== S.curSub) {
       S.curSub = s; S.subOn = -1; S.subPage = -1;
-      if (s && !s.toks) { s.toks = subTokens(s); s.pages = P.balance ? paginateBalanced(s.toks, P.cap) : paginate(s.toks, P.cap); }
+      if (s && !s.toks) { s.toks = subTokens(s); s.pages = P.clause ? paginateClause(s.toks, P.cap) : P.balance ? paginateBalanced(s.toks, P.cap) : paginate(s.toks, P.cap); }
       if (!s) { E.sub.innerHTML = ''; S.subC = []; }
     }
     E.sub.style.opacity = s ? 1 : 0;
@@ -236,7 +260,15 @@
       for (var li = 0; li < ln.length; li++) { var L = ln[li]; if (L.who !== a.id || t < L.a_ms - 200 || t > L.b_ms + 700) continue; lean = Math.max(lean, U.eio(U.seg(t, L.a_ms - 200, L.a_ms + 150)) * (1 - U.eio(U.seg(t, L.b_ms + 250, L.b_ms + 700)))); }
       tx += (a.side === 0 ? 1 : -1) * S.plan.style.talk_lean_px * lean;
     }
-    var fx = S.actorFx[a.id];
+    var fx = S.actorFx[a.id], sc0 = a.sc * zoom * U.lerp(1, 0.82, outP);
+    if (fx && fx.shot && !(fx.pip > 0)) {   // 0.2.x v7: khối `shot` đặt lại người dẫn theo bố cục cảnh — nội suy chỗ đứng cảnh trước → cảnh này (null = chỗ mặc định)
+      var cxb = (typeof a.ox === 'number' ? a.ox : (a.side === 0 ? -40 : 1500)) + 225, sh = fx.shot, mdx = r.dx || 0;
+      var T = function (q) { return q ? { x: q.cx - cxb + mdx, y: q.by - 1114, s: a.sc * q.s * zoom } : { x: tx, y: ty + a.oy, s: sc0 }; };
+      var P0 = T(sh.from), P1 = T(sh.to);
+      if (a.clipped) { a.el.style.clipPath = ''; a.clipped = false; }
+      a.el.style.transform = 'translate(' + U.f3(U.lerp(P0.x, P1.x, sh.k)) + 'px,' + U.f3(U.lerp(P0.y, P1.y, sh.k)) + 'px) scale(' + U.f3(U.lerp(P0.s, P1.s, sh.k)) + ')';
+      return;
+    }
     if (fx && fx.pip > 0) { pipPose(a, fx, tx, ty + a.oy, a.sc * zoom * U.lerp(1, 0.82, outP), r.talking); return; }
     if (a.clipped) { a.el.style.clipPath = ''; a.clipped = false; }
     a.el.style.transform = 'translate(' + tx + 'px,' + (ty + a.oy) + 'px) scale(' + (a.sc * zoom * U.lerp(1, 0.82, outP)) + ')';
@@ -283,6 +315,14 @@
     for (var fk in S.actorFx) delete S.actorFx[fk];
     S.recs.forEach(function (r) {
       var tl = (tMs - r.head.t_in) / 1000, vis = tl >= 0;
+      // exit_ms (0.2.x): khối mờ + trượt lên trong exit_ms trước lúc máy quay rời vùng (t_leave), rồi ẩn — không thẻ nào biến mất trong 1 khung; tất định theo t
+      var lv = S.exitMs && r.head.t_leave !== undefined ? r.head.t_leave : null;
+      if (lv !== null) {
+        var ex = U.seg(tMs, lv - S.exitMs, lv), exv = U.eio(ex);
+        if (tMs >= lv) vis = false;
+        var key = vis && ex > 0 ? exv.toFixed(4) : '';
+        if (key !== r.exitKey) { r.exitKey = key; r.el.style.filter = key ? 'opacity(' + (1 - exv).toFixed(4) + ')' : ''; r.el.style.translate = key ? '0 ' + (-50 * exv).toFixed(2) + 'px' : ''; }
+      }
       if (vis !== r.shown) { r.el.style.visibility = vis ? 'visible' : 'hidden'; r.shown = vis; }
       if (!vis) { r.drawnSettled = false; return; }
       var settled = tl >= r.settleAt;
