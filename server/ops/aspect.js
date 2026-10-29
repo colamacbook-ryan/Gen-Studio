@@ -30,6 +30,8 @@ const blockAspects = (e) => (Array.isArray(e && e.aspects) && e.aspects.length ?
 function blocksOf(aspect) { return registry.all().filter((e) => e.enabled !== false && blockAspects(e).includes(aspect)).map((e) => e.name); }
 function templatesOf(aspect) {
   const T = require('../../render/thumb.js');
+  // A3: templatesOf(aspect) theo tỉ lệ; trước khi gộp A3 chỉ có templates() (toàn 16:9)
+  if (typeof T.templatesOf === 'function') return T.templatesOf(aspect).map((t) => t.id);
   return T.templates().filter((t) => (t.aspect || '16:9') === aspect).map((t) => t.id);
 }
 // GET /api/aspects = get_capabilities.aspects (§3.6): MỘT object
