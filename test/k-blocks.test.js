@@ -34,7 +34,7 @@ test('mọi khối 0.2.x: có trong sổ (lesson, 16:9 + 9:16), schema object, f
   for (const n of LONG_BLOCKS) {
     const d = reg.get(n); assert.ok(d, n); assert.equal(d.schema.type, 'object'); assert.equal(d.schema.additionalProperties, false, n);
     assert.ok(reg.isEnabled(n, 'lesson'), n);
-    for (const a of reg.aspectsOf(n)) { const fp = d.footprint(a); assert.ok(fp.w > 0 && fp.h > 0, n + ' ' + a); }
+    for (const a of reg.aspectsOf(n)) { const fp = d.footprint(a); assert.ok(d.place === 'hud' ? fp.w === 0 : fp.w > 0 && fp.h > 0, n + ' ' + a); }
     (d.sfx || []).forEach((s) => assert.ok(['in', 'peak'].includes(s.at) && s.name));
   }
 });
@@ -103,4 +103,56 @@ test('compare-split: validate (panel ngoài khoảng, biểu tượng lạ, thi�
   assert.deepEqual(d.assetsOf({ panels: [{ art: 'key' }, { art: 'media/ab/x.png' }] }), ['media/ab/x.png']);
   assert.equal(d.mapAssets({ panels: [{ art: 'key' }, { art: 'AS-1' }] }, (a) => 'p/' + a).panels[1].art, 'p/AS-1');
   for (const a of ['16:9', '9:16']) { const L0 = d.layout(CS, a), fp = d.footprint(a, CS), z = a === '16:9' ? zoomOf(fp) : zoom916(fp); assert.ok(L0.sfs * z >= (a === '16:9' ? 45 : 28), a + ' chữ nhịp ' + L0.sfs * z); }
+});
+
+// ---------- sticky-tracker ----------
+test('sticky-tracker: trạng thái suy từ các beat trước (tua lui/tới tất định), add cần text, review lật không sớm hơn lúc úp xong', () => {
+  const d = reg.get('sticky-tracker');
+  assert.ok(reg.validate('sticky-tracker', { action: 'add', text: 'RÕ VIỆC', fly_at: { line: 'L1', word: 'rõ' } }).ok);
+  for (const [p, re] of [[{ action: 'add' }, /cần cụm chữ/], [{ action: 'show', text: 'x' }, /chỉ dùng với action "add"/], [{ action: 'add', text: 'x', flip_at: [1] }, /chỉ dùng với action "review"/], [{ action: 'bay' }, /action/]]) assert.match(reg.validate('sticky-tracker', p).errors.join(' | '), re);
+  const lines = [L('L1', 'CM-0001', 'Một hai ba bốn năm sáu bảy tám chín mười')];
+  const beats = [{ id: 'S0', block: 'sticky-tracker', anchor: { line: 'L1', word_index: 0 }, params: { action: 'show', title: 'Nhớ', slots: 3 } },
+    { id: 'S1', block: 'sticky-tracker', anchor: { line: 'L1', word_index: 2 }, params: { action: 'add', text: 'RÕ VIỆC' } },
+    { id: 'S2', block: 'sticky-tracker', anchor: { line: 'L1', word_index: 5 }, params: { action: 'add', text: 'ĐỦ ĐỒ' } }];
+  const plan = buildPlan(lesson(lines, beats)), st = (id) => d.stateOf(plan, plan.beats.find((b) => b.id === id));
+  assert.deepEqual(st('S2').lines, ['RÕ VIỆC']); assert.equal(st('S2').title, 'Nhớ'); assert.equal(st('S2').slots, 3); assert.equal(st('S1').next.id, 'S2'); assert.equal(st('S2').next, null);
+  assert.ok(plan.beats.filter((b) => b.block === 'sticky-tracker').every((b) => b.zone === null), 'HUD: không chiếm vùng trang vở, máy quay không lia tới');
+  const T = d.timing({ action: 'review', flip_at: [0, 0, 0, 0] }, [null, 0.2, 0.3, 5, 5.1]);
+  assert.deepEqual(T.flips.slice(0, 4).map((x) => +x.toFixed(2)), [1.6, 1.95, 5, 5.35]);
+});
+
+// ---------- agent-steps ----------
+const AS = { task: 'Xếp lịch họp', steps: [{ text: 'Đọc email', tool: 'mail.doc' }, { text: 'Tìm giờ rảnh', note: 'T5 14:00' }, { text: 'Gửi thư mời', result: 'await' }], decision: 'reject' };
+test('agent-steps: validate (decision cần bước await, chỉ 1 await, decide_at cần decision), lịch + trạng thái chung + âm', () => {
+  assert.ok(reg.validate('agent-steps', AS).ok, reg.validate('agent-steps', AS).errors.join(';'));
+  for (const [p, re] of [[{ steps: [{ text: 'a' }], decision: 'approve' }, /cần một bước có result "await"/], [{ steps: [{ text: 'a', result: 'await' }, { text: 'b', result: 'await' }] }, /chỉ một bước/],
+    [{ steps: [{ text: 'a', result: 'await' }], decide_at: 3 }, /cần khai decision/], [{ steps: [] }, /ít nhất 1/], [{ steps: [{ text: 'a', result: 'xong' }] }, /result/], [{ steps: Array(6).fill({ text: 'a' }) }, /tối đa 5/]]) {
+    assert.match(reg.validate('agent-steps', p).errors.join(' | '), re);
+  }
+  const d = reg.get('agent-steps'), T = d.panel.timing(AS, null);
+  assert.deepEqual(T.st, [0.8, 4.3, 7.8]); assert.equal(T.aw, 2); assert.equal(+T.dec.toFixed(2), 11);
+  assert.deepEqual(d.panel.statusEvents(AS, T).map((e) => e.k), ['idle', 'run', 'await', 'rejected']);
+  assert.deepEqual(d.sfxTimed(AS, null).map((s) => s.name), ['slide-up', 'tick', 'tick', 'ding', 'tick']);
+  assert.ok(d.panel.timing(AS, [5, 2, null, null]).st[1] >= 5.6, 'cue lùi giờ ⇒ bước sau không trước bước trước');
+  const L9 = d.panel.lay(AS, '9:16'), z9 = zoom916(d.footprint('9:16', AS));
+  assert.ok(Math.min(L9.tfs, L9.mfs) * z9 >= 28, '9:16 chữ nhỏ nhất ' + Math.min(L9.tfs, L9.mfs) * z9);
+  const L16 = d.panel.lay(AS, '16:9'); assert.ok(Math.min(L16.tfs, L16.mfs) * zoomOf(d.footprint('16:9', AS)) * 2 / 3 >= 22, 'chữ UI ≥ 22 px@720');
+});
+
+// ---------- checklist-card ----------
+test('checklist-card: chữ ≥ 30 px@720, tick tăng dần theo cue, pipBoost; tick_at thừa ⇒ lỗi', () => {
+  const d = reg.get('checklist-card'), p = { num: 1, items: ['Hỏi agent cầm chìa nào', 'Tắt quyền Gửi', 'Mình tự bấm Gửi'] };
+  assert.ok(reg.validate('checklist-card', p).ok); assert.equal(d.pipBoost, true);
+  assert.match(reg.validate('checklist-card', Object.assign({}, p, { tick_at: [1, 2, 3, 4] })).errors.join(), /3 dòng/);
+  assert.deepEqual(d.timing(p, [2, 1, null]).ticks.map((x) => +x.toFixed(2)), [2, 2.35, 3.3]);
+  for (const a of ['16:9', '9:16']) { const L0 = d.layout(p, a), fp = d.footprint(a, p); assert.ok(a === '16:9' ? L0.fs * zoomOf(fp) * 2 / 3 >= 30 : L0.fs * zoom916(fp) >= 28, a); }
+});
+
+// ---------- morph ----------
+test('morph: biểu tượng hoặc asset, lịch theo cue, footprint ≤ khung 16:9 (zoom ≥ 1)', () => {
+  const d = reg.get('morph'), p = { items: [{ from: 'key', to: 'envelope', to_label: 'Đọc thư' }, { from: 'media/k.png', to: 'send' }] };
+  assert.ok(reg.validate('morph', p).ok); assert.match(reg.validate('morph', { items: [] }).errors.join(), /ít nhất 1/);
+  assert.match(reg.validate('morph', { items: [{ from: 'key' }] }).errors.join(), /to: còn thiếu/);
+  assert.deepEqual(d.assetsOf(p), ['media/k.png']); assert.deepEqual(d.timing(p, [2.5]), { at: 2.5, dur: 0.6 }); assert.equal(d.timing(p, null).at, 1);
+  assert.ok(zoomOf(d.footprint('16:9', { items: [{}, {}, {}] })) >= 1);
 });

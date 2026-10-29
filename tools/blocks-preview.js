@@ -53,6 +53,29 @@ const DEMOS = {
   'quiz-comment': { lines: [L('L1', 'CM-0001', 'Bạn sẽ dặn agent thêm câu gì để nó biết tự kiểm? Viết xuống bình luận nhé.')],
     beats: [{ id: 'B1', block: 'quiz', anchor: { line: 'L1', word: 'Bạn' }, params: { question: 'Bạn sẽ dặn agent thêm câu gì để nó tự kiểm?', mode: 'comment', options: ['Soát lại giúp mình', 'Thiếu đâu báo mình'] } }],
     at: [0.6, 1.6, 3.5] },
+  'sticky-tracker': { lines: [L('L1', 'CM-0001', 'Điều thứ nhất cần nhớ: giao việc phải rõ ràng.'), L('L2', 'CM-0002', 'Ghi vào giấy nhớ: rõ việc!'), L('L3', 'CM-0001', 'Điều thứ hai: việc quan trọng thì mình duyệt.'), L('L4', 'CM-0002', 'Ghi tiếp: mình duyệt!')],
+    beats: [{ id: 'B1', block: 'sticky-tracker', anchor: { line: 'L1', word: 'Điều' }, params: { action: 'show' } },
+      { id: 'B0', block: 'concept-chip', anchor: { line: 'L1', word: 'giao' }, params: { text: 'Rõ việc', sub: 'giao việc phải rõ ràng' } },
+      { id: 'B2', block: 'sticky-tracker', anchor: { line: 'L2', word: 'Ghi' }, params: { action: 'add', text: 'RÕ VIỆC', fly_at: { line: 'L2', word: 'rõ' } } },
+      { id: 'B3', block: 'sticky-tracker', anchor: { line: 'L4', word: 'Ghi' }, params: { action: 'add', text: 'MÌNH DUYỆT' } }],
+    main: 'B2', at: [0.6, 1.25, 2.6] },
+  'sticky-review': { lines: [L('L0', 'CM-0002', 'Tờ giấy nhớ đã đủ bốn dòng rồi.'), L('L1', 'CM-0001', 'Giờ úp lại, nhớ lại nhé: rõ việc, mình duyệt, đủ đồ, hẹp quyền.')],
+    beats: ['RÕ VIỆC', 'MÌNH DUYỆT', 'ĐỦ ĐỒ', 'HẸP QUYỀN'].map((x, i) => ({ id: 'A' + i, block: 'sticky-tracker', anchor: { line: 'L0', word_index: i }, params: { action: 'add', text: x, fly_at: 0.05 } }))
+      .concat([{ id: 'B9', block: 'sticky-tracker', anchor: { line: 'L1', word: 'Giờ' }, params: { action: 'review', flip_at: [{ line: 'L1', word: 'rõ' }, { line: 'L1', word: 'mình' }, { line: 'L1', word: 'đủ' }, { line: 'L1', word: 'hẹp' }] } }]),
+    main: 'B9', at: [1.0, 2.0, 4.6] },
+  'agent-steps': { lines: [L('L1', 'CM-0001', 'Agent đọc thư, tìm lịch rảnh, soạn thư mời.'), L('L2', 'CM-0001', 'Đến bước gửi thì nó dừng lại, chờ bạn duyệt.'), L('L3', 'CM-0002', 'Thư lạ quá, em bấm từ chối!')],
+    beats: [{ id: 'B1', block: 'agent-steps', anchor: { line: 'L1', word: 'Agent' }, params: { task: 'Xếp lịch họp với chị Lan, soạn thư mời', steps: [
+      { text: 'Đọc email của chị Lan', tool: 'mail.doc_thu', at: { line: 'L1', word: 'đọc' } }, { text: 'Tìm giờ rảnh 3 người', tool: 'lich.xem_ban_ran', note: 'T5 14:00 trống', at: { line: 'L1', word: 'tìm' } },
+      { text: 'Soạn thư mời họp', tool: 'mail.soan_nhap', at: { line: 'L1', word: 'soạn' } }, { text: 'Gửi thư mời', tool: 'mail.gui', result: 'await', at: { line: 'L2', word: 'dừng' } }],
+      decision: 'reject', decide_at: { line: 'L3', word: 'từ' } } }],
+    at: [2.4, 6.0, 8.7] },
+  'checklist-card': { lines: [L('L1', 'CM-0001', 'Bạn làm gì? Một: hỏi agent đang cầm chìa nào. Hai: tắt quyền gửi. Ba: tự bấm gửi.')],
+    beats: [{ id: 'B1', block: 'checklist-card', anchor: { line: 'L1', word: 'Bạn' }, params: { num: 1, items: ['Hỏi agent cầm chìa nào', 'Tắt quyền Gửi', 'Mình tự bấm Gửi'], tick_at: [{ line: 'L1', word: 'hỏi' }, { line: 'L1', word: 'tắt' }, { line: 'L1', word: 'tự' }] } }],
+    at: [0.35, 3.2, 5.6] },
+  morph: { lines: [L('L1', 'CM-0001', 'Mỗi chìa khoá biến thành một công cụ: đọc thư, xem lịch, gửi thư.')],
+    beats: [{ id: 'B1', block: 'morph', anchor: { line: 'L1', word: 'Mỗi' }, params: { at: { line: 'L1', word: 'biến' }, items: [
+      { from: 'key', to: 'envelope', from_label: 'chìa 1', to_label: 'Đọc thư' }, { from: 'key', to: 'calendar', from_label: 'chìa 2', to_label: 'Xem lịch' }, { from: 'key', to: 'send', from_label: 'chìa 3', to_label: 'Gửi thư' }] } }],
+    at: [0.9, 1.25, 3.4] },
 };
 
 function sheet(frames, out, labels) {
