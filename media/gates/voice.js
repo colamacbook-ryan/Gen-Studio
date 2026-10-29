@@ -3,6 +3,7 @@
 'use strict';
 const crypto = require('node:crypto');
 const wav = require('../wav');
+const { viNumbers } = require('../vi-numbers');
 
 const DEFAULTS = { edgeMs: 50, edgeMax: 0.3, tailMs: 100, silence: 0.01, scriptMaxDist: 0.15, asrShortWords: 3, asrShortMaxDist: 0.5 };
 
@@ -73,7 +74,7 @@ function gateScript({ judge, script, opts = {} }) {
   const shortAsr = judge.asr === true && script && normText(script).split(' ').filter(Boolean).length <= o.asrShortWords;
   if (shortAsr) maxDist = o.asrShortMaxDist;
   if (script && typeof judge.transcript === 'string') {
-    d = dist(normText(script), normText(judge.transcript));
+    d = dist(normText(viNumbers(script)), normText(viNumbers(judge.transcript)));   // "92%" ≡ "chín mươi hai phần trăm" (W3: whisper chép chữ số)
     if (d > maxDist) bad.push('lời chép lệch kịch bản ' + d.toFixed(2));
   }
   if (!judge.matches && !(shortAsr && d !== null && d <= maxDist)) bad.push('giám khảo báo không khớp kịch bản');

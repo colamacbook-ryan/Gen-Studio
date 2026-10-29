@@ -5,12 +5,15 @@ Mọi thứ không do Gen-Studio tự viết phải có một dòng ở đây tr
 | Thành phần | Nguồn | Phiên bản | License | Dùng ở | Trạng thái |
 |---|---|---|---|---|---|
 | Engine Gen-Chibi (core, choreo, kinds, sounds, audio) | colamacbook-ryan/Gen-Chibi | 0.26.0 (khoá khi vendor) | © 2026 Gen Labs — All rights reserved (cùng chủ sở hữu) | `vendor/gen-chibi/` | Đã vendor 0.26.0 (tools/sync-gen-chibi.sh kiểm phiên bản) |
-| Chromium | chromium.org | theo image | BSD-3-Clause | image Docker (renderer) | Dự kiến |
-| FFmpeg | ffmpeg.org | theo image | LGPL-2.1+ (build không bật GPL) | image Docker (trộn, mã hoá) | Dự kiến — kiểm build |
+| SVG con trỏ (arrow / hand / ibeam) của video hướng dẫn (gói U) | Gen Labs tự vẽ | 0.2.0 | © 2026 Gen Labs — All rights reserved | nội tuyến trong `render/blocks/cursor.js` (CSP chỉ cho `img-src data:`) | Dùng — không lấy từ bộ con trỏ của hệ điều hành/bên thứ ba |
+| Theme DSL màn giả lập (`console-dark`, `console-light`, `plain-light`) + DSL `mock` (gói U) | Gen Labs | 0.2.0 | © 2026 Gen Labs — All rights reserved | `render/blocks/mock-ui.js`, `render/stage/tutorial.css` (token `--mu-*` trung tính, không phải brand bên thứ ba) | Dùng |
+| Mẫu ảnh bìa 16:9 + 9:16 (gói T, F7) | Gen Labs | 0.2.0 | © 2026 Gen Labs — All rights reserved | `render/thumbs/templates.json` | Dùng — chỉ dùng phông OFL đã vendor bên dưới |
+| Host mẫu trung tính "Host A"/"Host B", linh kiện `host-ao`, `host-toc`, đạo cụ, bảng tâm trạng (gói K) | Gen Labs | 0.2.0 | © 2026 Gen Labs — All rights reserved | `render/cast/sample-hosts.json`, `render/cast/parts/`, `render/cast/props.json`, `render/engine/moods.json` | Dùng. KOL của Ryan KHÔNG ở repo (pack ngoài, `GS_KOL_PACK`) |
+| Bài mẫu cho agent giả (lesson, lesson-thumb, lesson-vertical, tutorial, tutorial-trailer) | Gen Labs | 0.2.0 | © 2026 Gen Labs — All rights reserved | `agent/samples/` | Dùng (chỉ cho e2e/demo) |
 | Google Gemini API (TTS, chép lời) | Google | quét lúc chạy (STD-10) | Điều khoản Gemini API | provider giọng/giám khảo | Dịch vụ, không phân phối |
 | node:22-bookworm-slim (image base) | Docker Hub official image (Node.js / Debian) | 22 LTS · bookworm | MIT (Node.js) + license các gói Debian | `Dockerfile`, `Dockerfile.agent` | Dùng (gói F) |
-| chromium (gói Debian bookworm) | Debian apt | theo image | BSD-3-Clause và các license thành phần | `Dockerfile` (renderer) | Dùng (gói F) |
-| ffmpeg (gói Debian bookworm) | Debian apt | theo image | LGPL-2.1+ / GPL tuỳ build Debian — chỉ gọi như tiến trình ngoài, không liên kết; kiểm lại trước khi phân phối image | `Dockerfile` | Dùng (gói F) — cần rà license trước phát hành công khai |
+| chromium (gói Debian bookworm) | Debian apt | 156.0.8078.47-1~deb12u1 (kiểm 2026-10-29) | BSD-3-Clause và các license thành phần | `Dockerfile` (renderer) | Dùng (gói F) |
+| ffmpeg (gói Debian bookworm) | Debian apt | 7:5.1.9-0+deb12u1 (kiểm 2026-10-29) | **GPL-2.0+** — build Debian bật `--enable-gpl --enable-libx264`. Studio chỉ gọi như tiến trình ngoài, không liên kết | `Dockerfile` | Dùng (gói F). Image dựng tại máy người dùng (không phân phối) ⇒ chưa phát sinh nghĩa vụ; phân phối image ⇒ xem mục *Nghĩa vụ khi phát hành image công khai* |
 | fonts-noto-core | Debian apt (Google Noto) | theo image | SIL OFL 1.1 | `Dockerfile` | Dùng (gói F) |
 | IBM Plex Sans, IBM Plex Mono | google/fonts (`ofl/ibmplexsans`, `ofl/ibmplexmono`) | google/fonts@ddf386ba1b9f (2026-10-28) | SIL OFL 1.1 (kèm `OFL.txt`) | `vendor/fonts/` → image `/usr/share/fonts` và `render/stage/fonts` | Dùng (vendor từ 0.1.1; sha256 trong `vendor/fonts/SHA256SUMS`) |
 | Be Vietnam Pro, Patrick Hand | google/fonts (`ofl/bevietnampro`, `ofl/patrickhand`) | google/fonts@ddf386ba1b9f (2026-10-28) | SIL OFL 1.1 (kèm `OFL.txt`) | như trên | Dùng (vendor từ 0.1.1) |
@@ -26,9 +29,20 @@ Mọi thứ không do Gen-Studio tự viết phải có một dòng ở đây tr
 | Trọng số Whisper `medium` (tuỳ chọn `GS_VOICE_JUDGE=medium`) | huggingface.co/Systran/faster-whisper-medium | commit `08e178d48790749d25932bbc082711ddcfdfbc4f` | MIT | volume `voice-models` | Tuỳ chọn |
 | onnxruntime | PyPI (Microsoft) | **1.23.2** (ghim: 1.31 chặn external data qua symlink) | MIT | image `voice` | Dùng |
 | numpy, tokenizers, huggingface_hub (+httpx2/httpcore2/h11/anyio/idna/hf-xet/filelock/fsspec/packaging/PyYAML/tqdm/truststore/typing_extensions/click), cffi, pycparser | PyPI | đúng phiên bản + hash trong `voice/requirements.lock` | BSD-3 / Apache-2.0 / MIT / MPL-2.0 (tqdm) / PSF (typing_extensions) | image `voice` | Dùng |
-| soundfile (kèm libsndfile), soxr (python-soxr + libsoxr) | PyPI | 0.14.0 · 1.1.0 | BSD-3 (soundfile) + **LGPL-2.1+** (libsndfile, libsoxr) — thư viện động trong wheel, không sửa | image `voice` | Dùng — giữ thông báo LGPL khi phân phối image |
-| PyAV `av` (faster-whisper import lúc nạp; sidecar KHÔNG dùng để giải âm thanh — L-101) | PyPI | 19.0.2 | BSD-3 + FFmpeg kèm wheel (LGPL) | image `voice` | Dùng — rà license FFmpeg kèm wheel trước phân phối image công khai |
+| soundfile (kèm `libsndfile_x86_64.so`), soxr (python-soxr, liên kết tĩnh libsoxr + PFFFT) | PyPI | 0.14.0 · 1.1.0 | soundfile BSD-3 + libsndfile **LGPL-2.1+** (thư viện động trong wheel, `_soundfile_data/COPYING`); python-soxr **LGPL-2.1-or-later** cả gói (`soxr-1.1.0.dist-info/licenses/`: COPYING.LGPL, LICENSE-libsoxr, LICENSE-PFFFT BSD) — không sửa | image `voice` | Dùng — xem mục *Nghĩa vụ khi phát hành image công khai* |
+| PyAV `av` (faster-whisper import lúc nạp; sidecar KHÔNG dùng để giải âm thanh — L-101) | PyPI | 19.0.2 (FFmpeg 9.0.2 kèm wheel, `av.libs/`) | PyAV BSD-3. FFmpeg kèm wheel tự báo **LGPL-3.0+** (`--enable-version3`, không `--enable-gpl`) **nhưng wheel vẫn chở `libx264` và `libx265` (GPL-2.0+)** cùng gnutls/nettle/hogweed/gmp/libunistring (LGPL-3.0+ hoặc GPL-2.0+), lame (LGPL), opus/vpx/dav1d/SVT-AV1/webp/vmaf/xcb (BSD/MIT). Kiểm 2026-10-29 bằng `avcodec_license()` + `avcodec_configuration()` trong image | image `voice` | Dùng — **rủi ro khi phân phối image**: xem mục *Nghĩa vụ khi phát hành image công khai* [CHƯA VERIFY pháp lý] |
 | python:3.13-slim-bookworm (image base) | Docker Hub official image | 3.13 · bookworm | PSF-2.0 + license các gói Debian | `Dockerfile.voice` | Dùng |
+
+## Nghĩa vụ khi phát hành image công khai (chưa làm ở 0.2.0)
+
+0.2.0 **không phân phối image**: `install.sh` dựng `studio`, `agent`, `voice` ngay trên máy người dùng từ mã nguồn + gói apt/PyPI/npm công khai. Vì vậy Gen Labs chưa "phân phối" các thư viện GPL/LGPL ở trên. Nếu sau này đẩy image lên registry (GHCR/Docker Hub) hoặc bán kèm image, **trước khi đẩy** phải làm đủ:
+
+1. **Image `voice` — PyAV:** wheel `av` 19.0.2 chở `libx264`/`libx265` (GPL-2.0+). Chọn một: (a) thay PyAV bằng bản dựng FFmpeg LGPL không có x264/x265 (sidecar không giải âm thanh qua PyAV — chỉ cần import được cho faster-whisper), hoặc (b) chấp nhận GPL cho các thư viện đó: kèm toàn văn GPL-2.0 + LGPL-3.0, và **lời đề nghị cung cấp mã nguồn** (hoặc kèm mã nguồn) đúng phiên bản FFmpeg 9.0.2 / x264 / x265 / gnutls / nettle / gmp / libunistring đã chở, giữ ít nhất 3 năm.
+2. **Image `voice` — LGPL (libsndfile, python-soxr/libsoxr, FFmpeg LGPL, lame, gnutls…):** giữ nguyên tệp `.so`/wheel không sửa (người dùng thay được thư viện), kèm toàn văn LGPL-2.1/LGPL-3.0 + thông báo bản quyền từng thư viện (gom vào `/usr/share/doc/gen-studio/THIRD-PARTY/` trong image), kèm nơi lấy mã nguồn đúng phiên bản. Không gộp tĩnh vào mã đóng của Gen Labs.
+3. **Image `studio` — ffmpeg Debian (GPL-2.0+ vì `--enable-gpl`):** giữ `/usr/share/doc/*/copyright` của Debian (không xoá trong Dockerfile), kèm lời đề nghị mã nguồn (trỏ tới đúng phiên bản trên snapshot.debian.org) hoặc đổi sang ffmpeg build LGPL. Studio chỉ gọi ffmpeg như tiến trình ngoài ⇒ mã Gen Labs không bị GPL lan sang.
+4. **Image `agent` — Claude Code CLI:** điều khoản Anthropic **không cho phân phối lại** ⇒ image công khai không được chứa sẵn CLI; giữ cách cài lúc dựng trên máy người dùng.
+5. **Model giọng offline:** không đóng vào image (tải lúc chạy, ghim revision + sha256). Nếu đóng sẵn: kèm README/LICENSE Apache-2.0 của VieNeu-TTS và MOSS, MIT của Whisper, và ghi rõ rủi ro dữ liệu huấn luyện VieNeu chưa công bố (bảng trên).
+6. Tạo SBOM cho từng image (vd `syft`), lưu cạnh Release, và rà lại bảng này theo SBOM. [CHƯA VERIFY pháp lý — cần tư vấn trước khi bán.]
 
 ## Ảnh chụp giao diện & nhạc của xưởng (chính sách 0.2.0, SPEC-0.2.0 §6.10)
 

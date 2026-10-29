@@ -285,6 +285,11 @@ test('scoreAsr: số viết bằng chữ số trong lời chép khớp kịch b�
   assert.equal(r.transcript, 'Câu quen, như Thủ đô Việt Nam là gì, thì Hà Nội chiếm tới 92%.', 'lời chép gốc giữ nguyên để hiển thị');
   assert.equal(offline.scoreAsr({ transcript: 'Hà Nội chiếm chín mươi hai phần trăm', words: [] }, { script: 'Hà Nội chiếm 92%', terms: [] }).matches, true);
   assert.equal(offline.scoreAsr({ transcript: 'Hà Nội chiếm 29%', words: [] }, { script: 'Hà Nội chiếm chín mươi hai phần trăm', terms: [] }).matches, false, 'số sai vẫn trượt');
+  // cổng G-SCRIPT tự đo lại khoảng cách từ lời chép ⇒ cũng phải đọc số thành chữ (lần sửa đầu chỉ sửa giám khảo, cổng vẫn trượt 0,43)
+  const { gateScript } = require('../media/gates/voice.js');
+  const gs = gateScript({ judge: r, script: say });
+  assert.equal(gs.result, 'pass', JSON.stringify(gs.measure));
+  assert.ok(gs.measure.char_dist < 0.05);
   const v = offline.viNumbers;
   assert.equal(v('15 25 21 24 105'), 'mười lăm hai mươi lăm hai mươi mốt hai mươi tư một trăm linh năm');
   assert.equal(v('1.000 người, năm 2026'), 'một nghìn người, năm hai nghìn không trăm hai mươi sáu');
