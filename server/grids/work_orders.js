@@ -16,6 +16,7 @@ const grid = {
     agent: { label: 'Agent', type: 'id', expr: 'a.display_id' },
     brief: { label: 'Giao việc', type: 'text', expr: 'w.brief', search: true },
     attempts: { label: 'Lần', type: 'num', expr: 'w.attempts' },
+    aspect: { label: 'Tỉ lệ', type: 'enum', expr: 'w.aspect' },   // F7: NULL = theo kênh
     opened_at: { label: 'Mở lúc', type: 'date', expr: 'w.opened_at' },
     closed_at: { label: 'Đóng lúc', type: 'date', expr: 'w.closed_at' },
     summary: { label: 'Tóm tắt', type: 'text', expr: 'w.summary', search: true },

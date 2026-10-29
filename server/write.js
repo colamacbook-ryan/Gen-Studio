@@ -321,7 +321,7 @@ function createWriter(db, opts = {}) {
   function submitLesson(c) {
     const p = c.p;
     const errors = [];
-    const E = (path_, text) => errors.push({ path: path_, text });
+    const E = (path_, text, code) => errors.push(code ? { path: path_, text, code } : { path: path_, text });
 
     let lesson = p.lesson ? need('lessons', p.lesson, 'bài học') : null;
     const channel = lesson ? db.json(db.get('SELECT * FROM channels WHERE id=?', lesson.channel_id)) : byRef('channels', p.channel);
@@ -365,10 +365,23 @@ function createWriter(db, opts = {}) {
       extVals[col] = p[col] !== undefined ? p[col] : prev && prev[col] != null ? (() => { try { return JSON.parse(prev[col]); } catch { return prev[col]; } })() : null;
     }
     const channelDataRow = db.json(db.get('SELECT data FROM channel_versions WHERE entity_id=? AND version=?', channel.id, channel.current_version));
-    const lv = { kind, values: extVals, payload: p, lines, beats, channel, channelData: (channelDataRow && channelDataRow.data) || {}, prev: prev ? db.json(prev) : null, isNew: !lesson };
+    const lv = { kind, values: extVals, payload: p, lines, beats, channel, channelData: (channelDataRow && channelDataRow.data) || {}, prev: prev ? db.json(prev) : null, isNew: !lesson, workOrder: wo, out: {} };
+    // F7 (CNS-330): `resolve` của mọi phần mở rộng chạy TRƯỚC mọi `validate`; giá trị trả thay lv.values[cột] rồi mới kiểm + lưu (tỉ lệ lưu là giá trị ĐÃ PHÂN GIẢI, không phải thứ agent gửi)
+    const extCtx = { db, err, byRef, nonEmpty, ext };
+    for (const x of ext.lessonExt.list()) {
+      if (!x.resolve) continue;
+      try {
+        const r = x.resolve(lv, extCtx);
+        if (x.columns.length === 1) lv.values[x.columns[0]] = r === undefined ? null : r;
+        else if (r && typeof r === 'object') for (const col of x.columns) if (col in r) lv.values[col] = r[col];
+      } catch (e) {
+        if (e && e.code && e.text_human && e.name !== 'WriteError') E(x.name, `${e.code}: ${e.text_human}`, e.code);   // AspectError…: lỗi nghiệp vụ có mã, thành lỗi nộp bài
+        else throw e;
+      }
+    }
     for (const x of ext.lessonExt.list()) {
       if (!x.validate) continue;
-      for (const e of x.validate(lv, { db, err, byRef, nonEmpty, ext }) || []) E(typeof e === 'string' ? x.name : e.path || x.name, typeof e === 'string' ? e : e.text);
+      for (const e of x.validate(lv, extCtx) || []) E(typeof e === 'string' ? x.name : e.path || x.name, typeof e === 'string' ? e : e.text, typeof e === 'string' ? undefined : e.code);
     }
     const taken = (table, id) => db.get(
       `SELECT 1 AS x FROM ${table} t JOIN lesson_versions lv ON lv.id=t.lesson_version_id WHERE t.display_id=? ${lesson ? 'AND lv.lesson_id!=?' : ''} LIMIT 1`,
@@ -478,7 +491,8 @@ function createWriter(db, opts = {}) {
     }
     const outLesson = byRef('lessons', lesson.id);
     return {
-      result: { lesson: outLesson, version: { id: version.id, version: verNo, lesson: outLesson.display_id }, render: db.json(db.get('SELECT * FROM renders WHERE id=?', render.id)), run: run.display_id },
+      result: { lesson: outLesson, version: { id: version.id, version: verNo, lesson: outLesson.display_id }, render: db.json(db.get('SELECT * FROM renders WHERE id=?', render.id)), run: run.display_id,
+        ...(lv.out.aspect ? { aspect: lv.out.aspect } : {}) },
       entity: ['lesson', outLesson.display_id], before: prev ? { version: prev.version } : null,
       after: { version: verNo, kind, lines: lines.length, beats: beatRows.length, render: render.display_id },
     };
@@ -494,8 +508,8 @@ function createWriter(db, opts = {}) {
     const lesson = p.lesson ? need('lessons', p.lesson, 'bài học') : null;
     const ag = p.agent ? need('agents', p.agent, 'agent') : null;
     const wo = state.createWorkOrder(db, { channel_id: ch.id, kind: p.kind || 'manual', curriculum_node_id: node && node.id,
-      lesson_id: lesson && lesson.id, agent_id: ag && ag.id, brief: p.brief, created_by: c.by });
-    return { result: wo, entity: ['work_order', wo.display_id], before: null, after: { kind: wo.kind, brief: wo.brief } };
+      lesson_id: lesson && lesson.id, agent_id: ag && ag.id, brief: p.brief, aspect: p.aspect || null, created_by: c.by });   // aspect: ops/aspect.js bọc op này để kiểm giá trị (F7)
+    return { result: wo, entity: ['work_order', wo.display_id], before: null, after: { kind: wo.kind, brief: wo.brief, ...(wo.aspect ? { aspect: wo.aspect } : {}) } };
   });
   op('work_order.cancel', 'owner', (c) => {
     const wo = need('work_orders', c.p.work_order, 'lệnh sản xuất');

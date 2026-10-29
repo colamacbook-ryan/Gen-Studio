@@ -9,9 +9,11 @@ const grids = require('./grids.js');
 const events = require('./events.js');
 const state = require('./state.js');
 const { isLoopbackUri } = require('./write.js');
+const aspects = require('../render/aspects.js');
 
 const J = grids.J;
-const STATUS = { invalid: 400, unauthorized: 401, forbidden: 403, not_found: 404, conflict: 409, rate_limited: 429, master_key_mismatch: 500, payload_too_large: 413, bad_gateway: 502 };
+const STATUS = { invalid: 400, unauthorized: 401, forbidden: 403, not_found: 404, conflict: 409, rate_limited: 429, master_key_mismatch: 500, payload_too_large: 413, bad_gateway: 502,
+  aspect_unsupported: 400, aspect_kind_unsupported: 400, aspect_mismatch: 409 };   // F7: lỗi tỉ lệ có mã riêng (text_human tiếng Việt)
 
 // Lỗi → {code, text_human, detail} (không stack trace cho người dùng)
 function errBody(e) {
@@ -79,7 +81,7 @@ function castNames(db, plan) {
   return out;
 }
 function renderView(db, r) {
-  const lv = db.get('SELECT lv.version, lv.work_order_id, lv.kind, l.display_id AS lesson, l.title FROM lesson_versions lv JOIN lessons l ON l.id=lv.lesson_id WHERE lv.id=?', r.lesson_version_id) || {};
+  const lv = db.get('SELECT lv.version, lv.work_order_id, lv.kind, lv.aspect, l.display_id AS lesson, l.title FROM lesson_versions lv JOIN lessons l ON l.id=lv.lesson_id WHERE lv.id=?', r.lesson_version_id) || {};
   const outputs = r.outputs || {};
   const media = { asset_id: null };
   Object.keys(outputs).forEach(k => {
@@ -91,8 +93,16 @@ function renderView(db, r) {
     const u = assetUrl(db, outputs[k]); media[k] = u; if (k === 'mp4' && u) media.asset_id = u.replace('/media/', '');
   });
   const manifest = r.manifest || null;
+  // F7 §3.6: tỉ lệ + cỡ + khung bìa + độ vừa từng nền tảng. Bài cũ (aspect NULL, manifest cũ) = 16:9.
+  const aspect = (manifest && manifest.aspect) || lv.aspect || '16:9';
+  const ag = aspects.get(aspect);
+  const size = (manifest && manifest.size) || (ag && ag.size) || null;
+  if (typeof outputs.cover_frame_ms === 'number') media.cover_frame_ms = outputs.cover_frame_ms;
+  const durMs = Number.isFinite(r.duration_ms) ? r.duration_ms : (manifest && manifest.plan && manifest.plan.duration_ms);
   return {
+    fit: aspects.fit(aspect, Number.isFinite(durMs) ? durMs / 1000 : undefined),
     render: {
+      aspect, size,
       display_id: r.display_id, state: r.state, version: lv.version, lesson_display_id: lv.lesson, lesson_title: lv.title,
       state_changed_at: r.state_changed_at, waiting_until: r.waiting_until, blocked_reason: r.blocked_reason || null,
       progress: r.progress, duration_ms: r.duration_ms, frames: r.frames, kind: lv.kind || 'lesson',
@@ -109,6 +119,7 @@ function lessonDoc(db, lesson, version) {
   const beats = db.all('SELECT * FROM beats WHERE lesson_version_id=? ORDER BY ord', lv.id);
   // cột mở rộng 0003 (kind luôn có; thumbnail/variant/screens/host/music chỉ khi khác rỗng) — update_lesson/UI đọc lại đúng bản đã nộp
   const extra = { kind: lv.kind || 'lesson' };
+  if (lv.aspect != null) extra.aspect = lv.aspect;   // F7: chỉ khi đã ghi (bài cũ NULL = 16:9)
   for (const k of ['variant', 'thumbnail', 'screens', 'host', 'music']) if (lv[k] != null) extra[k] = J(lv[k]);
   return {
     ...extra, version: lv.version, state: lv.state, note: lv.note, camera_hints: J(lv.camera_hints), work_order_id: lv.work_order_id, submitted_by: lv.submitted_by, created_at: lv.created_at,

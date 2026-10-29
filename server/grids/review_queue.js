@@ -20,6 +20,7 @@ const grid = {
     agent: { label: 'Agent', type: 'id', expr: AGENT_OF_RENDER },
     // 0.2.0 (thêm sẵn cho UI-R2/D0, SPEC §13.2): loại bài, có ảnh bìa không, số nhân vật chưa chốt trong bài (CNS-110)
     kind: { label: 'Loại', type: 'enum', expr: 'lv.kind' },
+    aspect: { label: 'Tỉ lệ', type: 'enum', expr: "COALESCE(lv.aspect,'16:9')" },   // F7 (NULL = 16:9)
     thumbs: { label: 'Ảnh bìa', type: 'bool', expr: "COALESCE(json_array_length(json_extract(r.outputs,'$.thumbs')),0)>0" },
     cast_unapproved: { label: 'Nhân vật chưa chốt', type: 'num', expr: "(SELECT COUNT(DISTINCT cm.id) FROM lines ln2 JOIN cast_members cm ON cm.id=ln2.cast_member_id WHERE ln2.lesson_version_id=lv.id AND cm.status!='approved')" },
   },

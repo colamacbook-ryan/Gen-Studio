@@ -5,6 +5,7 @@ const state = require('./state.js');
 const events = require('./events.js');
 const grids = require('./grids.js');
 const { localParts, wsTz } = require('./pipeline.js');
+const aspects = require('../render/aspects.js');
 
 const SYS = { type: 'system', id: 'scheduler', entry: 'system' };
 const MAX_ATTEMPTS = 3;
@@ -21,8 +22,28 @@ function parseSchedule(s) {
   if (h > 23 || mi > 59) return null;
   if (obj.cron && /weekly|monthly|week|month/i.test(obj.cron)) return null; // MVP chỉ hỗ trợ hằng ngày
   const per = Number(obj.per_run);
-  return { h, mi, per_run: Number.isInteger(per) && per > 0 ? Math.min(per, 20) : 1 };
+  const per_run = Number.isInteger(per) && per > 0 ? Math.min(per, 20) : 1;
+  const out = { h, mi, per_run };
+  const mix = parseMix(obj.mix, per_run);
+  if (mix) out.mix = mix;
+  return out;
 }
+// F7 (CNS-334): schedule.mix = [{aspect, n}] — Σn = per_run, mỗi tỉ lệ phải đang bật; không khớp ⇒ bỏ qua (mọi lệnh lịch theo mặc định kênh như cũ). write() đã chặn mix sai lúc owner lưu.
+// per_run giữ nghĩa TỔNG ⇒ Tổng quan (runway, weekly.target) không đổi công thức.
+function parseMix(mix, per_run) {
+  if (!Array.isArray(mix) || !mix.length) return null;
+  let sum = 0;
+  const out = [];
+  for (const m of mix) {
+    if (!m || typeof m.aspect !== 'string' || !Number.isInteger(m.n) || m.n < 1) return null;
+    const g = aspects.get(m.aspect);
+    if (!g || !g.enabled) return null;
+    sum += m.n; out.push({ aspect: m.aspect, n: m.n });
+  }
+  return sum === per_run ? out : null;
+}
+// danh sách tỉ lệ theo thứ tự mở lệnh: [{9:16 ×1, 16:9 ×2}] → ['9:16','16:9','16:9']
+const expandMix = (mix) => (mix ? mix.flatMap((m) => Array(m.n).fill(m.aspect)) : []);
 // Thời điểm (UTC) của h:mi theo giờ địa phương của tz vào ngày y-m-d.
 function zoned(y, m, d, h, mi, tz) {
   const guess = Date.UTC(y, m - 1, d, h, mi);
@@ -61,9 +82,10 @@ function openScheduled(ctx, now = new Date()) {
       `SELECT * FROM curriculum_nodes WHERE channel_id=? AND status='todo' AND deleted_at IS NULL
          AND id NOT IN (SELECT curriculum_node_id FROM work_orders WHERE curriculum_node_id IS NOT NULL AND state IN ('open','assigned','stalled'))
        ORDER BY ord, display_id LIMIT ?`, ch.id, sc.per_run);
-    for (const n of nodes) {
+    const plan = expandMix(sc.mix);
+    for (const [i, n] of nodes.entries()) {
       const wo = write(SYS, 'work_order.create', {
-        channel: ch.display_id, kind: 'new_lesson', curriculum_node: n.display_id,
+        channel: ch.display_id, kind: 'new_lesson', curriculum_node: n.display_id, ...(plan[i] ? { aspect: plan[i] } : {}),
         brief: `Soạn bài mới cho kênh ${ch.name}: mục giáo trình ${n.display_id} "${n.title}"${n.principle ? ' — nguyên lý: ' + n.principle : ''}. Dùng get_channel, list_cast, list_curriculum, get_capabilities rồi nộp bài bằng submit_lesson (kèm work_order).`,
       });
       opened.push(wo.display_id);
@@ -96,4 +118,4 @@ function start(ctx, { intervalMs = 60000 } = {}) {
   return { stop: () => clearInterval(t), tick: now => tick(ctx, now) };
 }
 
-module.exports = { start, tick, openScheduled, sweepStalled, nextSlot, parseSchedule, slotAround };
+module.exports = { start, tick, openScheduled, sweepStalled, nextSlot, parseSchedule, slotAround, parseMix, expandMix };

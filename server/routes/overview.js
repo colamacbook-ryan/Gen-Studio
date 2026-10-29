@@ -191,9 +191,9 @@ function buildV2(db, { period = '7d', now = new Date() } = {}) {
     const th = Array.isArray(o.thumbs) ? o.thumbs.filter((x) => x && x.pass !== false && x.w1280) : [];
     return th.length ? th.reduce((a, b) => ((b.score || 0) > (a.score || 0) ? b : a)).w1280 : o.cover || null;
   };
-  const recent_renders = db.all(`SELECT r.display_id AS id, l.display_id AS lesson, l.title, r.state, r.created_at AS at, r.state_changed_at, r.outputs, r.thumbnail_pick
+  const recent_renders = db.all(`SELECT r.display_id AS id, l.display_id AS lesson, l.title, r.state, r.created_at AS at, r.state_changed_at, r.outputs, r.thumbnail_pick, lv.aspect
     FROM renders r JOIN lesson_versions lv ON lv.id=r.lesson_version_id JOIN lessons l ON l.id=lv.lesson_id
-    WHERE r.workspace_id=? ORDER BY r.created_at DESC, r.rowid DESC LIMIT 5`, ws).map((x) => ({ id: x.id, lesson: x.lesson, title: x.title, state: x.state, at: x.at, state_at: x.state_changed_at,
+    WHERE r.workspace_id=? ORDER BY r.created_at DESC, r.rowid DESC LIMIT 5`, ws).map((x) => ({ id: x.id, lesson: x.lesson, title: x.title, state: x.state, at: x.at, state_at: x.state_changed_at, aspect: x.aspect || '16:9',   // F7: NULL (bài cũ) = 16:9
     thumb: thumbOf(J0(x.outputs), x.thumbnail_pick), href: x.state === 'awaiting_review' ? '#/review/' + x.id : '#/pipeline?q=' + encodeURIComponent('display_id:' + x.id) }));
   const recent_orders = db.all(`SELECT w.display_id AS id, w.kind, w.state, a.display_id AS agent, w.opened_at AS at FROM work_orders w LEFT JOIN agents a ON a.id=w.agent_id
     WHERE w.workspace_id=? ORDER BY w.opened_at DESC, w.rowid DESC LIMIT 5`, ws).map((x) => Object.assign(x, { href: '#/work-orders?q=' + encodeURIComponent('display_id:' + x.id) }));

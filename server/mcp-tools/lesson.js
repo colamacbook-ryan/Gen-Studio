@@ -30,10 +30,16 @@ function tools(ctx) {
       class Dry extends Error {}
       const ie = illusErrors(a);
       if (ie.length) return { text: 'Bài chưa hợp lệ:\n' + ie.map((x) => `- ${x.path}: ${x.text}`).join('\n'), data: { ok: false, errors: ie } };
+      let dry = null;
       try {
-        db.tx(() => { write(actorOf(c), 'lesson.submit', JSON.parse(JSON.stringify(lessonPayload(a, c)))); throw new Dry('dry'); });
+        db.tx(() => { dry = write(actorOf(c), 'lesson.submit', JSON.parse(JSON.stringify(lessonPayload(a, c)))); throw new Dry('dry'); });
       } catch (e) {
-        if (e instanceof Dry) return { text: `Bài hợp lệ: ${arr(a.lines).length} câu, ${arr(a.beats).length} nhịp. Có thể submit_lesson.`, data: { ok: true, errors: [] } };
+        // F7: validate_lesson trả thêm `aspect` {value, source, presets, fit_estimate, warnings} (ops/aspect.js đặt vào kết quả chạy khô)
+        if (e instanceof Dry) {
+          const asp = dry && dry.aspect, warns = asp ? asp.warnings : [];
+          return { text: `Bài hợp lệ: ${arr(a.lines).length} câu, ${arr(a.beats).length} nhịp${asp && asp.value !== '16:9' ? `, khung ${asp.value}` : ''}. Có thể submit_lesson.` + warns.map((w) => `\n- [${w.code}] ${w.text_human}`).join(''),
+            data: Object.assign({ ok: true, errors: [] }, asp ? { aspect: asp } : {}) };
+        }
         if (e && e.code === 'invalid') {
           const errs = (e.detail && e.detail.errors) || [{ path: '', text: e.text_human }];
           return { text: 'Bài chưa hợp lệ:\n' + errs.map((x) => `- ${x.path}: ${x.text}`).join('\n'), data: { ok: false, errors: errs } };
@@ -45,7 +51,7 @@ function tools(ctx) {
     { name: 'submit_lesson', scope: 'compose', description: 'Nộp bài (lesson mới hoặc version mới nếu có lesson) — tự tạo Render và tự chạy pipeline.', schema: withExt({ ...base, note: S }), required: ['title', 'lines', 'beats'], handler: (a, c) => {
       assertIllus(a);
       const out = write(actorOf(c), 'lesson.submit', lessonPayload(a, c));
-      return { text: `Đã nộp bài ${out.lesson.display_id} v${out.version.version}; bản dựng ${out.render.display_id} đã vào hàng đợi.`, data: { lesson: out.lesson.display_id, version: out.version.version, render: out.render.display_id } };
+      return { text: `Đã nộp bài ${out.lesson.display_id} v${out.version.version}; bản dựng ${out.render.display_id} đã vào hàng đợi.`, data: Object.assign({ lesson: out.lesson.display_id, version: out.version.version, render: out.render.display_id }, out.aspect ? { aspect: { value: out.aspect.value, source: out.aspect.source, warnings: out.aspect.warnings } } : {}) };
     } },
     { name: 'update_lesson', scope: 'compose', description: 'Sửa bài: gửi phần thay đổi (title/lines/beats/camera_hints); phần không gửi giữ nguyên. Tạo version mới + Render mới.', schema: withExt({ lesson: S, title: S, lines: { type: 'array' }, beats: { type: 'array' }, camera_hints: O, work_order: S, note: S }), required: ['lesson'], handler: (a, c) => {
       const l = need('lessons', a.lesson, 'bài học');

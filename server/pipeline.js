@@ -12,6 +12,7 @@ const secrets = require('./secrets.js');
 const events = require('./events.js');
 const grids = require('./grids.js');
 const rights = require('./rights.js');
+const aspects = require('../render/aspects.js');   // F7: tỉ lệ khung (nguồn duy nhất render/aspects.json)
 const gateIds = require('../media/gates/index.js').gatesFor;   // cổng áp cho loại bài (SPEC §2.5) — luôn bản thật, kể cả khi test tiêm deps.gates
 
 const J = grids.J;
@@ -309,7 +310,7 @@ async function execute(ctx, run, renderId) {
       // plan v2 (SPEC §2.1): kind/variant/brand/assetRefs đi vào buildPlan; hook plan.input cho gói U/V/B sửa input (screens, cursor, actorLayout, persona…)
       const input = { lesson: { title: B.lesson.title, lines: planLines, beats: planBeats, camera_hints: B.lv.camera_hints || null, kind, variant: B.lv.variant || undefined, host: B.lv.host || null, screens: B.lv.screens || null, music: B.lv.music || null, thumbnail: B.lv.thumbnail || null }, clips,
         channel: Object.assign({ id: B.channel.display_id, name: B.channel.name }, B.channelData),
-        cast: haveRecipes ? castRecipes : undefined, parts: haveRecipes ? lib.parts : undefined, packs: haveRecipes ? lib.packs : undefined, aspect: '16:9', fps: FPS,
+        cast: haveRecipes ? castRecipes : undefined, parts: haveRecipes ? lib.parts : undefined, packs: haveRecipes ? lib.packs : undefined, aspect: B.lv.aspect || '16:9', fps: FPS,   // F7: aspect là giá trị ĐÃ PHÂN GIẢI lúc nộp (NULL = bài cũ = 16:9); bố cục theo tỉ lệ do engine (plan.layout) lo
         kind, variant: B.lv.variant || undefined, brand, assetRefs: illusRefs.slice() };
       if (ext) ext.hooks.run('plan.input', { B, input, ctx });
       plan = D('timeline').buildPlan(input);
@@ -355,6 +356,8 @@ async function execute(ctx, run, renderId) {
     const srts = langs.map(lang => ({ lang, text: srtM.build(plan.lines.map(pl => ({ say: pl.say, subtitle: planLines.find(x => x.id === pl.id).subtitle, a_ms: pl.a_ms, b_ms: pl.b_ms })), lang) }));
     const put = (kind, file, mime, meta) => write(SYS, 'asset.put', { kind, bytes: fs.readFileSync(file), mime, meta, source: 'system' });
     const outputs = { mp4: put('video', mp4Path, 'video/mp4', { duration_ms: plan.duration_ms }).id, mix: put('audio', mixPath, 'audio/wav', { role: 'mix' }).id };
+    // F7 §3.2: khung bìa trong clip (dùng cho metadata xuất) — chỉ ghi khi tỉ lệ ≠ 16:9 để outputs bài cũ không đổi
+    if ((plan.aspect || '16:9') !== '16:9') outputs.cover_frame_ms = aspects.coverFrameMs(plan);
     srts.forEach(s => { outputs['srt_' + s.lang] = write(SYS, 'asset.put', { kind: 'subtitle', bytes: Buffer.from(s.text, 'utf8'), mime: 'application/x-subrip', meta: { lang: s.lang }, source: 'system' }).id; });
     if (r.cover && fs.existsSync(r.cover)) {
       const head = fs.readFileSync(r.cover).subarray(0, 4);
@@ -376,7 +379,7 @@ async function execute(ctx, run, renderId) {
     });
     const cutsAllowed = plan.beats.filter(pb => { const d = registry.get && registry.get(pb.block); return d && d.cut === true; }).map(pb => pb.t_in / 1000);
     const rg = await gates.renderGates({ mixPath, mp4Path, lines: plan.lines, beats: beatsOk, frames: { expected, got: r.frames, errors: r.errors || [] },
-      cutsAllowed, srt: srts, fps: plan.fps || FPS, ffmpegPath: config.ffmpegPath });
+      cutsAllowed, srt: srts, fps: plan.fps || FPS, ffmpegPath: config.ffmpegPath, size: plan.size });   // size: G-MUX kiểm cỡ luồng video = plan.size (F7 §6.1; gateMux ở gói A2)
     const gw = await gates.gateWavB({ mixPath: stemPath, lines: plan.lines, ffmpegPath: config.ffmpegPath });
     const rg2 = rg.map(x => (x.gate === 'G-WAV' && x.measure && x.measure.tier === 'b' ? Object.assign({}, gw, { measure: Object.assign({ stem: 'voices_only' }, gw.measure) }) : x));
     // cổng theo loại bài + dữ liệu bài (GATES): ngoài 8 cổng R3, mỗi cổng áp dụng phải có cài đặt đăng ký ở write.ext.gates (T: G-THUMB, U: G-CURSOR); thiếu ⇒ unknown ⇒ chặn (INT-08)
@@ -432,6 +435,7 @@ function buildManifest(ctx, B, items, plan, tts, judgeP, registry, extra) {
   items.forEach(i => { lines[i.l.display_id] = i.clip.display_id; });
   const cast = {}; B.lines.forEach(l => { cast[l.cast.display_id] = { version: l.cast_version === undefined ? l.cast.current_version : l.cast_version }; });
   const blocks = {}; B.beats.forEach(b => { blocks[b.block_type] = b.block_version; });
+  const planAspect = plan.aspect || (B.lv && B.lv.aspect) || '16:9';   // F7: lấy từ plan (thay hằng '16:9'); plan/lv cũ không có ⇒ 16:9
   let gc = 'unknown'; try { gc = fs.readFileSync(path.join(__dirname, '..', 'vendor', 'gen-chibi', 'VERSION'), 'utf8').trim(); } catch { /* chưa có vendor */ }
   return {
     lesson_version: { lesson: B.lesson.display_id, version: B.lv.version },
@@ -440,11 +444,13 @@ function buildManifest(ctx, B, items, plan, tts, judgeP, registry, extra) {
     providers: { tts: { vendor: tts.vendor, model: tts.model }, judge: { vendor: judgeP.vendor, model: judgeP.model }, align: { method: judgeP.vendor === 'offline' ? 'asr_word_times|chars' : 'judge_word_times|chars' } },
     engine: { app: ctx.config.version, gen_chibi: gc, chromium: ctx.config.chromiumPath || 'auto', ffmpeg: ffmpegVersion(ctx) },
     camera_plan_hash: crypto.createHash('sha256').update(JSON.stringify(plan.camera || [])).digest('hex'),
-    aspect: '16:9', fps: plan.fps || FPS, size: plan.size,
+    aspect: planAspect, fps: plan.fps || FPS, size: plan.size,
     // chỉ thêm khoá mới khi có dữ liệu ⇒ manifest bản dựng cũ/đang chạy dở không đổi (so khớp khi chạy tiếp)
     ...(B.lv.kind && B.lv.kind !== 'lesson' ? { kind: B.lv.kind } : {}),
     ...(extra && extra.brand ? { brand_hash: extra.brand.hash || extra.brandMod.hash(extra.brand) } : {}),
     ...(extra && extra.lib && extra.lib.hash ? { parts_hash: extra.lib.hash } : {}),
+    // F7: chỉ thêm khi tỉ lệ ≠ 16:9 ⇒ manifest 16:9 trùng byte (golden M14)
+    ...(planAspect !== '16:9' && aspects.get(planAspect) && aspects.get(planAspect).safe ? { safe_ref: aspects.get(planAspect).safe.ref } : {}),
     plan: {
       duration_ms: plan.duration_ms, fps: plan.fps || FPS,
       lines: plan.lines.map(l => ({ id: l.id, who: l.who, say: l.say, terms: l.terms || [], a_ms: l.a_ms, b_ms: l.b_ms })),
@@ -590,6 +596,18 @@ function requeueRender(ctx, render, { actor } = {}) {
 }
 
 // ---------- xuất gói ----------
+// F7 §7: manifest.json của gói thêm {aspect, size, duration_s, cover_frame_ms, platforms[]} — CHỈ khi tỉ lệ ≠ 16:9 (gói 16:9 trùng nội dung cũ trừ exported_at).
+// platforms[] = mỗi preset của tỉ lệ: {preset, fit (thời lượng ≤ max_s), max_s, cover, verified, source (URL)} — fit lấy từ aspects.fit.
+function exportAspectMeta(aspect, r, o) {
+  const g = aspect === '16:9' ? null : aspects.get(aspect);
+  if (!g) return {};
+  const ms = Number.isFinite(r.duration_ms) ? r.duration_ms : (r.manifest && r.manifest.plan && r.manifest.plan.duration_ms) || null;
+  const fit = aspects.fit(aspect, ms === null ? undefined : ms / 1000);
+  const out = { aspect, size: g.size, duration_s: ms === null ? null : Math.round(ms / 100) / 10 };
+  if (o && o.cover_frame_ms !== undefined) out.cover_frame_ms = o.cover_frame_ms;
+  out.platforms = aspects.presetsOf(aspect).map(p => ({ preset: p.id, fit: !!(fit[p.id] && fit[p.id].ok), max_s: p.max_s, cover: p.cover, verified: p.verified, source: p.source_url }));
+  return out;
+}
 // opts: { actor, entry } — người xuất (owner UI hay agent MCP); chỉ để truyền cho hook export.after (gói O: owner xuất ⇒ exported_at + published_at; agent ⇒ chỉ exported_at)
 function exportRender(ctx, render, opts = {}) {
   const { db, config } = ctx;
@@ -601,15 +619,20 @@ function exportRender(ctx, render, opts = {}) {
   fs.mkdirSync(dir, { recursive: true });
   const files = [];
   const coverExt = o.cover ? path.extname(assetFile(db, o.cover).file) || '.jpg' : '.jpg';
-  const names = { mp4: r.display_id + '.mp4', srt_vi: r.display_id + '.vi.srt', srt_en: r.display_id + '.en.srt', cover: r.display_id + '.cover' + coverExt };
+  const lv = db.get('SELECT lv.version, lv.aspect, l.display_id AS lesson, l.title FROM lesson_versions lv JOIN lessons l ON l.id=lv.lesson_id WHERE lv.id=?', r.lesson_version_id);
+  // F7 §7: tên tệp 16:9 GIỮ NGUYÊN (RD-0011.mp4…); tỉ lệ khác chèn token: RD-0012.9x16.mp4, RD-0012.9x16.vi.srt, RD-0012.9x16.cover.jpg…
+  const aspect = (r.manifest && r.manifest.aspect) || (lv && lv.aspect) || '16:9';
+  const tok = aspect === '16:9' ? '' : '.' + (aspects.token(aspect) || String(aspect).replace(/[^0-9a-z]+/gi, 'x'));
+  const base = r.display_id + tok;
+  const names = { mp4: base + '.mp4', srt_vi: base + '.vi.srt', srt_en: base + '.en.srt', cover: base + '.cover' + coverExt };
   const src = Object.assign({}, o);
   // ảnh bìa theo phương án (0.2.0 §5.4): bản đã chọn (renders.thumbnail_pick), chưa chọn ⇒ phương án đạt có score cao nhất (bằng nhau ⇒ theo thứ tự gửi) → RD-…cover.jpg (1280) + RD-…cover-1920.jpg
   const th = Array.isArray(o.thumbs) ? o.thumbs.filter(t => t && t.pass !== false && t.w1280) : [];
   if (th.length) {
     const pick = r.thumbnail_pick && th.find(t => t.w1280 === r.thumbnail_pick || t.w1920 === r.thumbnail_pick);
     const best = pick || th.reduce((a, b) => ((b.score || 0) > (a.score || 0) ? b : a));
-    src.cover = best.w1280; names.cover = r.display_id + '.cover.jpg';
-    if (best.w1920) { src.cover1920 = best.w1920; names.cover1920 = r.display_id + '.cover-1920.jpg'; }
+    src.cover = best.w1280; names.cover = base + '.cover.jpg';
+    if (best.w1920) { src.cover1920 = best.w1920; names.cover1920 = base + '.cover-1920.jpg'; }
   }
   for (const k of Object.keys(names)) {
     if (!src[k]) continue;
@@ -618,10 +641,9 @@ function exportRender(ctx, render, opts = {}) {
     fs.copyFileSync(a.file, path.join(dir, names[k]));
     files.push(names[k]);
   }
-  const lv = db.get('SELECT lv.version, l.display_id AS lesson, l.title FROM lesson_versions lv JOIN lessons l ON l.id=lv.lesson_id WHERE lv.id=?', r.lesson_version_id);
   const gates = db.all("SELECT gate, result, measure FROM gate_results WHERE subject_kind='render' AND subject_id=? ORDER BY created_at, rowid", r.id);
   const latest = {}; gates.forEach(g => { latest[g.gate] = { result: g.result, measure: J(g.measure) }; });
-  fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify({ render: r.display_id, lesson: lv.lesson, title: lv.title, version: lv.version, manifest: r.manifest, gates: latest, files, exported_at: new Date().toISOString() }, null, 2));
+  fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify({ render: r.display_id, lesson: lv.lesson, title: lv.title, version: lv.version, ...exportAspectMeta(aspect, r, o), manifest: r.manifest, gates: latest, files, exported_at: new Date().toISOString() }, null, 2));
   files.push('manifest.json');
   const out = { dir, files };
   if (ctx.write && ctx.write.ext) ctx.write.ext.hooks.run('export.after', { ctx, render: r, actor: opts.actor || null, entry: opts.entry || null, dir, files });   // gói O: ops.publish
