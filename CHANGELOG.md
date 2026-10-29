@@ -1,5 +1,10 @@
 # Changelog
 
+## Chưa phát hành · khối cho clip giải thích dài
+- **12 khối mới (bài thường):** `quiz` (guess/pause/comment, đếm 3-2-1), `compare-split`, `sticky-tracker` (giấy nhớ giữ suốt video, lật ôn), `agent-steps`, `checklist-card`, `morph`, `pip-swap` (PiP tròn, phóng ×1,3 khi có thẻ «Bạn làm gì»), `chat-bubble`, `split-compare-run`, `bars`, `loop`; `title` thêm `num`/`kicker` (bumper «CỬA 1»).
+- **Mốc trong khối neo theo chữ** (`cue` = số giây hoặc `{line, word}`) — hình và tiếng (`sfxTimed`) theo đúng mốc từng chữ của giọng; bài cũ dựng ra plan y hệt (golden 16:9).
+- Bộ biểu tượng phẳng tự vẽ (`render/blocks/icons.js`); `tools/blocks-preview.js` chụp bảng 3 mốc mỗi khối qua sân khấu thật.
+
 ## 0.2.0 — 2026-10-29 · clip dọc 9:16, giọng offline, ảnh bìa, video hướng dẫn
 - **Tỉ lệ khung:** mỗi lệnh/kênh chọn 16:9 hoặc 9:16 (clip dọc 1080×1920 cho Shorts/Reels/TikTok, cổng G-SAFE giữ chữ khỏi vùng nút nền tảng); bài 16:9 cũ dựng lại ra đúng plan cũ.
 - **Giọng offline không cần khoá** (`install.sh --voice-offline` / `genstudio voice pull`): VieNeu-TTS + giám khảo faster-whisper chạy trên máy, model ghim revision + sha256; trộn được với Gemini.

@@ -97,6 +97,9 @@ const DEMOS = {
   bars: { lines: [L('L1', 'CM-0001', 'Agent tự gửi chỉ mất hai giây, chờ bạn duyệt thì thêm nửa phút. Đáng mà!')],
     beats: [{ id: 'B1', block: 'bars', anchor: { line: 'L1', word: 'Agent' }, params: { title: 'Nhanh hơn chưa chắc tốt hơn', bars: [{ label: 'Agent tự gửi', value: 2, text: '2 giây', tone: 'bad' }, { label: 'Chờ bạn duyệt', value: 30, text: '30 giây', tone: 'good' }] } }],
     at: [0.5, 1.2, 3.4] },
+  loop: { lines: [L('L1', 'CM-0001', 'Người nấu canh làm, nếm, nêm, rồi nếm lại cho tới khi vừa. Agent cũng phải lặp như vậy.'), L('L2', 'CM-0002', 'À, vậy là phải dặn nó biết lúc nào thì dừng, đúng vị rồi thì thôi không nêm nữa.')],
+    beats: [{ id: 'B1', block: 'loop', anchor: { line: 'L1', word: 'Người' }, params: { rounds: 2, node_s: 1.2, stop: 'Đúng vị thì dừng' } }],
+    at: [1.6, 4.2, 9.0] },
 };
 
 function sheet(frames, out, labels) {

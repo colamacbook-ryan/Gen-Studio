@@ -23,5 +23,6 @@
   { "name": "pip-swap", "file": "pip-swap.js", "kinds": ["lesson"], "agent": true, "enabled": true, "aspects": ["16:9"] },
   { "name": "chat-bubble", "file": "chat-bubble.js", "kinds": ["lesson"], "agent": true, "enabled": true, "aspects": ["16:9", "9:16"] },
   { "name": "split-compare-run", "file": "split-compare-run.js", "kinds": ["lesson"], "agent": true, "enabled": true, "aspects": ["16:9"] },
-  { "name": "bars", "file": "bars.js", "kinds": ["lesson"], "agent": true, "enabled": true, "aspects": ["16:9", "9:16"] }
+  { "name": "bars", "file": "bars.js", "kinds": ["lesson"], "agent": true, "enabled": true, "aspects": ["16:9", "9:16"] },
+  { "name": "loop", "file": "loop.js", "kinds": ["lesson"], "agent": true, "enabled": true, "aspects": ["16:9", "9:16"] }
 ]

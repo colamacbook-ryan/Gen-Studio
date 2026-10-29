@@ -34,7 +34,7 @@
       var L = lay(p, ctx.aspect), kind = p.kind || 'message', box = U.box(ctx.slot, 'b-chat k-' + kind + ' tone-' + (p.tone || (kind === 'notice' ? 'urgent' : 'normal')) + (L.v ? ' v' : ''));
       var av = kind === 'notice' ? '<span class="cb-av ic">' + I.svg('warning', 64) + '</span>' : '<span class="cb-av"><i class="w1"></i><i class="w2"></i><b></b></span>';
       box.innerHTML = '<div class="cb-c" style="width:' + L.W + 'px">' + av + '<div class="cb-m"><div class="cb-top"><span class="cb-app"></span><span class="cb-time"></span></div><b class="cb-from"></b><div class="cb-text"></div></div>' +
-        (kind === 'call' ? '<div class="cb-btns"><span class="cb-b no">' + I.svg('phone', 40) + '</span><span class="cb-b ok">' + I.svg('phone', 40) + '</span></div>' : '') + '</div>';
+        (kind === 'call' ? '<div class="cb-btns"><span class="cb-b no">' + I.svg('handset', 46) + '</span><span class="cb-b ok">' + I.svg('handset', 46) + '</span></div>' : '') + '</div>';
       var b = box.querySelector('.cb-av b'); if (b) b.textContent = p.avatar || initials(p.from);
       box.querySelector('.cb-app').textContent = p.app || (kind === 'call' ? 'Cuộc gọi đến' : kind === 'notice' ? 'Thông báo' : 'Tin nhắn');
       box.querySelector('.cb-time').textContent = p.time || 'bây giờ';

@@ -9,6 +9,7 @@
     key: '<circle class="y" cx="38" cy="44" r="24"/><circle class="w" cx="38" cy="44" r="9"/><path class="y" d="M56 58 L98 100 L88 110 L80 102 L74 108 L66 100 L72 94 L48 66 Z"/>',
     keys: '<g transform="rotate(-28 60 60)"><circle class="b" cx="40" cy="34" r="17"/><circle class="w" cx="40" cy="34" r="6"/><path class="b" d="M37 50 h7 v52 h-7 Z M44 82 h10 v7 h-10 Z M44 94 h8 v7 h-8 Z"/></g><g transform="rotate(10 60 60)"><circle class="l" cx="60" cy="30" r="17"/><circle class="w" cx="60" cy="30" r="6"/><path class="l" d="M57 46 h7 v56 h-7 Z M64 84 h11 v7 h-11 Z M64 96 h8 v7 h-8 Z"/></g><circle class="i" cx="52" cy="22" r="7"/>',
     phone: '<rect class="i" x="32" y="10" width="56" height="100" rx="12"/><rect class="b" x="38" y="22" width="44" height="70" rx="4"/><circle class="w" cx="60" cy="101" r="4" stroke="none"/>',
+    handset: '<path class="i" d="M30 14 L46 34 L38 46 Q46 66 66 80 L78 72 L100 88 L92 104 Q80 112 62 104 Q26 84 14 46 Q10 26 30 14 Z"/>',
     envelope: '<rect class="w" x="12" y="28" width="96" height="66" rx="8"/><path class="n" d="M14 32 L60 68 L106 32"/><path class="n" d="M14 92 L46 62 M106 92 L74 62"/>',
     paperclip: '<path class="n" stroke-width="9" d="M74 30 L74 84 a18 18 0 0 1 -36 0 L38 26 a12 12 0 0 1 24 0 L62 80 a5 5 0 0 1 -10 0 L52 40"/>',
     tape: '<rect class="y" x="44" y="72" width="66" height="22" rx="3"/><path class="n" stroke-width="4" d="M56 72 v10 M68 72 v6 M80 72 v10 M92 72 v6 M104 72 v10"/><circle class="r" cx="44" cy="62" r="34"/><circle class="w" cx="44" cy="62" r="12"/>',

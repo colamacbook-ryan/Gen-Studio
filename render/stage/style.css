@@ -282,7 +282,7 @@ html, body { margin: 0; padding: 0; width: 1920px; height: 1080px; overflow: hid
 .b-chat .cb-btns { flex: none; display: flex; gap: 22px; }
 .b-chat .cb-b { width: 96px; height: 96px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 .b-chat .cb-b.ok { background: #22A06B; } .b-chat .cb-b.no { background: #E5484D; } .b-chat .cb-b.no svg { transform: rotate(135deg); }
-.b-chat .cb-b .gi { stroke: #fff; } .b-chat .cb-b .gi .i { fill: #fff; } .b-chat .cb-b .gi .b { fill: #fff; }
+.b-chat .cb-b .gi { stroke: none; } .b-chat .cb-b .gi .i { fill: #fff; }
 .b-chat.v .cb-top { font-size: 36px; } .b-chat.v .cb-text { font-size: 40px; } .b-chat.v .cb-from { font-size: 46px; }
 /* title + num (K13 bumper) */
 .b-title .tnum { position: relative; width: 220px; height: 220px; margin-bottom: 30px; display: flex; align-items: center; justify-content: center; flex: none; }
@@ -316,3 +316,16 @@ html, body { margin: 0; padding: 0; width: 1920px; height: 1080px; overflow: hid
 .b-bars .br-v { position: absolute; top: 50%; margin-left: 20px; font-weight: 800; white-space: nowrap; opacity: 0; transform-origin: 0 50%; }
 .b-bars .br-v.in { margin-left: 0; translate: calc(-100% - 22px) 0; color: #fff; transform-origin: 100% 50%; }
 .b-bars .br-n { align-self: flex-end; font-size: 40px; margin-top: 10px; opacity: 0; }
+/* loop (K10) */
+.b-loop .lp-s { position: absolute; left: 0; top: 0; overflow: visible; transform-origin: 430px 320px; }
+.b-loop .lp-ring { fill: none; stroke: var(--v-rule-strong); stroke-width: 10; stroke-dasharray: 4 22; stroke-linecap: round; }
+.b-loop .lp-trail { fill: none; stroke: var(--v-hl); stroke-width: 18; stroke-linecap: round; }
+.b-loop .lp-ar { fill: none; stroke: var(--v-ink); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+.b-loop .lp-dot { position: absolute; left: 0; top: 0; width: 40px; height: 40px; border-radius: 50%; background: var(--v-accent2); border: 6px solid #fff; box-shadow: 0 0 0 5px var(--v-ink); opacity: 0; z-index: 0; }   /* đi SAU nút: tới nút thì khuất, nút sáng lên */
+.b-loop .lp-n { position: absolute; width: 196px; height: 196px; border-radius: 50%; background: var(--v-card); border: 7px solid var(--v-ink); box-shadow: 8px 10px 0 var(--v-ink); box-sizing: border-box; display: flex; align-items: center; justify-content: center; z-index: 1; }
+.b-loop .lp-n i { position: absolute; inset: -7px; border-radius: 50%; background: var(--v-hl); border: 7px solid var(--v-ink); opacity: 0; }
+.b-loop .lp-n b { position: relative; font-size: 54px; font-weight: 800; letter-spacing: .02em; }
+.b-loop .lp-done { position: absolute; padding: 6px 28px; border-radius: 16px; background: var(--v-leaf); color: #fff; font-size: 58px; font-weight: 800; white-space: nowrap; box-shadow: 6px 8px 0 var(--v-ink); opacity: 0; z-index: 3; }
+.b-loop .lp-stop { position: absolute; left: 790px; top: 250px; display: flex; align-items: center; gap: 24px; opacity: 0; }
+.b-loop .lp-stop .oct { width: 128px; height: 128px; flex: none; background: var(--v-accent2); clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); }
+.b-loop .lp-stop b { font-size: 60px; font-weight: 800; max-width: 440px; line-height: 1.1; }

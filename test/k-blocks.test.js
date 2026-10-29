@@ -216,3 +216,12 @@ test('bars: 2–3 thanh, nhãn "thời gian minh hoạ" mặc định, lịch m�
   assert.match(reg.validate('bars', { bars: [{ label: 'a', value: 0 }, { label: 'b', value: 1 }] }).errors.join(), /tối thiểu/);
   assert.deepEqual(d.timing({ bars: [{}, {}] }, [2]).grow, [2, 2.3]);
 });
+
+// ---------- loop ----------
+test('loop: lịch vòng (rounds × 3 nút × node_s), âm tick mỗi nút + ta-da khi xong, nodes đúng 3', () => {
+  const d = reg.get('loop');
+  assert.ok(reg.validate('loop', {}).ok); assert.ok(reg.validate('loop', { nodes: ['NẤU', 'NẾM', 'NÊM'], rounds: 1, at: { line: 'L1', word: 'nếm' } }).ok);
+  assert.match(reg.validate('loop', { nodes: ['A', 'B'] }).errors.join(), /ít nhất 3/); assert.match(reg.validate('loop', { rounds: 4 }).errors.join(), /tối đa 3/);
+  const T = d.timing({ rounds: 2, node_s: 1 }, [2]); assert.deepEqual([T.start, T.end], [2, 8]);
+  const s = d.sfxTimed({ rounds: 1, node_s: 1 }, [2]); assert.deepEqual(s.map((x) => x.name), ['pop', 'tick', 'tick', 'ta-da']);
+});
