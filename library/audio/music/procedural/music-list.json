@@ -1,0 +1,38 @@
+{
+ "generator": "music/src/compose.mjs",
+ "sampleRate": 48000,
+ "items": [
+  {
+   "file": "music/curious-intro.flac",
+   "name": "curious-intro",
+   "bpm": 96,
+   "bars": 12,
+   "seconds": 30,
+   "loop": true
+  },
+  {
+   "file": "music/light-explain.flac",
+   "name": "light-explain",
+   "bpm": 112,
+   "bars": 14,
+   "seconds": 30,
+   "loop": true
+  },
+  {
+   "file": "music/tension-climax.flac",
+   "name": "tension-climax",
+   "bpm": 128,
+   "bars": 16,
+   "seconds": 30,
+   "loop": true
+  },
+  {
+   "file": "music/happy-outro.flac",
+   "name": "happy-outro",
+   "bpm": 128,
+   "bars": 16,
+   "seconds": 30,
+   "loop": true
+  }
+ ]
+}

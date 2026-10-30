@@ -1,0 +1,20 @@
+{
+ "loop-wave-x3": {
+  "frames": 285,
+  "adj_diff_mean": 1.403,
+  "adj_diff_p95": 5.285,
+  "max_diff_at_joins": [
+   0.662,
+   0.639
+  ]
+ },
+ "loop-mix-wave-shock-wave": {
+  "frames": 285,
+  "adj_diff_mean": 1.501,
+  "adj_diff_p95": 5.177,
+  "max_diff_at_joins": [
+   0.765,
+   0.682
+  ]
+ }
+}

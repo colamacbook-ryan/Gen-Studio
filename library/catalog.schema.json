@@ -1,0 +1,222 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "genlabs/asset-lib/catalog-entry/1",
+  "title": "Gen Labs asset-lib catalog entry",
+  "description": "One entry per asset. Each area writes an ARRAY of these to asset-lib/catalog.d/<area>.json; tools/build-catalog.mjs merges + validates into catalog.json. Paths are relative to asset-lib/.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "type",
+    "title",
+    "tags",
+    "energy",
+    "source",
+    "license",
+    "commercial_ok",
+    "quality",
+    "added",
+    "cost_usd",
+    "stored"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$",
+      "description": "globally unique, dotted namespace: <type-ish>.<area>.<name>, e.g. sfx.kenney.click-001, char.vy.still.shock"
+    },
+    "type": {
+      "enum": [
+        "character-clip",
+        "character-still",
+        "sfx",
+        "music",
+        "icon-set",
+        "lottie",
+        "illustration",
+        "background",
+        "broll",
+        "font",
+        "motion-template"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 3
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+(=[a-z0-9-]+)?$"
+      },
+      "minItems": 1,
+      "description": "free tags: mood (curious, happy, tense, calm, shock...), use-case (transition, ui-click, quiz, cta...), character (nhi, vy)... Tier tag: quality B MUST carry \"tier=reserve\" (A = core, no tier tag needed)."
+    },
+    "energy": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "light",
+          "medium",
+          "heavy"
+        ]
+      },
+      "minItems": 1,
+      "description": "STD-17 intensity level(s) the asset suits"
+    },
+    "phase": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "hook",
+          "setup",
+          "build",
+          "climax",
+          "breath",
+          "payoff",
+          "cta"
+        ]
+      },
+      "description": "optional STD-17 phases it fits"
+    },
+    "path": {
+      "type": "string",
+      "description": "relative to asset-lib/ for files in git, OR absolute path when stored = local-scratch. One of path/url is required."
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "description": "remote location when the file is not stored here (stored = remote)"
+    },
+    "files": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "for sets (icon-set, sfx pack, font family): number of files under path (a directory)"
+    },
+    "duration_s": {
+      "type": "number",
+      "minimum": 0
+    },
+    "size_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "dimensions": {
+      "type": "string",
+      "pattern": "^[0-9]+x[0-9]+$",
+      "description": "WxH for images/video"
+    },
+    "loop": {
+      "type": "boolean"
+    },
+    "format": {
+      "type": "string",
+      "description": "wav, mp3, ogg, png, svg, json(lottie), mp4, woff2, tsx ..."
+    },
+    "stored": {
+      "enum": [
+        "git",
+        "local-scratch",
+        "remote"
+      ],
+      "description": "git = file ≤5 MB committed; local-scratch = big file kept in scratchpad/alib-large (note why); remote = only url"
+    },
+    "source": {
+      "type": "string",
+      "description": "who/what made it: 'Gen Labs (code: path/to/script)', 'Kenney (kenney.nl)', 'Kevin MacLeod (incompetech.com)', 'OpenRouter google/veo-3.1-lite' ..."
+    },
+    "source_url": {
+      "type": "string",
+      "description": "page where the original + its license can be checked (required for third-party assets)"
+    },
+    "license": {
+      "enum": [
+        "Gen-Labs-proprietary",
+        "CC0-1.0",
+        "CC-BY-4.0",
+        "CC-BY-3.0",
+        "OFL-1.1",
+        "MIT",
+        "ISC",
+        "Apache-2.0",
+        "Mixkit-SFX-Free",
+        "Mixkit-Music-Free",
+        "Mixkit-Video-Free",
+        "Pixabay-Content",
+        "Pexels",
+        "Lottie-Simple-License",
+        "unDraw",
+        "Google-Gemini-Output",
+        "Veo-Output",
+          "Meta-Muse-Output"
+      ],
+      "description": "WHITELIST: only commercial-OK licenses. No NC/ND, no 'personal use'. Model outputs: owned by us per provider terms (Veo-Output)."
+    },
+    "license_url": {
+      "type": "string"
+    },
+    "attribution": {
+      "type": "string",
+      "description": "exact credit text when the license requires it (CC-BY*). Empty/omitted otherwise."
+    },
+    "commercial_ok": {
+      "const": true,
+      "description": "must be true — anything else is rejected by add.mjs/build-catalog.mjs"
+    },
+    "redistribution": {
+      "enum": [
+        "free",
+        "in-product-only",
+        "no-standalone"
+      ],
+      "description": "free = CC0/MIT/OFL style; no-standalone = may be used inside our videos but raw files must not be shipped/sold as an asset pack (e.g. Mixkit, unDraw)"
+    },
+    "quality": {
+      "enum": [
+        "A",
+        "B"
+      ],
+      "description": "A = core: showcase-grade, the default result of find.mjs. B = reserve: usable fallback, MUST carry tag \"tier=reserve\". C = junk, rejected — do not catalog."
+    },
+    "quality_note": {
+      "type": "string",
+      "description": "how it was judged (looked at frames / spectrum / auditioned by a human / automated check only)"
+    },
+    "placeholder": {
+      "type": "boolean",
+      "description": "true = works but should be redone with a better source"
+    },
+    "added": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "cost_usd": {
+      "type": "number",
+      "minimum": 0
+    },
+    "how_made": {
+      "type": "string",
+      "description": "command / model / prompt — enough to reproduce"
+    },
+    "reuse": {
+      "type": "string",
+      "description": "one line: how to drop this into a new clip"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "anyOf": [
+    {
+      "required": [
+        "path"
+      ]
+    },
+    {
+      "required": [
+        "url"
+      ]
+    }
+  ]
+}

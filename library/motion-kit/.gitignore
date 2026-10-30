@@ -1,0 +1,13 @@
+node_modules
+dist
+out
+build
+build*/
+.DS_Store
+.env
+# bản sao tài nguyên do tools/sync-assets.sh chép vào (nguồn thật ở ../sfx ../music ../characters)
+public/sfx
+public/music
+public/characters
+public/clips
+public/lib

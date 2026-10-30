@@ -11,3 +11,4 @@ dist
 test
 __pycache__
 voice/test_*.py
+library

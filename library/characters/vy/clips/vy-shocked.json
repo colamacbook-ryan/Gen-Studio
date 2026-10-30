@@ -1,0 +1,17 @@
+{
+ "model": "google/veo-3.1-lite",
+ "prompt": "2D cel-shaded chibi cartoon girl with brown ponytail and yellow bow, coral cardigan. She is suddenly shocked: eyes widen, mouth drops open, both hands fly up to her cheeks and her ponytail jolts, she holds the shocked look for a beat, then calms down and returns to the exact same starting pose and smile. Solid flat chroma green background (#00B140) that stays perfectly uniform, no shadows, no props, no text. Static locked-off camera, no zoom, no pan. Keep the flat 2D cartoon style and thick dark outlines identical to the reference image.",
+ "duration": 4,
+ "resolution": "720p",
+ "generate_audio": false,
+ "first_last_frame": "vy-neutral-chroma-1280x720.png",
+ "seconds": 60,
+ "usage_before": 6.832661233,
+ "usage_after": 6.952661233,
+ "cost_usd": 0.12,
+ "job_usage": {
+  "cost": 0.12,
+  "is_byok": false
+ },
+ "date": "2026-10-30T04:23:38.336Z"
+}

@@ -51,3 +51,10 @@ Mọi thứ không do Gen-Studio tự viết phải có một dòng ở đây tr
 - Quyền dùng do **owner xác nhận từng tệp** (bảng `asset_rights`, chỉ thêm hàng; xác nhận hoặc thu hồi đều ghi Nhật ký). Mọi asset raster (PNG/JPEG/WebP/GIF) và audio do agent tải lên cần xác nhận này trước khi vào **bất kỳ** bản dựng nào; asset do owner tải lên qua phiên UI có cơ sở `owner_upload` (vẫn phải tick "đã che thông tin cá nhân" với ảnh raster). SVG do agent vẽ (qua lọc allowlist) và asset hệ thống không cần xác nhận. Luật chỉ áp cho asset tạo sau migration 0003; asset cũ giữ hành vi 0.1.x.
 - Ưu tiên dựng lại giao diện bằng DSL giả lập hoặc SVG; không chép logo, biểu tượng thương hiệu hay ảnh minh hoạ của bên thứ ba. Tên sản phẩm chỉ ghi dạng chữ để nói về đúng sản phẩm đó. [CHƯA VERIFY pháp lý — cần tư vấn trước khi bán.]
 - Repo chỉ chứa asset do Gen Labs làm: con trỏ (SVG nội tuyến), theme DSL, mẫu ảnh bìa.
+
+## Thư viện tài nguyên sản xuất (`library/`)
+- Danh mục máy đọc: `library/catalog.json`. Mỗi mục ghi rõ nguồn, giấy phép, ghi công và `redistribution`.
+- Đây là kho **dùng để làm clip của Gen Labs**. Kho **không** nằm trong ảnh Docker hay bản phát hành (`.dockerignore` loại `library`).
+- Mục `redistribution: no-standalone` (Mixkit, unDraw, Pexels…) **không được** đóng gói vào sản phẩm bán.
+- Nhạc CC-BY-4.0 (Kevin MacLeod) phải ghi công trong mô tả video. Dòng ghi công lấy ở trường `attribution`.
+- Đầu ra model (Veo, Muse) có giấy phép `*-Output`: trước khi bán, phải kiểm lại điều khoản của nhà cung cấp.

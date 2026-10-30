@@ -1,0 +1,2358 @@
+[
+ {
+  "id": "sfx.mixkit.whoosh-light-03",
+  "type": "sfx",
+  "title": "Flying fast swoosh",
+  "tags": [
+   "transition",
+   "swipe",
+   "whoosh"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "build"
+  ],
+  "path": "audio/sfx/whoosh/whoosh-light-03.wav",
+  "duration_s": 0.945,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/swoosh/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 1469 (\"Flying fast swoosh\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 181484,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/whoosh/whoosh-light-03.wav')}/> at 0.4-0.7 volume; transition, swipe, whoosh"
+ },
+ {
+  "id": "sfx.mixkit.whoosh-medium-02",
+  "type": "sfx",
+  "title": "Cinematic whoosh fast transition",
+  "tags": [
+   "scene-transition",
+   "wipe",
+   "whoosh"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "setup",
+   "build"
+  ],
+  "path": "audio/sfx/whoosh/whoosh-medium-02.wav",
+  "duration_s": 1.3,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/whoosh/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 1492 (\"Cinematic whoosh fast transition\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 249644,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/whoosh/whoosh-medium-02.wav')}/> at 0.4-0.7 volume; scene-transition, wipe, whoosh"
+ },
+ {
+  "id": "sfx.mixkit.whoosh-medium-03",
+  "type": "sfx",
+  "title": "Fast air sweep transition",
+  "tags": [
+   "scene-transition",
+   "wipe",
+   "whoosh"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "setup",
+   "build"
+  ],
+  "path": "audio/sfx/whoosh/whoosh-medium-03.wav",
+  "duration_s": 0.775,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/swoosh/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 168 (\"Fast air sweep transition\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 148844,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/whoosh/whoosh-medium-03.wav')}/> at 0.4-0.7 volume; scene-transition, wipe, whoosh"
+ },
+ {
+  "id": "sfx.mixkit.whoosh-heavy-03",
+  "type": "sfx",
+  "title": "Movie whoosh impact",
+  "tags": [
+   "title-reveal",
+   "hit",
+   "whoosh"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "build",
+   "climax"
+  ],
+  "path": "audio/sfx/whoosh/whoosh-heavy-03.wav",
+  "duration_s": 3.24,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/whoosh/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2903 (\"Movie whoosh impact\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 622124,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/whoosh/whoosh-heavy-03.wav')}/> at 0.4-0.7 volume; title-reveal, hit, whoosh"
+ },
+ {
+  "id": "sfx.mixkit.pop-01",
+  "type": "sfx",
+  "title": "Long pop",
+  "tags": [
+   "element-in",
+   "bubble",
+   "ui",
+   "pop"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "hook",
+   "setup"
+  ],
+  "path": "audio/sfx/pop/pop-01.wav",
+  "duration_s": 0.46,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/pop/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2358 (\"Long pop\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 88364,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/pop/pop-01.wav')}/> at 0.4-0.7 volume; element-in, bubble, ui"
+ },
+ {
+  "id": "sfx.mixkit.pop-02",
+  "type": "sfx",
+  "title": "Dry pop up",
+  "tags": [
+   "element-in",
+   "ui",
+   "pop"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "hook",
+   "setup"
+  ],
+  "path": "audio/sfx/pop/pop-02.wav",
+  "duration_s": 0.3,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/pop/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2356 (\"Dry pop up\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 28844,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/pop/pop-02.wav')}/> at 0.4-0.7 volume; element-in, ui, pop"
+ },
+ {
+  "id": "sfx.mixkit.pop-03",
+  "type": "sfx",
+  "title": "Bubble pop up",
+  "tags": [
+   "element-in",
+   "bubble",
+   "pop"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "hook",
+   "setup"
+  ],
+  "path": "audio/sfx/pop/pop-03.wav",
+  "duration_s": 0.35,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/pop/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2357 (\"Bubble pop up\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 33644,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/pop/pop-03.wav')}/> at 0.4-0.7 volume; element-in, bubble, pop"
+ },
+ {
+  "id": "sfx.mixkit.click-02",
+  "type": "sfx",
+  "title": "Cool interface click tone",
+  "tags": [
+   "ui",
+   "button",
+   "click"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup"
+  ],
+  "path": "audio/sfx/click/click-02.wav",
+  "duration_s": 0.065,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/click/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2568 (\"Cool interface click tone\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 12524,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/click/click-02.wav')}/> at 0.4-0.7 volume; ui, button, click"
+ },
+ {
+  "id": "sfx.mixkit.click-03",
+  "type": "sfx",
+  "title": "Clear mouse clicks",
+  "tags": [
+   "ui",
+   "mouse",
+   "click"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup"
+  ],
+  "path": "audio/sfx/click/click-03.wav",
+  "duration_s": 0.23,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/click/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2997 (\"Clear mouse clicks\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 44204,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/click/click-03.wav')}/> at 0.4-0.7 volume; ui, mouse, click"
+ },
+ {
+  "id": "sfx.mixkit.click-double-01",
+  "type": "sfx",
+  "title": "Fast double click",
+  "tags": [
+   "ui",
+   "mouse",
+   "click"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup"
+  ],
+  "path": "audio/sfx/click/click-double-01.wav",
+  "duration_s": 0.15,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/click/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 275 (\"Fast double click\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 14444,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/click/click-double-01.wav')}/> at 0.4-0.7 volume; ui, mouse, click"
+ },
+ {
+  "id": "sfx.mixkit.typing-key-01",
+  "type": "sfx",
+  "title": "Hard single key press",
+  "tags": [
+   "keyboard",
+   "single-key",
+   "typing"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup"
+  ],
+  "path": "audio/sfx/typing/typing-key-01.wav",
+  "duration_s": 0.12,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/type/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2542 (\"Hard single key press\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 11564,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/typing/typing-key-01.wav')}/> at 0.4-0.7 volume; keyboard, single-key, typing"
+ },
+ {
+  "id": "sfx.mixkit.typing-key-02",
+  "type": "sfx",
+  "title": "Single key type",
+  "tags": [
+   "keyboard",
+   "single-key",
+   "typing"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup"
+  ],
+  "path": "audio/sfx/typing/typing-key-02.wav",
+  "duration_s": 0.22,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/type/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2533 (\"Single key type\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 21164,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/typing/typing-key-02.wav')}/> at 0.4-0.7 volume; keyboard, single-key, typing"
+ },
+ {
+  "id": "sfx.mixkit.typing-keys-01",
+  "type": "sfx",
+  "title": "Keyboard key presses",
+  "tags": [
+   "keyboard",
+   "text-reveal",
+   "typing"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup"
+  ],
+  "path": "audio/sfx/typing/typing-keys-01.wav",
+  "duration_s": 0.615,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/type/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2534 (\"Keyboard key presses\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 59084,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/typing/typing-keys-01.wav')}/> at 0.4-0.7 volume; keyboard, text-reveal, typing"
+ },
+ {
+  "id": "sfx.mixkit.typing-phone-01",
+  "type": "sfx",
+  "title": "Smartphone typing",
+  "tags": [
+   "phone",
+   "text-reveal",
+   "typing"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup"
+  ],
+  "path": "audio/sfx/typing/typing-phone-01.wav",
+  "duration_s": 3.975,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/type/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 1393 (\"Smartphone typing\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 381644,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/typing/typing-phone-01.wav')}/> at 0.4-0.7 volume; phone, text-reveal, typing"
+ },
+ {
+  "id": "sfx.mixkit.notification-ding-01",
+  "type": "sfx",
+  "title": "Bell notification",
+  "tags": [
+   "bell",
+   "message",
+   "notification"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "payoff"
+  ],
+  "path": "audio/sfx/notification/notification-ding-01.wav",
+  "duration_s": 2.525,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/notification/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 933 (\"Bell notification\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 242444,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/notification/notification-ding-01.wav')}/> at 0.4-0.7 volume; bell, message, notification"
+ },
+ {
+  "id": "sfx.mixkit.notification-ding-02",
+  "type": "sfx",
+  "title": "Happy bells notification",
+  "tags": [
+   "bells",
+   "happy",
+   "notification"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "payoff"
+  ],
+  "path": "audio/sfx/notification/notification-ding-02.wav",
+  "duration_s": 2.665,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/notification/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 937 (\"Happy bells notification\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 511724,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/notification/notification-ding-02.wav')}/> at 0.4-0.7 volume; bells, happy, notification"
+ },
+ {
+  "id": "sfx.mixkit.notification-tone-01",
+  "type": "sfx",
+  "title": "Confirmation tone",
+  "tags": [
+   "confirm",
+   "ui",
+   "notification"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "payoff"
+  ],
+  "path": "audio/sfx/notification/notification-tone-01.wav",
+  "duration_s": 0.995,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/notification/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2867 (\"Confirmation tone\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 191084,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/notification/notification-tone-01.wav')}/> at 0.4-0.7 volume; confirm, ui, notification"
+ },
+ {
+  "id": "sfx.mixkit.notification-positive-01",
+  "type": "sfx",
+  "title": "Positive notification",
+  "tags": [
+   "positive",
+   "ui",
+   "notification"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "payoff"
+  ],
+  "path": "audio/sfx/notification/notification-positive-01.wav",
+  "duration_s": 1.96,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/notification/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 951 (\"Positive notification\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 188204,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/notification/notification-positive-01.wav')}/> at 0.4-0.7 volume; positive, ui, notification"
+ },
+ {
+  "id": "sfx.mixkit.success-01",
+  "type": "sfx",
+  "title": "Correct answer tone",
+  "tags": [
+   "correct",
+   "answer",
+   "success"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "payoff"
+  ],
+  "path": "audio/sfx/success/success-01.wav",
+  "duration_s": 1.96,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/notification/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2870 (\"Correct answer tone\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 376412,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/success/success-01.wav')}/> at 0.4-0.7 volume; correct, answer, success"
+ },
+ {
+  "id": "sfx.mixkit.success-02",
+  "type": "sfx",
+  "title": "Winning notification",
+  "tags": [
+   "win",
+   "notification",
+   "success"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "payoff"
+  ],
+  "path": "audio/sfx/success/success-02.wav",
+  "duration_s": 1.45,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/win/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2018 (\"Winning notification\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 278444,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/success/success-02.wav')}/> at 0.4-0.7 volume; win, notification, success"
+ },
+ {
+  "id": "sfx.mixkit.success-04",
+  "type": "sfx",
+  "title": "Video game win",
+  "tags": [
+   "win",
+   "game",
+   "success"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "payoff"
+  ],
+  "path": "audio/sfx/success/success-04.wav",
+  "duration_s": 2.08,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/win/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2016 (\"Video game win\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 399404,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/success/success-04.wav')}/> at 0.4-0.7 volume; win, game, success"
+ },
+ {
+  "id": "sfx.mixkit.success-06",
+  "type": "sfx",
+  "title": "Winning chimes",
+  "tags": [
+   "win",
+   "chimes",
+   "success"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "payoff"
+  ],
+  "path": "audio/sfx/success/success-06.wav",
+  "duration_s": 2.015,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/win/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2015 (\"Winning chimes\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 386924,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/success/success-06.wav')}/> at 0.4-0.7 volume; win, chimes, success"
+ },
+ {
+  "id": "sfx.mixkit.error-01",
+  "type": "sfx",
+  "title": "Wrong answer bass buzzer",
+  "tags": [
+   "wrong",
+   "buzzer",
+   "error"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "payoff"
+  ],
+  "path": "audio/sfx/error/error-01.wav",
+  "duration_s": 2.395,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/error/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 948 (\"Wrong answer bass buzzer\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 229964,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/error/error-01.wav')}/> at 0.4-0.7 volume; wrong, buzzer, error"
+ },
+ {
+  "id": "sfx.mixkit.error-02",
+  "type": "sfx",
+  "title": "Wrong answer fail notification",
+  "tags": [
+   "wrong",
+   "notification",
+   "error"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "payoff"
+  ],
+  "path": "audio/sfx/error/error-02.wav",
+  "duration_s": 1.605,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/notification/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 946 (\"Wrong answer fail notification\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 308204,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/error/error-02.wav')}/> at 0.4-0.7 volume; wrong, notification, error"
+ },
+ {
+  "id": "sfx.mixkit.impact-heavy-01",
+  "type": "sfx",
+  "title": "Movie trailer epic impact",
+  "tags": [
+   "hit",
+   "title",
+   "trailer",
+   "impact"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "climax"
+  ],
+  "path": "audio/sfx/impact/impact-heavy-01.wav",
+  "duration_s": 2.975,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/transition/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2908 (\"Movie trailer epic impact\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 571244,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/impact/impact-heavy-01.wav')}/> at 0.4-0.7 volume; hit, title, trailer"
+ },
+ {
+  "id": "sfx.mixkit.impact-medium-01",
+  "type": "sfx",
+  "title": "Futuristic bass hit",
+  "tags": [
+   "hit",
+   "bass",
+   "impact"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "climax"
+  ],
+  "path": "audio/sfx/impact/impact-medium-01.wav",
+  "duration_s": 1.4,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/hit/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2303 (\"Futuristic bass hit\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 268844,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/impact/impact-medium-01.wav')}/> at 0.4-0.7 volume; hit, bass, impact"
+ },
+ {
+  "id": "sfx.mixkit.impact-medium-02",
+  "type": "sfx",
+  "title": "Short bass hit",
+  "tags": [
+   "hit",
+   "bass",
+   "impact"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "climax"
+  ],
+  "path": "audio/sfx/impact/impact-medium-02.wav",
+  "duration_s": 0.88,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/hit/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2299 (\"Short bass hit\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 84524,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/impact/impact-medium-02.wav')}/> at 0.4-0.7 volume; hit, bass, impact"
+ },
+ {
+  "id": "sfx.mixkit.impact-medium-03",
+  "type": "sfx",
+  "title": "Quick zoom impact",
+  "tags": [
+   "hit",
+   "zoom",
+   "impact"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "climax"
+  ],
+  "path": "audio/sfx/impact/impact-medium-03.wav",
+  "duration_s": 0.62,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/impact/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 772 (\"Quick zoom impact\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 59564,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/impact/impact-medium-03.wav')}/> at 0.4-0.7 volume; hit, zoom, impact"
+ },
+ {
+  "id": "sfx.kenney.thud-02",
+  "type": "sfx",
+  "title": "Soft heavy thud",
+  "tags": [
+   "thud",
+   "soft",
+   "impact"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "climax"
+  ],
+  "path": "audio/sfx/impact/thud-02.wav",
+  "duration_s": 0.515,
+  "format": "wav",
+  "stored": "git",
+  "source": "Kenney (kenney.nl)",
+  "source_url": "https://kenney.nl/assets/impact-sounds",
+  "license": "CC0-1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "commercial_ok": true,
+  "redistribution": "free",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Kenney impact-sounds / impactSoft_heavy_000",
+  "added": "2026-10-30",
+  "size_bytes": 49484,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/impact/thud-02.wav')}/> at 0.4-0.7 volume; thud, soft, impact"
+ },
+ {
+  "id": "sfx.kenney.impact-punch-01",
+  "type": "sfx",
+  "title": "Heavy punch impact",
+  "tags": [
+   "punch",
+   "hit",
+   "impact"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "climax"
+  ],
+  "path": "audio/sfx/impact/impact-punch-01.wav",
+  "duration_s": 0.515,
+  "format": "wav",
+  "stored": "git",
+  "source": "Kenney (kenney.nl)",
+  "source_url": "https://kenney.nl/assets/impact-sounds",
+  "license": "CC0-1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "commercial_ok": true,
+  "redistribution": "free",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Kenney impact-sounds / impactPunch_heavy_000",
+  "added": "2026-10-30",
+  "size_bytes": 49484,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/impact/impact-punch-01.wav')}/> at 0.4-0.7 volume; punch, hit, impact"
+ },
+ {
+  "id": "sfx.mixkit.riser-01",
+  "type": "sfx",
+  "title": "Cinematic trailer riser",
+  "tags": [
+   "build",
+   "trailer",
+   "riser"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "build"
+  ],
+  "path": "audio/sfx/riser/riser-01.wav",
+  "duration_s": 2.575,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/cinematic/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 790 (\"Cinematic trailer riser\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 494444,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/riser/riser-01.wav')}/> at 0.4-0.7 volume; build, trailer, riser"
+ },
+ {
+  "id": "sfx.mixkit.riser-02",
+  "type": "sfx",
+  "title": "Short space stutter intro riser",
+  "tags": [
+   "build",
+   "intro",
+   "riser"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "build"
+  ],
+  "path": "audio/sfx/riser/riser-02.wav",
+  "duration_s": 6.475,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/cinematic/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 1144 (\"Short space stutter intro riser\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 1243196,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/riser/riser-02.wav')}/> at 0.4-0.7 volume; build, intro, riser"
+ },
+ {
+  "id": "sfx.mixkit.riser-03",
+  "type": "sfx",
+  "title": "Short rising thud",
+  "tags": [
+   "build",
+   "thud",
+   "riser"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "build"
+  ],
+  "path": "audio/sfx/riser/riser-03.wav",
+  "duration_s": 5.98,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/thud/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 3133 (\"Short rising thud\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 1148204,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/riser/riser-03.wav')}/> at 0.4-0.7 volume; build, thud, riser"
+ },
+ {
+  "id": "sfx.mixkit.swell-01",
+  "type": "sfx",
+  "title": "Short sci-fi swell",
+  "tags": [
+   "build",
+   "scifi",
+   "swell"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "build"
+  ],
+  "path": "audio/sfx/swell/swell-01.wav",
+  "duration_s": 2.545,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/swell/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2669 (\"Short sci-fi swell\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 488684,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/swell/swell-01.wav')}/> at 0.4-0.7 volume; build, scifi, swell"
+ },
+ {
+  "id": "sfx.mixkit.swell-02",
+  "type": "sfx",
+  "title": "Engine phasing wobble swell",
+  "tags": [
+   "build",
+   "wobble",
+   "swell"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "build"
+  ],
+  "path": "audio/sfx/swell/swell-02.wav",
+  "duration_s": 6.165,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/swell/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2665 (\"Engine phasing wobble swell\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 1183724,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/swell/swell-02.wav')}/> at 0.4-0.7 volume; build, wobble, swell"
+ },
+ {
+  "id": "sfx.mixkit.swell-03",
+  "type": "sfx",
+  "title": "Magic whip swell",
+  "tags": [
+   "build",
+   "magic",
+   "swell"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "build"
+  ],
+  "path": "audio/sfx/swell/swell-03.wav",
+  "duration_s": 2.77,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/swell/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 1516 (\"Magic whip swell\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 531884,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/swell/swell-03.wav')}/> at 0.4-0.7 volume; build, magic, swell"
+ },
+ {
+  "id": "sfx.mixkit.glitch-01",
+  "type": "sfx",
+  "title": "Cinematic glitch trailer",
+  "tags": [
+   "digital",
+   "trailer",
+   "glitch"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "build"
+  ],
+  "path": "audio/sfx/glitch/glitch-01.wav",
+  "duration_s": 0.415,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/glitch/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 1021 (\"Cinematic glitch trailer\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 39884,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/glitch/glitch-01.wav')}/> at 0.4-0.7 volume; digital, trailer, glitch"
+ },
+ {
+  "id": "sfx.mixkit.glitch-02",
+  "type": "sfx",
+  "title": "Small sci-fi glitch",
+  "tags": [
+   "digital",
+   "small",
+   "glitch"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "hook",
+   "build"
+  ],
+  "path": "audio/sfx/glitch/glitch-02.wav",
+  "duration_s": 1.425,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/glitch/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 1030 (\"Small sci-fi glitch\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 273644,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/glitch/glitch-02.wav')}/> at 0.4-0.7 volume; digital, small, glitch"
+ },
+ {
+  "id": "sfx.mixkit.glitch-04",
+  "type": "sfx",
+  "title": "Electronic glitch",
+  "tags": [
+   "digital",
+   "electronic",
+   "glitch"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "build"
+  ],
+  "path": "audio/sfx/glitch/glitch-04.wav",
+  "duration_s": 2.525,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/glitch/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2940 (\"Electronic glitch\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 484844,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/glitch/glitch-04.wav')}/> at 0.4-0.7 volume; digital, electronic, glitch"
+ },
+ {
+  "id": "sfx.mixkit.glitch-05",
+  "type": "sfx",
+  "title": "Virtual quick glitch",
+  "tags": [
+   "digital",
+   "quick",
+   "glitch"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "hook",
+   "build"
+  ],
+  "path": "audio/sfx/glitch/glitch-05.wav",
+  "duration_s": 1.48,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/glitch/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2946 (\"Virtual quick glitch\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 142124,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/glitch/glitch-05.wav')}/> at 0.4-0.7 volume; digital, quick, glitch"
+ },
+ {
+  "id": "sfx.mixkit.paper-page-01",
+  "type": "sfx",
+  "title": "Page turn single",
+  "tags": [
+   "page-turn",
+   "swipe",
+   "paper"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup"
+  ],
+  "path": "audio/sfx/paper/paper-page-01.wav",
+  "duration_s": 0.32,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/paper/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 1104 (\"Page turn single\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 61484,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/paper/paper-page-01.wav')}/> at 0.4-0.7 volume; page-turn, swipe, paper"
+ },
+ {
+  "id": "sfx.mixkit.paper-page-02",
+  "type": "sfx",
+  "title": "Big paper page turn",
+  "tags": [
+   "page-turn",
+   "paper"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "setup"
+  ],
+  "path": "audio/sfx/paper/paper-page-02.wav",
+  "duration_s": 0.815,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/paper/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 1105 (\"Big paper page turn\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 156524,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/paper/paper-page-02.wav')}/> at 0.4-0.7 volume; page-turn, paper"
+ },
+ {
+  "id": "sfx.mixkit.paper-slide-01",
+  "type": "sfx",
+  "title": "Paper slide",
+  "tags": [
+   "swipe",
+   "slide",
+   "paper"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup"
+  ],
+  "path": "audio/sfx/paper/paper-slide-01.wav",
+  "duration_s": 0.455,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/paper/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 1530 (\"Paper slide\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 43724,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/paper/paper-slide-01.wav')}/> at 0.4-0.7 volume; swipe, slide, paper"
+ },
+ {
+  "id": "sfx.mixkit.paper-quick-01",
+  "type": "sfx",
+  "title": "Paper quick movement",
+  "tags": [
+   "swipe",
+   "paper"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup"
+  ],
+  "path": "audio/sfx/paper/paper-quick-01.wav",
+  "duration_s": 0.675,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/paper/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2380 (\"Paper quick movement\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 129644,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/paper/paper-quick-01.wav')}/> at 0.4-0.7 volume; swipe, paper"
+ },
+ {
+  "id": "sfx.mixkit.paper-crumple-01",
+  "type": "sfx",
+  "title": "Crumpled paper",
+  "tags": [
+   "crumple",
+   "reject",
+   "paper"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup"
+  ],
+  "path": "audio/sfx/paper/paper-crumple-01.wav",
+  "duration_s": 1.02,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/paper/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2389 (\"Crumpled paper\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 195884,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/paper/paper-crumple-01.wav')}/> at 0.4-0.7 volume; crumple, reject, paper"
+ },
+ {
+  "id": "sfx.mixkit.camera-shutter-01",
+  "type": "sfx",
+  "title": "Camera long shutter",
+  "tags": [
+   "photo",
+   "shutter",
+   "camera"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "payoff"
+  ],
+  "path": "audio/sfx/camera/camera-shutter-01.wav",
+  "duration_s": 0.345,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/camera/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 1432 (\"Camera long shutter\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 66284,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/camera/camera-shutter-01.wav')}/> at 0.4-0.7 volume; photo, shutter, camera"
+ },
+ {
+  "id": "sfx.mixkit.camera-shutter-03",
+  "type": "sfx",
+  "title": "Classic camera click",
+  "tags": [
+   "photo",
+   "shutter",
+   "classic",
+   "camera"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "payoff"
+  ],
+  "path": "audio/sfx/camera/camera-shutter-03.wav",
+  "duration_s": 0.64,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/camera/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 1440 (\"Classic camera click\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 61484,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/camera/camera-shutter-03.wav')}/> at 0.4-0.7 volume; photo, shutter, classic"
+ },
+ {
+  "id": "sfx.mixkit.cash-coins-01",
+  "type": "sfx",
+  "title": "Clinking coins",
+  "tags": [
+   "money",
+   "coins",
+   "cash"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "payoff"
+  ],
+  "path": "audio/sfx/cash/cash-coins-01.wav",
+  "duration_s": 0.725,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/money/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 1993 (\"Clinking coins\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 139244,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/cash/cash-coins-01.wav')}/> at 0.4-0.7 volume; money, coins, cash"
+ },
+ {
+  "id": "sfx.mixkit.cash-coin-prize-01",
+  "type": "sfx",
+  "title": "Gold coin prize",
+  "tags": [
+   "money",
+   "reward",
+   "cash"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "payoff"
+  ],
+  "path": "audio/sfx/cash/cash-coin-prize-01.wav",
+  "duration_s": 1.48,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/money/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 1999 (\"Gold coin prize\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 284204,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/cash/cash-coin-prize-01.wav')}/> at 0.4-0.7 volume; money, reward, cash"
+ },
+ {
+  "id": "sfx.mixkit.cash-bag-01",
+  "type": "sfx",
+  "title": "Money bag drop",
+  "tags": [
+   "money",
+   "drop",
+   "cash"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "payoff"
+  ],
+  "path": "audio/sfx/cash/cash-bag-01.wav",
+  "duration_s": 0.35,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/money/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 1989 (\"Money bag drop\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 67244,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/cash/cash-bag-01.wav')}/> at 0.4-0.7 volume; money, drop, cash"
+ },
+ {
+  "id": "sfx.mixkit.crowd-aww-01",
+  "type": "sfx",
+  "title": "Crowd disappointment (head of long boo)",
+  "tags": [
+   "aww",
+   "disappointed",
+   "boo",
+   "crowd",
+   "tier=reserve"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "payoff"
+  ],
+  "path": "audio/sfx/crowd/crowd-aww-01.wav",
+  "duration_s": 2.8,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "B",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes); trimmed from longer source, fade added; tier-reserve: fills gap (aww/applause), trimmed from longer source",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 463 (\"Crowd disappointment (head of long boo)\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 537644,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/crowd/crowd-aww-01.wav')}/> at 0.4-0.7 volume; aww, disappointed, boo"
+ },
+ {
+  "id": "sfx.mixkit.applause-short-01",
+  "type": "sfx",
+  "title": "Audience light applause (head)",
+  "tags": [
+   "applause",
+   "audience",
+   "crowd",
+   "tier=reserve"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "payoff"
+  ],
+  "path": "audio/sfx/crowd/applause-short-01.wav",
+  "duration_s": 3.0,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/applause/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "B",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes); trimmed from longer source, fade added; tier-reserve: fills gap (aww/applause), trimmed from longer source",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 354 (\"Audience light applause (head)\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 576044,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/crowd/applause-short-01.wav')}/> at 0.4-0.7 volume; applause, audience, crowd"
+ },
+ {
+  "id": "sfx.mixkit.applause-short-03",
+  "type": "sfx",
+  "title": "Clapping fast",
+  "tags": [
+   "clapping",
+   "fast",
+   "crowd"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "payoff"
+  ],
+  "path": "audio/sfx/crowd/applause-short-03.wav",
+  "duration_s": 2.125,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/clapping/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 480 (\"Clapping fast\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 408044,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/crowd/applause-short-03.wav')}/> at 0.4-0.7 volume; clapping, fast, crowd"
+ },
+ {
+  "id": "sfx.mixkit.boing-01",
+  "type": "sfx",
+  "title": "Boing hit",
+  "tags": [
+   "boing",
+   "cartoon",
+   "comedy"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "payoff"
+  ],
+  "path": "audio/sfx/comedy/boing-01.wav",
+  "duration_s": 0.475,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/funny/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2894 (\"Boing hit\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 45644,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/comedy/boing-01.wav')}/> at 0.4-0.7 volume; boing, cartoon, comedy"
+ },
+ {
+  "id": "sfx.mixkit.boing-02",
+  "type": "sfx",
+  "title": "Metallic boing hit",
+  "tags": [
+   "boing",
+   "metallic",
+   "comedy"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "payoff"
+  ],
+  "path": "audio/sfx/comedy/boing-02.wav",
+  "duration_s": 0.5,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/cartoon/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2895 (\"Metallic boing hit\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 48044,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz mono -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/comedy/boing-02.wav')}/> at 0.4-0.7 volume; boing, metallic, comedy"
+ },
+ {
+  "id": "sfx.mixkit.comedy-fail-01",
+  "type": "sfx",
+  "title": "Funny fail low tone",
+  "tags": [
+   "fail",
+   "funny",
+   "comedy"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "payoff"
+  ],
+  "path": "audio/sfx/comedy/comedy-fail-01.wav",
+  "duration_s": 1.515,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/wrong/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2876 (\"Funny fail low tone\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 290968,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/comedy/comedy-fail-01.wav')}/> at 0.4-0.7 volume; fail, funny, comedy"
+ },
+ {
+  "id": "sfx.mixkit.whoosh-sweep-01",
+  "type": "sfx",
+  "title": "Magic transition sweep presentation",
+  "tags": [
+   "magic",
+   "presentation",
+   "whoosh"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "setup",
+   "build"
+  ],
+  "path": "audio/sfx/whoosh/whoosh-sweep-01.wav",
+  "duration_s": 2.93,
+  "format": "wav",
+  "stored": "git",
+  "source": "Mixkit (mixkit.co)",
+  "source_url": "https://mixkit.co/free-sound-effects/sweep/",
+  "license": "Mixkit-SFX-Free",
+  "license_url": "https://mixkit.co/license/#sfxFree",
+  "commercial_ok": true,
+  "redistribution": "no-standalone",
+  "quality": "A",
+  "quality_note": "automated check only (ffmpeg astats + numpy: no clipping, peak -1 dBFS, tail/noise floor, bandwidth; spectrogram for whooshes)",
+  "cost_usd": 0,
+  "note": "Mixkit SFX id 2638 (\"Magic transition sweep presentation\"), 128 kbps mp3 preview source",
+  "added": "2026-10-30",
+  "size_bytes": 562604,
+  "how_made": "audio/tools/process_sfx.py (manifest sfx_manifest.py): decode -> 48 kHz stereo -> DC remove -> trim silence < -55 dBFS -> peak -1 dBFS -> fade -> PCM16 WAV",
+  "reuse": "<Audio src={staticFile('audio/sfx/whoosh/whoosh-sweep-01.wav')}/> at 0.4-0.7 volume; magic, presentation, whoosh"
+ },
+ {
+  "id": "music.incompetech.light-explain-01",
+  "type": "music",
+  "title": "light explain 01 (Digital Lemonade)",
+  "tags": [
+   "light",
+   "bright",
+   "bouncy",
+   "explain",
+   "voiceover-bed"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "payoff"
+  ],
+  "path": "audio/music/light-explain-01.mp3",
+  "duration_s": 32.0,
+  "size_bytes": 869305,
+  "loop": true,
+  "format": "mp3",
+  "stored": "git",
+  "commercial_ok": true,
+  "quality": "A",
+  "quality_note": "automated check only (no listening by a human): ffmpeg ebur128 I=-16.0 LUFS, true peak <= -1.3 dBTP, astats flat factor 0 (no clipping); loop 23.68-55.68s, beat-phase corr 0.87, 0.5 s equal-power pre-roll crossfade",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "audio/tools/music_build.py: decode 48 kHz -> cut/loop segment (0.5 s pre-roll crossfade) -> gain to -16 LUFS (+alimiter if needed) -> libmp3lame VBR q2 48 kHz",
+  "reuse": "<Audio src={staticFile('audio/music/light-explain-01.mp3')} loop={true} volume={0.18}/> under voice-over; Bright analog-synth groove, relaxed; under voiceover explaining",
+  "source": "Kevin MacLeod (incompetech.com)",
+  "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1700010",
+  "license": "CC-BY-4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "\"Digital Lemonade\" Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License\nhttp://creativecommons.org/licenses/by/4.0/",
+  "redistribution": "free",
+  "note": "Incompetech \"Digital Lemonade\", 120 bpm, feel: Bouncy, Bright, Relaxed"
+ },
+ {
+  "id": "music.incompetech.light-explain-02",
+  "type": "music",
+  "title": "light explain 02 (Wallpaper)",
+  "tags": [
+   "light",
+   "clean",
+   "calm-upbeat",
+   "explain",
+   "voiceover-bed"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "breath"
+  ],
+  "path": "audio/music/light-explain-02.mp3",
+  "duration_s": 41.3,
+  "size_bytes": 1109161,
+  "loop": true,
+  "format": "mp3",
+  "stored": "git",
+  "commercial_ok": true,
+  "quality": "A",
+  "quality_note": "automated check only (no listening by a human): ffmpeg ebur128 I=-16.0 LUFS, true peak <= -1.3 dBTP, astats flat factor 0 (no clipping); loop 18.30-59.59s, beat-phase corr 0.88, 0.5 s equal-power pre-roll crossfade",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "audio/tools/music_build.py: decode 48 kHz -> cut/loop segment (0.5 s pre-roll crossfade) -> gain to -16 LUFS (+alimiter if needed) -> libmp3lame VBR q2 48 kHz",
+  "reuse": "<Audio src={staticFile('audio/music/light-explain-02.mp3')} loop={true} volume={0.18}/> under voice-over; Clean non-intrusive synth bed; long explanations",
+  "source": "Kevin MacLeod (incompetech.com)",
+  "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100843",
+  "license": "CC-BY-4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "\"Wallpaper\" Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License\nhttp://creativecommons.org/licenses/by/4.0/",
+  "redistribution": "free",
+  "note": "Incompetech \"Wallpaper\", 92 bpm, feel: Bouncy, Bright, Calming, Uplifting"
+ },
+ {
+  "id": "music.incompetech.climax-01",
+  "type": "music",
+  "title": "climax 01 (Furious Freak)",
+  "tags": [
+   "climax",
+   "driving",
+   "intense",
+   "bright",
+   "high-energy",
+   "payoff"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "climax"
+  ],
+  "path": "audio/music/climax-01.mp3",
+  "duration_s": 45.4,
+  "size_bytes": 1087746,
+  "loop": true,
+  "format": "mp3",
+  "stored": "git",
+  "commercial_ok": true,
+  "quality": "A",
+  "quality_note": "automated check only (no listening by a human): ffmpeg ebur128 I=-16.0 LUFS, true peak <= -1.3 dBTP, astats flat factor 0 (no clipping); loop 53.73-99.09s, beat-phase corr 0.82, 0.5 s equal-power pre-roll crossfade",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "audio/tools/music_build.py: decode 48 kHz -> cut/loop segment (0.5 s pre-roll crossfade) -> gain to -16 LUFS (+alimiter if needed) -> libmp3lame VBR q2 48 kHz",
+  "reuse": "<Audio src={staticFile('audio/music/climax-01.mp3')} loop={true} volume={0.18}/> under voice-over; Full-on driving section (160 bpm); the big moment",
+  "source": "Kevin MacLeod (incompetech.com)",
+  "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1600021",
+  "license": "CC-BY-4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "\"Furious Freak\" Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License\nhttp://creativecommons.org/licenses/by/4.0/",
+  "redistribution": "free",
+  "note": "Incompetech \"Furious Freak\", 160 bpm, feel: Driving, Intense, Bright"
+ },
+ {
+  "id": "music.mixkit.build-01",
+  "type": "music",
+  "title": "build 01 (Uplift Me)",
+  "tags": [
+   "build",
+   "rising",
+   "motivating",
+   "positive",
+   "momentum"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "build"
+  ],
+  "path": "audio/music/build-01.mp3",
+  "duration_s": 103.8,
+  "size_bytes": 2484329,
+  "loop": false,
+  "format": "mp3",
+  "stored": "git",
+  "commercial_ok": true,
+  "quality": "A",
+  "quality_note": "automated check only (no listening by a human): ffmpeg ebur128 I=-16.0 LUFS, true peak <= -1.3 dBTP, astats flat factor 0 (no clipping); one-shot 0.0-103.8s, fade-out 0.5s",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "audio/tools/music_build.py: decode 48 kHz -> cut/loop segment (0.5 s pre-roll crossfade) -> gain to -16 LUFS (+alimiter if needed) -> libmp3lame VBR q2 48 kHz",
+  "reuse": "<Audio src={staticFile('audio/music/build-01.mp3')} loop={false} volume={0.18}/> under voice-over; Gradual 100 s build from sparse to full band, ends with fade",
+  "source": "Mixkit (mixkit.co), Ahjay Stelino",
+  "source_url": "https://mixkit.co/free-stock-music/",
+  "license": "Mixkit-Music-Free",
+  "license_url": "https://mixkit.co/license/#musicFree",
+  "redistribution": "no-standalone",
+  "note": "Mixkit music id 35 \"Uplift Me\" by Ahjay Stelino"
+ },
+ {
+  "id": "music.incompetech.calm-breath-01",
+  "type": "music",
+  "title": "calm breath 01 (Morning)",
+  "tags": [
+   "calm",
+   "breath",
+   "soft",
+   "relaxed",
+   "reflective"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "breath"
+  ],
+  "path": "audio/music/calm-breath-01.mp3",
+  "duration_s": 48.4,
+  "size_bytes": 1231943,
+  "loop": false,
+  "format": "mp3",
+  "stored": "git",
+  "commercial_ok": true,
+  "quality": "A",
+  "quality_note": "automated check only (no listening by a human): ffmpeg ebur128 I=-16.0 LUFS, true peak <= -1.3 dBTP, astats flat factor 0 (no clipping); loop 24.80-73.16s, beat-phase corr 0.77, 0.5 s equal-power pre-roll crossfade",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "audio/tools/music_build.py: decode 48 kHz -> cut/loop segment (0.5 s pre-roll crossfade) -> gain to -16 LUFS (+alimiter if needed) -> libmp3lame VBR q2 48 kHz",
+  "reuse": "<Audio src={staticFile('audio/music/calm-breath-01.mp3')} loop={false} volume={0.18}/> under voice-over; Soft slow bed (60 bpm) to let the viewer breathe between beats",
+  "source": "Kevin MacLeod (incompetech.com)",
+  "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN2300003",
+  "license": "CC-BY-4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "\"Morning\" Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License\nhttp://creativecommons.org/licenses/by/4.0/",
+  "redistribution": "free",
+  "note": "Incompetech \"Morning\", 60 bpm, feel: Bright, Calming, Relaxed"
+ },
+ {
+  "id": "music.incompetech.happy-outro-02",
+  "type": "music",
+  "title": "happy outro 02 (Neon Laser Horizon)",
+  "tags": [
+   "happy",
+   "outro",
+   "uplifting",
+   "synthwave",
+   "cta",
+   "payoff"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "payoff",
+   "cta"
+  ],
+  "path": "audio/music/happy-outro-02.mp3",
+  "duration_s": 85.5,
+  "size_bytes": 2071655,
+  "loop": true,
+  "format": "mp3",
+  "stored": "git",
+  "commercial_ok": true,
+  "quality": "A",
+  "quality_note": "automated check only (no listening by a human): ffmpeg ebur128 I=-16.0 LUFS, true peak <= -1.3 dBTP, astats flat factor 0 (no clipping); loop 23.50-109.00s, beat-phase corr 0.95, 0.5 s equal-power pre-roll crossfade",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "audio/tools/music_build.py: decode 48 kHz -> cut/loop segment (0.5 s pre-roll crossfade) -> gain to -16 LUFS (+alimiter if needed) -> libmp3lame VBR q2 48 kHz",
+  "reuse": "<Audio src={staticFile('audio/music/happy-outro-02.mp3')} loop={true} volume={0.18}/> under voice-over; Uplifting 80s-synth drive; finale / call to action",
+  "source": "Kevin MacLeod (incompetech.com)",
+  "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN2000023",
+  "license": "CC-BY-4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "\"Neon Laser Horizon\" Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License\nhttp://creativecommons.org/licenses/by/4.0/",
+  "redistribution": "free",
+  "note": "Incompetech \"Neon Laser Horizon\", 160 bpm, feel: Grooving, Bright, Uplifting"
+ },
+ {
+  "id": "music.mixkit.tension-01",
+  "type": "music",
+  "title": "tension 01 (Almost Game Time)",
+  "tags": [
+   "tension",
+   "suspense",
+   "disturbing",
+   "cinematic",
+   "stakes",
+   "tier=reserve"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "build"
+  ],
+  "path": "audio/music/tension-01.mp3",
+  "duration_s": 62.0,
+  "size_bytes": 1598371,
+  "loop": false,
+  "format": "mp3",
+  "stored": "git",
+  "commercial_ok": true,
+  "quality": "B",
+  "quality_note": "automated check only (no listening by a human): ffmpeg ebur128 I=-16.0 LUFS, true peak <= -1.3 dBTP, astats flat factor 0 (no clipping); loop 21.46-83.47s, beat-phase corr 0.69, 0.5 s equal-power pre-roll crossfade; tier-reserve: fills a mood gap, loop seam or style only moderate",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "audio/tools/music_build.py: decode 48 kHz -> cut/loop segment (0.5 s pre-roll crossfade) -> gain to -16 LUFS (+alimiter if needed) -> libmp3lame VBR q2 48 kHz",
+  "reuse": "<Audio src={staticFile('audio/music/tension-01.mp3')} loop={false} volume={0.18}/> under voice-over; Pulsing low tension bed, steady; before a reveal",
+  "source": "Mixkit (mixkit.co), Ahjay Stelino",
+  "source_url": "https://mixkit.co/free-stock-music/",
+  "license": "Mixkit-Music-Free",
+  "license_url": "https://mixkit.co/license/#musicFree",
+  "redistribution": "no-standalone",
+  "note": "Mixkit music id 75 \"Almost Game Time\" by Ahjay Stelino"
+ },
+ {
+  "id": "music.incompetech.curious-intro-01",
+  "type": "music",
+  "title": "curious intro 01 (Sneaky Snitch)",
+  "tags": [
+   "curious",
+   "playful",
+   "mysterious",
+   "tiptoe",
+   "intro",
+   "tier=reserve"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "hook",
+   "setup"
+  ],
+  "path": "audio/music/curious-intro-01.mp3",
+  "duration_s": 88.3,
+  "size_bytes": 2042185,
+  "loop": false,
+  "format": "mp3",
+  "stored": "git",
+  "commercial_ok": true,
+  "quality": "B",
+  "quality_note": "automated check only (no listening by a human): ffmpeg ebur128 I=-16.0 LUFS, true peak <= -1.3 dBTP, astats flat factor 0 (no clipping); loop 11.94-100.21s, beat-phase corr 0.69, 0.5 s equal-power pre-roll crossfade; gain +1.6 dB would peak 1.5 dBFS -> limiter; tier-reserve: fills a mood gap, loop seam or style only moderate",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "audio/tools/music_build.py: decode 48 kHz -> cut/loop segment (0.5 s pre-roll crossfade) -> gain to -16 LUFS (+alimiter if needed) -> libmp3lame VBR q2 48 kHz",
+  "reuse": "<Audio src={staticFile('audio/music/curious-intro-01.mp3')} loop={false} volume={0.18}/> under voice-over; Playful oboe + pizzicato tiptoe; curious intro / \"what is going on\" setup",
+  "source": "Kevin MacLeod (incompetech.com)",
+  "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100772",
+  "license": "CC-BY-4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "\"Sneaky Snitch\" Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License\nhttp://creativecommons.org/licenses/by/4.0/",
+  "redistribution": "free",
+  "note": "Incompetech \"Sneaky Snitch\", 87 bpm, feel: Bouncy, Dark, Humorous, Mysterious"
+ },
+ {
+  "id": "music.mixkit.upbeat-corporate-01",
+  "type": "music",
+  "title": "upbeat corporate 01 (Running Out of Time)",
+  "tags": [
+   "upbeat",
+   "corporate",
+   "confident",
+   "motivational",
+   "business",
+   "tier=reserve"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "setup",
+   "build",
+   "payoff"
+  ],
+  "path": "audio/music/upbeat-corporate-01.mp3",
+  "duration_s": 59.1,
+  "size_bytes": 1464556,
+  "loop": false,
+  "format": "mp3",
+  "stored": "git",
+  "commercial_ok": true,
+  "quality": "B",
+  "quality_note": "automated check only (no listening by a human): ffmpeg ebur128 I=-16.0 LUFS, true peak <= -1.3 dBTP, astats flat factor 0 (no clipping); loop 20.62-79.70s, beat-phase corr 0.71, 0.5 s equal-power pre-roll crossfade; tier-reserve: fills a mood gap, loop seam or style only moderate",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "audio/tools/music_build.py: decode 48 kHz -> cut/loop segment (0.5 s pre-roll crossfade) -> gain to -16 LUFS (+alimiter if needed) -> libmp3lame VBR q2 48 kHz",
+  "reuse": "<Audio src={staticFile('audio/music/upbeat-corporate-01.mp3')} loop={false} volume={0.18}/> under voice-over; Confident corporate pop-rock, steady drive",
+  "source": "Mixkit (mixkit.co), Ahjay Stelino",
+  "source_url": "https://mixkit.co/free-stock-music/",
+  "license": "Mixkit-Music-Free",
+  "license_url": "https://mixkit.co/license/#musicFree",
+  "redistribution": "no-standalone",
+  "note": "Mixkit music id 77 \"Running Out of Time\" by Ahjay Stelino"
+ },
+ {
+  "id": "music.incompetech.comedic-01",
+  "type": "music",
+  "title": "comedic 01 (Monkeys Spinning Monkeys)",
+  "tags": [
+   "comedic",
+   "funny",
+   "bouncy",
+   "light-hearted",
+   "pizzicato",
+   "tier=reserve"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "payoff"
+  ],
+  "path": "audio/music/comedic-01.mp3",
+  "duration_s": 33.3,
+  "size_bytes": 767683,
+  "loop": false,
+  "format": "mp3",
+  "stored": "git",
+  "commercial_ok": true,
+  "quality": "B",
+  "quality_note": "automated check only (no listening by a human): ffmpeg ebur128 I=-16.0 LUFS, true peak <= -1.3 dBTP, astats flat factor 0 (no clipping); loop 2.83-36.16s, beat-phase corr 0.66, 0.5 s equal-power pre-roll crossfade; gain +2.9 dB would peak 1.9 dBFS -> limiter; tier-reserve: fills a mood gap, loop seam or style only moderate",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "audio/tools/music_build.py: decode 48 kHz -> cut/loop segment (0.5 s pre-roll crossfade) -> gain to -16 LUFS (+alimiter if needed) -> libmp3lame VBR q2 48 kHz",
+  "reuse": "<Audio src={staticFile('audio/music/comedic-01.mp3')} loop={false} volume={0.18}/> under voice-over; Bright flutes + pizzicato; the author marks it loopable",
+  "source": "Kevin MacLeod (incompetech.com)",
+  "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1400011",
+  "license": "CC-BY-4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "attribution": "\"Monkeys Spinning Monkeys\" Kevin MacLeod (incompetech.com)\nLicensed under Creative Commons: By Attribution 4.0 License\nhttp://creativecommons.org/licenses/by/4.0/",
+  "redistribution": "free",
+  "note": "Incompetech \"Monkeys Spinning Monkeys\", 144 bpm, feel: Bouncy, Bright, Humorous, Uplifting"
+ }
+]

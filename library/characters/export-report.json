@@ -1,0 +1,264 @@
+{
+ "generated": "2026-10-30T04:20:13.525Z",
+ "engine": "0.26.0",
+ "files": [
+  {
+   "file": "nhi/nhi-neutral.png",
+   "mood": "neutral",
+   "label": "Bình thường",
+   "state": "normal",
+   "motion": "talk",
+   "t": 0.3
+  },
+  {
+   "file": "nhi/nhi-explain.png",
+   "mood": "explain",
+   "label": "Giải thích",
+   "state": "normal",
+   "motion": "point",
+   "t": 0.4
+  },
+  {
+   "file": "nhi/nhi-excited.png",
+   "mood": "excited",
+   "label": "Hào hứng",
+   "state": "proud",
+   "motion": "fistPump",
+   "t": 0.5
+  },
+  {
+   "file": "nhi/nhi-shock.png",
+   "mood": "shock",
+   "label": "Sốc",
+   "state": "shock",
+   "motion": "recoil",
+   "t": 0.4
+  },
+  {
+   "file": "nhi/nhi-think.png",
+   "mood": "think",
+   "label": "Suy nghĩ",
+   "state": "think",
+   "motion": "chinHand",
+   "t": 0.5
+  },
+  {
+   "file": "nhi/nhi-unsure.png",
+   "mood": "unsure",
+   "label": "Phân vân",
+   "state": "unsure",
+   "motion": "shrug",
+   "t": 0.5
+  },
+  {
+   "file": "nhi/nhi-smug.png",
+   "mood": "smug",
+   "label": "Đắc ý",
+   "state": "smug",
+   "motion": "gloat",
+   "t": 0.4
+  },
+  {
+   "file": "nhi/nhi-sad.png",
+   "mood": "sad",
+   "label": "Buồn",
+   "state": "cry",
+   "motion": "weep",
+   "t": 0.4
+  },
+  {
+   "file": "nhi/nhi-angry.png",
+   "mood": "angry",
+   "label": "Giận",
+   "state": "rage",
+   "motion": "stomp",
+   "t": 0.4
+  },
+  {
+   "file": "nhi/nhi-panic.png",
+   "mood": "panic",
+   "label": "Hoảng",
+   "state": "panic",
+   "motion": "flail",
+   "t": 0.4
+  },
+  {
+   "file": "nhi/nhi-greedy.png",
+   "mood": "greedy",
+   "label": "Tham",
+   "state": "greedy",
+   "motion": "rubHands",
+   "t": 0.4
+  },
+  {
+   "file": "nhi/nhi-beg.png",
+   "mood": "beg",
+   "label": "Van xin",
+   "state": "beg",
+   "motion": "plead",
+   "t": 0.5
+  },
+  {
+   "file": "nhi/nhi-proud.png",
+   "mood": "proud",
+   "label": "Tự hào",
+   "state": "proud",
+   "motion": "chestOut",
+   "t": 0.5
+  },
+  {
+   "file": "nhi/nhi-vow.png",
+   "mood": "vow",
+   "label": "Thề",
+   "state": "vow",
+   "motion": "resolve",
+   "t": 0.5
+  },
+  {
+   "file": "nhi/nhi-bored.png",
+   "mood": "bored",
+   "label": "Chán",
+   "state": "lazy",
+   "motion": "slouch",
+   "t": 0.5
+  },
+  {
+   "file": "nhi/nhi-yell.png",
+   "mood": "yell",
+   "label": "Gào",
+   "state": "rage",
+   "motion": "fury",
+   "t": 0.4
+  },
+  {
+   "file": "vy/vy-neutral.png",
+   "mood": "neutral",
+   "label": "Bình thường",
+   "state": "normal",
+   "motion": "talk",
+   "t": 0.3
+  },
+  {
+   "file": "vy/vy-explain.png",
+   "mood": "explain",
+   "label": "Giải thích",
+   "state": "normal",
+   "motion": "point",
+   "t": 0.4
+  },
+  {
+   "file": "vy/vy-excited.png",
+   "mood": "excited",
+   "label": "Hào hứng",
+   "state": "proud",
+   "motion": "fistPump",
+   "t": 0.5
+  },
+  {
+   "file": "vy/vy-shock.png",
+   "mood": "shock",
+   "label": "Sốc",
+   "state": "shock",
+   "motion": "recoil",
+   "t": 0.4
+  },
+  {
+   "file": "vy/vy-think.png",
+   "mood": "think",
+   "label": "Suy nghĩ",
+   "state": "think",
+   "motion": "chinHand",
+   "t": 0.5
+  },
+  {
+   "file": "vy/vy-unsure.png",
+   "mood": "unsure",
+   "label": "Phân vân",
+   "state": "unsure",
+   "motion": "shrug",
+   "t": 0.5
+  },
+  {
+   "file": "vy/vy-smug.png",
+   "mood": "smug",
+   "label": "Đắc ý",
+   "state": "smug",
+   "motion": "gloat",
+   "t": 0.4
+  },
+  {
+   "file": "vy/vy-sad.png",
+   "mood": "sad",
+   "label": "Buồn",
+   "state": "cry",
+   "motion": "weep",
+   "t": 0.4
+  },
+  {
+   "file": "vy/vy-angry.png",
+   "mood": "angry",
+   "label": "Giận",
+   "state": "rage",
+   "motion": "stomp",
+   "t": 0.4
+  },
+  {
+   "file": "vy/vy-panic.png",
+   "mood": "panic",
+   "label": "Hoảng",
+   "state": "panic",
+   "motion": "flail",
+   "t": 0.4
+  },
+  {
+   "file": "vy/vy-greedy.png",
+   "mood": "greedy",
+   "label": "Tham",
+   "state": "greedy",
+   "motion": "rubHands",
+   "t": 0.4
+  },
+  {
+   "file": "vy/vy-beg.png",
+   "mood": "beg",
+   "label": "Van xin",
+   "state": "beg",
+   "motion": "plead",
+   "t": 0.5
+  },
+  {
+   "file": "vy/vy-proud.png",
+   "mood": "proud",
+   "label": "Tự hào",
+   "state": "proud",
+   "motion": "chestOut",
+   "t": 0.5
+  },
+  {
+   "file": "vy/vy-vow.png",
+   "mood": "vow",
+   "label": "Thề",
+   "state": "vow",
+   "motion": "resolve",
+   "t": 0.5
+  },
+  {
+   "file": "vy/vy-bored.png",
+   "mood": "bored",
+   "label": "Chán",
+   "state": "lazy",
+   "motion": "slouch",
+   "t": 0.5
+  },
+  {
+   "file": "vy/vy-yell.png",
+   "mood": "yell",
+   "label": "Gào",
+   "state": "rage",
+   "motion": "fury",
+   "t": 0.4
+  }
+ ],
+ "nhi_errors": [],
+ "vy_errors": []
+}

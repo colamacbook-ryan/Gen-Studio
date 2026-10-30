@@ -1,0 +1,178 @@
+{
+ "generator": "sfx/src/synth-sfx.mjs",
+ "sampleRate": 48000,
+ "format": "WAV PCM16 stereo",
+ "peak_dbfs": -1,
+ "rms_ceiling_dbfs": -14,
+ "license": "© 2026 Gen Labs — tự tổng hợp bằng code, không sample bên thứ ba; dùng thương mại tự do",
+ "items": [
+  {
+   "file": "sfx/whoosh-soft.wav",
+   "name": "whoosh-soft",
+   "desc": "Whoosh mềm, chậm, quét trái→phải",
+   "use": "chuyển cảnh nhẹ, soft crossfade, card trượt vào",
+   "seconds": 0.9,
+   "loop": false
+  },
+  {
+   "file": "sfx/whoosh-fast.wav",
+   "name": "whoosh-fast",
+   "desc": "Whoosh nhanh sáng",
+   "use": "whip pan, chữ bay vào nhanh",
+   "seconds": 0.38,
+   "loop": false
+  },
+  {
+   "file": "sfx/whoosh-heavy.wav",
+   "name": "whoosh-heavy",
+   "desc": "Whoosh dày có thân trầm, dùng cho zoom-through",
+   "use": "zoom-through, camera lao vào, trước cú climax",
+   "seconds": 1,
+   "loop": false
+  },
+  {
+   "file": "sfx/pop-1.wav",
+   "name": "pop-1",
+   "desc": "Pop tròn, trung",
+   "use": "bong bóng chat, icon xuất hiện",
+   "seconds": 0.16,
+   "loop": false
+  },
+  {
+   "file": "sfx/pop-2.wav",
+   "name": "pop-2",
+   "desc": "Pop cao, nhỏ",
+   "use": "stagger phần tử, checklist",
+   "seconds": 0.12,
+   "loop": false
+  },
+  {
+   "file": "sfx/pop-3.wav",
+   "name": "pop-3",
+   "desc": "Pop trầm có độ nảy",
+   "use": "card lớn, số liệu nảy vào",
+   "seconds": 0.22,
+   "loop": false
+  },
+  {
+   "file": "sfx/click.wav",
+   "name": "click",
+   "desc": "Click chuột/phím đơn",
+   "use": "CursorClick, bấm nút",
+   "seconds": 0.06,
+   "loop": false
+  },
+  {
+   "file": "sfx/double-click.wav",
+   "name": "double-click",
+   "desc": "Double click",
+   "use": "mở file, xác nhận",
+   "seconds": 0.2,
+   "loop": false
+  },
+  {
+   "file": "sfx/ding.wav",
+   "name": "ding",
+   "desc": "Ding một nốt trong (A5)",
+   "use": "đúng, bật đèn, điểm thông tin",
+   "seconds": 1.8,
+   "loop": false
+  },
+  {
+   "file": "sfx/chime.wav",
+   "name": "chime",
+   "desc": "Chime ba nốt đi lên (C6-E6-G6)",
+   "use": "reveal, mở khoá, hoàn tất bước",
+   "seconds": 2.4,
+   "loop": false
+  },
+  {
+   "file": "sfx/thud.wav",
+   "name": "thud",
+   "desc": "Thud trầm, gọn",
+   "use": "đặt vật xuống, chữ rơi chạm sàn",
+   "seconds": 0.6,
+   "loop": false
+  },
+  {
+   "file": "sfx/impact.wav",
+   "name": "impact",
+   "desc": "Impact điện ảnh: boom sub + crack + đuôi vang",
+   "use": "Stamp, cú climax DUY NHẤT",
+   "seconds": 2.6,
+   "loop": false
+  },
+  {
+   "file": "sfx/riser.wav",
+   "name": "riser",
+   "desc": "Riser 2.5 s: noise + sóng lên, dừng gắt",
+   "use": "dồn nén trước climax (cắt nhạc → riser → impact)",
+   "seconds": 2.5,
+   "loop": false
+  },
+  {
+   "file": "sfx/swell.wav",
+   "name": "swell",
+   "desc": "Swell êm (pad dâng lên rồi lắng)",
+   "use": "mở cảnh, breath sau climax, vào payoff",
+   "seconds": 3,
+   "loop": false
+  },
+  {
+   "file": "sfx/tick.wav",
+   "name": "tick",
+   "desc": "Tick đồng hồ đơn (gỗ)",
+   "use": "đếm ngược Quiz, BigNumberCount",
+   "seconds": 0.08,
+   "loop": false
+  },
+  {
+   "file": "sfx/error-buzz.wav",
+   "name": "error-buzz",
+   "desc": "Buzz báo sai (hai nhịp vuông trầm)",
+   "use": "đáp án sai, cảnh báo",
+   "seconds": 0.5,
+   "loop": false
+  },
+  {
+   "file": "sfx/success.wav",
+   "name": "success",
+   "desc": "Success: arpeggio trưởng + lấp lánh",
+   "use": "đáp án đúng, hoàn thành, CTA",
+   "seconds": 2.2,
+   "loop": false
+  },
+  {
+   "file": "sfx/glitch.wav",
+   "name": "glitch",
+   "desc": "Glitch số: bitcrush + nhát cắt ngẫu nhiên",
+   "use": "RGB split, lỗi hệ thống (≤1/shot)",
+   "seconds": 0.45,
+   "loop": false
+  },
+  {
+   "file": "sfx/paper.wav",
+   "name": "paper",
+   "desc": "Lật giấy / trượt giấy",
+   "use": "lật thẻ, ChecklistReveal, đổi trang",
+   "seconds": 0.5,
+   "loop": false
+  },
+  {
+   "file": "sfx/typing-loop.wav",
+   "name": "typing-loop",
+   "desc": "Gõ phím vòng lặp 2 s (khớp đầu–cuối)",
+   "use": "chữ đang gõ, typewriter; đặt loop",
+   "seconds": 2,
+   "loop": true
+  },
+  {
+   "file": "sfx/hit-soft.wav",
+   "name": "hit-soft",
+   "desc": "Hit nhẹ (thump + chime ngắn) cho medium beat",
+   "use": "medium accent: số liệu, nhấn từ khoá",
+   "seconds": 1.4,
+   "loop": false
+  }
+ ]
+}
