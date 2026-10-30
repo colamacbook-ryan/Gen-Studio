@@ -10,9 +10,16 @@ ALLOWED = re.compile(r"^(status: |assignee: |> MUSE-)")
 BOX = re.compile(r"^- \[[ x]\] (.*)$")
 
 removed, added, bad = [], [], []
+in_hunk = False  # chỉ bỏ qua dòng tiêu đề NGOÀI hunk; trong hunk mọi dòng +/- đều bị kiểm
 for line in sys.stdin.read().splitlines():
-    if line.startswith(("+++ ", "--- ", "diff --git", "index ", "@@", "new file", "deleted file", "similarity", "rename ")):
+    if line.startswith("diff --git"):
+        in_hunk = False
         continue
+    if line.startswith("@@"):
+        in_hunk = True
+        continue
+    if not in_hunk:
+        continue  # tiêu đề file: index, ---, +++, new file, rename…
     if not line or line[0] not in "+-":
         continue
     sign, body = line[0], line[1:]
