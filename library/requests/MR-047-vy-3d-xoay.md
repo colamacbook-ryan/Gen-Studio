@@ -9,7 +9,8 @@ output: library/inbox/MR-047-vy-3d-xoay/
 # MR-047 · Vy — bảng xoay 3D (turnaround)
 
 ## Đầu vào
-- `library/inbox/MR-046-vy-3d-thiet-ke/ (phương án đã chọn — nếu chưa chọn, dùng phương án 1)`
+- `library/style/ref-3d-vy-a.png (MẪU GỐC ĐÃ DUYỆT — Vy phương án A: bé, đầu to; tỉ lệ chuẩn theo bộ biểu cảm MR-050)`
+- `library/inbox/MR-050-vy-3d-bieu-cam/vy-expr-01-neutral-smile.png (mặt + tỉ lệ chuẩn)`
 
 ## Lệnh tạo (prompt)
 ```
@@ -26,3 +27,5 @@ PNG 3840×2160 một bảng 4 góc nhìn + 4 file PNG rời mỗi góc
 ## Nộp
 Đặt file vào thư mục `output` ở trên + `meta.json` (xem `library/MUSE.md` §4). Đổi `status` thành `review`.
 **Cổng duyệt:** thiết kế nhân vật cần Ryan duyệt trước khi làm clip — Gen sẽ báo kết quả trong phiếu.
+
+> GEN-REWORK: bản nộp vẽ Vy cao, dáng thiếu niên, khác hẳn mẫu gốc. Làm lại 4 góc với ĐÚNG tỉ lệ bé đầu to của `ref-3d-vy-a.png` (cùng chiều cao, cùng cỡ đầu ở cả 4 góc).

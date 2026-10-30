@@ -2,14 +2,14 @@
 id: MR-049
 priority: P0b
 kind: character-design
-status: todo
+status: review
 assignee: ""
 output: library/inbox/MR-049-nhi-3d-khung-clip/
 ---
 # MR-049 · Nhi — khung tư thế trung tính cho clip 16:9
 
 ## Đầu vào
-- `library/inbox/ phiếu thiết kế nhi đã duyệt`
+- `library/style/ref-3d-nhi-a.png (MẪU GỐC ĐÃ DUYỆT — Nhi phương án A: đúng mặt, tóc, trang phục, tỉ lệ)`
 
 ## Lệnh tạo (prompt)
 ```
