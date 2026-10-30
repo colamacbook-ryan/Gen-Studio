@@ -32,6 +32,4 @@ Premium stylized 3D animation style like a modern animated feature film (soft cl
 ## Nộp
 Đặt file vào thư mục `output` ở trên + `meta.json` (xem `library/MUSE.md` §4). Đổi `status` thành `review`.
 **Cổng duyệt:** thiết kế nhân vật cần Ryan duyệt trước khi làm clip — Gen sẽ báo kết quả trong phiếu.
-
-## Ghi chú nộp
-Đã nộp 12 biểu cảm vào `library/inbox/MR-048-nhi-3d-bieu-cam/` (12 PNG rời + 1 bảng tổng + `meta.json`), biến thể A (áo hoodie xanh teal). 06 happy surprise là phương án nhẹ nhàng thay cho shocked; 08 shy blush là phương án nhẹ nhàng thay cho embarrassed, không che mặt bằng tay.
+> MUSE-NOP: du 12 bieu cam 2048x2048, phuong an A hoodie xanh teal; 06 happy surprise thay shocked, 08 shy blush thay embarrassed khong che mat bang tay, khong tao lai prompt goc; nen xanh phang tung anh nhung tong khac nhau, chi tiet trong meta.json issues.
