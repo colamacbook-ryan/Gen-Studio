@@ -1,0 +1,130 @@
+{
+  "request": "MR-060",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "click-soft.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.06,
+      "width": null,
+      "height": null,
+      "notes": "click mềm"
+    },
+    {
+      "name": "click-firm.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.08,
+      "width": null,
+      "height": null,
+      "notes": "click chắc"
+    },
+    {
+      "name": "toggle-on.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.3,
+      "width": null,
+      "height": null,
+      "notes": "bật"
+    },
+    {
+      "name": "toggle-off.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.3,
+      "width": null,
+      "height": null,
+      "notes": "tắt"
+    },
+    {
+      "name": "typing-loop.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 2.0,
+      "width": null,
+      "height": null,
+      "notes": "gõ phím lặp 2 s"
+    },
+    {
+      "name": "message-send.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.35,
+      "width": null,
+      "height": null,
+      "notes": "gửi tin"
+    },
+    {
+      "name": "message-receive.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.25,
+      "width": null,
+      "height": null,
+      "notes": "nhận tin"
+    },
+    {
+      "name": "notification-gentle.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.5,
+      "width": null,
+      "height": null,
+      "notes": "thông báo nhẹ"
+    },
+    {
+      "name": "success-chime.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.6,
+      "width": null,
+      "height": null,
+      "notes": "thành công"
+    },
+    {
+      "name": "error-soft-buzz.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.25,
+      "width": null,
+      "height": null,
+      "notes": "lỗi buzz nhẹ"
+    },
+    {
+      "name": "hover-tick.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.03,
+      "width": null,
+      "height": null,
+      "notes": "hover tick"
+    },
+    {
+      "name": "drag-drop.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.31,
+      "width": null,
+      "height": null,
+      "notes": "kéo-thả"
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse (programmatic synthesis, numpy + ffmpeg)",
+  "prompt_used": "Cohesive UI sound kit for app/screen demos in explainer videos: click soft, click firm, toggle on, toggle off, typing loop (2 s, laptop), message send, message receive, notification gentle, success chime, error soft buzz, hover tick, drag/drop. Modern, friendly, premium (Apple-like clarity), same tonal palette. Synthesized programmatically with sine/pluck tones in the channel's bright major palette.",
+  "attempts": 1,
+  "self_check": {
+    "dong_bo_chat_am": true,
+    "ngan_gon_sach": true,
+    "typing_loop_lap_lien": true,
+    "khong_giai_dieu_co_san": true
+  },
+  "issues": [
+    "Synthesized programmatically, not recorded UI sounds; typing loop is a repeating click pattern."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30T07:45:00Z"
+}
