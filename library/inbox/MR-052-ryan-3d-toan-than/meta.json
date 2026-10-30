@@ -1,1 +1,49 @@
-{"attempts":1,"created":"2026-10-30","files":["ryan-3d-grey-tee.png","ryan-3d-smart-shirt.png","ryan-3d-hoodie.png"],"license":"Meta-Muse-Output","model":"Muse Image","notes":"3 separate generations, one per outfit, all from library/style/ref-3d-ryan-01.jpg. All 3 are full-body front, 1008x2240 (height 2240, above the 2048 requirement), light-grey studio background, same face: short spiky black hair, round friendly face, brown eye, signature wink, warm smile. Hands checked visually: 5 fingers, no anatomy errors visible. Proportions harmonious across all 3. Ryan to choose an outfit for MR-053 turnaround.","prompt":"Premium stylized 3D animation style like a modern animated feature film (soft clay-like shading, subsurface skin, smooth rounded forms, big expressive eyes, soft global illumination, warm cozy color palette, gentle depth of field), matching library/style/ref-3d-ryan-01.jpg. Full-body character of the SAME man as in the reference avatar: young Vietnamese man, short spiky black hair, round friendly face, brown eyes, warm playful smile, wearing a plain grey crew-neck tee / smart-casual shirt / hoodie (one variant per image). He is the MAIN HOST of the channel: confident, warm, playful (signature wink). Keep his face and hair identical to the reference. Neutral relaxed standing pose facing camera, light-grey studio background.","quality":"A","request":"MR-052","self_check":{"dung_mau":true,"khong_chu":true,"khung_dau_cuoi_trung":true,"nen_phang":true},"tool":"Meta Muse"}
+{
+  "request": "MR-052",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "ryan-3d-grey-tee.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1008,
+      "height": 2240,
+      "notes": ""
+    },
+    {
+      "name": "ryan-3d-smart-shirt.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1008,
+      "height": 2240,
+      "notes": ""
+    },
+    {
+      "name": "ryan-3d-hoodie.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1008,
+      "height": 2240,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse Image",
+  "prompt_used": "Premium stylized 3D animation style like a modern animated feature film (soft clay-like shading, subsurface skin, smooth rounded forms, big expressive eyes, soft global illumination, warm cozy color palette, gentle depth of field), matching library/style/ref-3d-ryan-01.jpg. Full-body character of the SAME man as in the reference avatar: young Vietnamese man, short spiky black hair, round friendly face, brown eyes, warm playful smile, wearing a plain grey crew-neck tee / smart-casual shirt / hoodie (one variant per image). He is the MAIN HOST of the channel: confident, warm, playful (signature wink). Keep his face and hair identical to the reference. Neutral relaxed standing pose facing camera, light-grey studio background.",
+  "attempts": 1,
+  "self_check": {
+    "dung_mau": true,
+    "khong_chu": true,
+    "khung_dau_cuoi_trung": true,
+    "nen_phang": true
+  },
+  "issues": [
+    "3 separate generations, one per outfit, all from library/style/ref-3d-ryan-01.jpg. All 3 are full-body front, 1008x2240 (height 2240, above the 2048 requirement), light-grey studio background, same face: short spiky black hair, round friendly face, brown eye, signature wink, warm smile. Hands checked visually: 5 fingers, no anatomy errors visible. Proportions harmonious across all 3. Ryan to choose an outfit for MR-053 turnaround."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}
