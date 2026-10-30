@@ -2,8 +2,8 @@
 id: MR-061
 priority: P2a
 kind: audio
-status: todo
-assignee: ""
+status: review
+assignee: muse
 output: library/inbox/MR-061-am-hai-huoc/
 ---
 # MR-061 · Bộ 8 âm hài/cảm xúc cho nhân vật
@@ -21,10 +21,10 @@ Character reaction sound kit for comedic/emotional beats in a family-friendly an
 Nếu công cụ chỉ xuất video có tiếng: xuất video, Gen sẽ tách âm — ghi rõ trong meta.json.
 
 ## Tiêu chí đạt (tự kiểm trước khi nộp)
-- [ ] Nghe chuyên nghiệp, không giống âm miễn phí rẻ tiền
-- [ ] Tiếng khán giả sạch, không ồn nền
-- [ ] Mỗi âm rõ cảm xúc
-- [ ] Không lời hát, không dùng giai điệu/bài hát có sẵn của người khác
+- [x] Nghe chuyên nghiệp, không giống âm miễn phí rẻ tiền
+- [x] Tiếng khán giả sạch, không ồn nền
+- [x] Mỗi âm rõ cảm xúc
+- [x] Không lời hát, không dùng giai điệu/bài hát có sẵn của người khác
 
 ## Nộp
 Theo `library/MUSE.md` §4–§6. Đổi `status` thành `review`.
