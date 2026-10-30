@@ -6,12 +6,13 @@
 
 ## 1. Mỗi phiên làm việc (vòng lặp tự động — «hook»)
 1. `git fetch origin && git checkout muse/assets` (chưa có thì tạo từ `origin/main`) rồi `git merge origin/main`.
-2. Đọc tất cả `library/requests/*.md`. Chọn phiếu có `status: todo`, ưu tiên **P1 → P5**, cùng mức thì số nhỏ trước.
+2. Đọc tất cả `library/requests/*.md`. Chọn phiếu có `status: todo`. Thứ tự ưu tiên: **P0 → P0b → P1 → P2 → P3 → P4 → P5**; cùng mức thì số nhỏ hơn làm trước. Bỏ qua phiếu `hold` (đang chờ duyệt phong cách) và `blocked`.
 3. Sửa phiếu: `status: in-progress`, `assignee: muse`. Commit ngay `muse: nhận MR-xxx` rồi push, để không ai làm trùng.
 4. Tạo tài nguyên **đúng lệnh tạo** trong phiếu, dùng các file trong mục «Đầu vào» làm ảnh tham chiếu hoặc khung đầu/cuối.
 5. **Tự kiểm** từng ô trong «Tiêu chí đạt». Chưa đạt thì làm lại, tối đa 3 lần.
 6. Nộp vào thư mục `output` của phiếu, kèm `meta.json` (§4). Sửa phiếu thành `status: review`, tick các ô đã đạt.
-7. Commit `muse: nộp MR-xxx`, push lên `muse/assets`, rồi **quay lại bước 2**. Hết phiếu `todo` thì mở/cập nhật **một** Pull Request `muse/assets → main` có tiêu đề «Muse: lô tài nguyên» và dừng.
+7. Commit `muse: nộp MR-xxx`, push lên `muse/assets`, rồi **quay lại bước 2**. Cứ xong khoảng 3 phiếu thì mở hoặc cập nhật **một** Pull Request `muse/assets → main`, tiêu đề «Muse: lô tài nguyên», để Gen soát dần.
+8. Hết phiếu `todo`: làm **việc thường trực** trong `library/requests/BACKLOG.md`. Gen sẽ nạp thêm phiếu mới liên tục, nên bạn không bao giờ phải ngồi chờ.
 
 Không đạt sau 3 lần: `status: blocked`, ghi lý do vào cuối phiếu, chuyển sang phiếu khác.
 
@@ -21,7 +22,13 @@ Không đạt sau 3 lần: `status: blocked`, ghi lý do vào cuối phiếu, ch
 - Không push vào `main`. Chỉ dùng nhánh `muse/assets` + Pull Request.
 - Không commit bí mật (token, key, cookie). Không thêm tài nguyên của bên thứ ba: mọi thứ phải do bạn tạo ra.
 
-## 3. Chuẩn chất lượng
+## 3. Phong cách (Ryan chốt 2026-10-30)
+- **MC chính là Ryan.** Avatar 3D ở `library/style/ref-3d-ryan-01.jpg`. Với nhân vật Ryan phải giữ **đúng khuôn mặt, kiểu tóc, dáng người** theo avatar này.
+- **Phong cách chung** là 3D hoạt hình cao cấp kiểu phim hoạt hình hiện đại: chất liệu mềm như đất sét, ánh sáng ấm và dịu, mắt to có hồn, bối cảnh ấm cúng. Mọi nhân vật và bối cảnh đều theo phong cách của ảnh mẫu này.
+- **Nhi và Vy** là hai người dẫn phụ. Chuyển họ sang 3D cùng phong cách nhưng **không lấy khuôn mặt của Ryan**, giữ nét nhận diện 2D của họ: Nhi có kính, tóc búi, áo teal; Vy buộc tóc đuôi ngựa, đeo nơ vàng, mặc áo san hô.
+- Các phiếu 2D cũ (MR-001..023) đang để `hold`. Sau khi Ryan duyệt thiết kế 3D, Gen sẽ mở phiếu clip 3D tương ứng.
+
+## 3b. Chuẩn chất lượng
 - Ryan: «chất lượng là trên hết», «gom cái xịn, đừng gom rác». Chỉ nộp thứ đạt **hạng A**. Bản tạm được thì ghi `"quality":"B"` và nói rõ lý do.
 - Nhân vật **phải đúng mẫu**: mặt, tóc, kính, màu áo, nét viền như ảnh tham chiếu. Lệch mẫu thì không nộp.
 - Clip nhân vật: **khung đầu = khung cuối = ảnh tư thế trung tính**, nền xanh #00B140 phẳng, camera đứng yên, không tiếng. Nhờ vậy các clip nối liền và tách nền được.

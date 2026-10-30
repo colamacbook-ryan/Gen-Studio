@@ -9,11 +9,11 @@ output: library/inbox/MR-039-broll-loop-van-phong/
 # MR-039 · Nền động lặp — loop-van-phong
 
 ## Đầu vào
-- `library/characters/vy/stills/vy-neutral.png (phong cách)`
+- `library/style/ref-3d-ryan-01.jpg (mẫu phong cách 3D)`
 
 ## Lệnh tạo (prompt)
 ```
-Seamless looping flat vector motion background, gentle animated office scene: plants swaying, screen glow, subtle light change, same cel-shaded cartoon style and palette as the reference character, calm, no text, no people, last frame matches first frame for a perfect loop.
+Premium stylized 3D animation style like a modern animated feature film (soft clay-like shading, subsurface skin, smooth rounded forms, big expressive eyes, soft global illumination, warm cozy color palette, gentle depth of field), matching library/style/ref-3d-ryan-01.jpg. Seamless looping motion background, gentle animated office scene: plants swaying, screen glow, subtle light change,  calm, no text, no people, last frame matches first frame for a perfect loop.
 ```
 
 ## Yêu cầu đầu ra

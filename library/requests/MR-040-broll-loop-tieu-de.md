@@ -9,11 +9,11 @@ output: library/inbox/MR-040-broll-loop-tieu-de/
 # MR-040 · Nền động lặp — loop-tieu-de
 
 ## Đầu vào
-- `library/characters/vy/stills/vy-neutral.png (phong cách)`
+- `library/style/ref-3d-ryan-01.jpg (mẫu phong cách 3D)`
 
 ## Lệnh tạo (prompt)
 ```
-Seamless looping flat vector motion background, soft abstract shapes slowly drifting, same cel-shaded cartoon style and palette as the reference character, calm, no text, no people, last frame matches first frame for a perfect loop.
+Premium stylized 3D animation style like a modern animated feature film (soft clay-like shading, subsurface skin, smooth rounded forms, big expressive eyes, soft global illumination, warm cozy color palette, gentle depth of field), matching library/style/ref-3d-ryan-01.jpg. Seamless looping motion background, soft abstract shapes slowly drifting,  calm, no text, no people, last frame matches first frame for a perfect loop.
 ```
 
 ## Yêu cầu đầu ra

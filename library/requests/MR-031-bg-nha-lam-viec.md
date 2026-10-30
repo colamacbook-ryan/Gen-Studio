@@ -9,18 +9,18 @@ output: library/inbox/MR-031-bg-nha-lam-viec/
 # MR-031 · Bối cảnh — nha-lam-viec
 
 ## Đầu vào
-- `library/characters/vy/stills/vy-neutral.png (để khớp phong cách)`
+- `library/style/ref-3d-ryan-01.jpg (mẫu phong cách 3D)`
 
 ## Lệnh tạo (prompt)
 ```
-Flat vector illustration background, same clean cel-shaded cartoon style and line weight as the reference chibi character, warm modern palette (teal, coral, warm yellow accents on soft neutrals). Scene: home office corner with lamp and shelves. Empty of people, leave the lower-left and center areas uncluttered so characters can stand there, gentle depth, no text, no logos, no watermark.
+Premium stylized 3D animation style like a modern animated feature film (soft clay-like shading, subsurface skin, smooth rounded forms, big expressive eyes, soft global illumination, warm cozy color palette, gentle depth of field), matching library/style/ref-3d-ryan-01.jpg. Environment only. Scene: home office corner with lamp and shelves. Empty of people, leave the lower-left and center areas uncluttered so characters can stand there, gentle depth, no text, no logos, no watermark.
 ```
 
 ## Yêu cầu đầu ra
 PNG 1920×1080 (16:9). Nếu được: thêm 1 bản tách lớp (tiền cảnh / hậu cảnh) để làm chiều sâu
 
 ## Tiêu chí đạt (tự kiểm trước khi nộp)
-- [ ] Cùng phong cách với nhân vật (đường viền, độ phẳng, bảng màu)
+- [ ] Cùng phong cách 3D với ảnh mẫu (ánh sáng mềm, chất liệu, bảng màu ấm)
 - [ ] Không chữ, không logo, không người
 - [ ] Chừa chỗ trống cho nhân vật đứng
 - [ ] Sắc nét ở 1080p

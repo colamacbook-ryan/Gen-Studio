@@ -2,7 +2,7 @@
 id: MR-009
 priority: P1
 kind: character-clip
-status: todo
+status: hold
 assignee: ""
 output: library/inbox/MR-009-nhi-an-mung/
 ---

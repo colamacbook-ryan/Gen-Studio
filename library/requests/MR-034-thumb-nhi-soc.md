@@ -13,7 +13,7 @@ output: library/inbox/MR-034-thumb-nhi-soc/
 
 ## Lệnh tạo (prompt)
 ```
-Big close-up (head and shoulders) of the same chibi character as reference, shocked face, huge eyes, hands on cheeks, exaggerated YouTube-thumbnail expression, on-model, transparent or solid #00B140 background, crisp outline, no text.
+Big close-up (head and shoulders) of the character from its approved 3D design (library/inbox/MR-044 or MR-045), shocked face, huge eyes, hands on cheeks, exaggerated YouTube-thumbnail expression, on-model, transparent or solid #00B140 background, crisp outline, no text.
 ```
 
 ## Yêu cầu đầu ra

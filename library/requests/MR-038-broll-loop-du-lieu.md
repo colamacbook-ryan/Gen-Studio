@@ -9,11 +9,11 @@ output: library/inbox/MR-038-broll-loop-du-lieu/
 # MR-038 · Nền động lặp — loop-du-lieu
 
 ## Đầu vào
-- `library/characters/vy/stills/vy-neutral.png (phong cách)`
+- `library/style/ref-3d-ryan-01.jpg (mẫu phong cách 3D)`
 
 ## Lệnh tạo (prompt)
 ```
-Seamless looping flat vector motion background, abstract flowing data lines and dots moving left to right, same cel-shaded cartoon style and palette as the reference character, calm, no text, no people, last frame matches first frame for a perfect loop.
+Premium stylized 3D animation style like a modern animated feature film (soft clay-like shading, subsurface skin, smooth rounded forms, big expressive eyes, soft global illumination, warm cozy color palette, gentle depth of field), matching library/style/ref-3d-ryan-01.jpg. Seamless looping motion background, abstract flowing data lines and dots moving left to right,  calm, no text, no people, last frame matches first frame for a perfect loop.
 ```
 
 ## Yêu cầu đầu ra
