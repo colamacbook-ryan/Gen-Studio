@@ -1,0 +1,77 @@
+{
+  "request": "MR-062",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "bed-01-curious-playful.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 60.0,
+      "width": null,
+      "height": null,
+      "notes": "tò mò vui vẻ"
+    },
+    {
+      "name": "bed-02-light-explaining.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 60.0,
+      "width": null,
+      "height": null,
+      "notes": "giải thích nhẹ, thưa, chừa dải giọng nói"
+    },
+    {
+      "name": "bed-03-building-tension.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 60.0,
+      "width": null,
+      "height": null,
+      "notes": "xây căng thẳng"
+    },
+    {
+      "name": "bed-04-climax-reveal.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 60.0,
+      "width": null,
+      "height": null,
+      "notes": "cao trào / hé lộ"
+    },
+    {
+      "name": "bed-05-calm-reflective.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 60.0,
+      "width": null,
+      "height": null,
+      "notes": "bình tĩnh suy ngẫm"
+    },
+    {
+      "name": "bed-06-happy-uplifting.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 60.0,
+      "width": null,
+      "height": null,
+      "notes": "vui tươi nâng cao"
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse (programmatic synthesis, numpy + ffmpeg)",
+  "prompt_used": "Six instrumental background music beds for a premium AI-education YouTube channel, all sharing one sonic identity with the channel logo: (1) curious playful intro, (2) light explaining bed under voice-over (sparse, mid-range kept clear for speech), (3) building tension, (4) climax/reveal, (5) calm reflective breath, (6) happy uplifting outro. Modern, warm, premium, no vocals, each loopable. Synthesized programmatically with a repeating 4-chord pattern in C major, pad + pluck arpeggio + soft kick/hat where appropriate.",
+  "attempts": 1,
+  "self_check": {
+    "khong_loi": true,
+    "chua_dai_giong_noi": true,
+    "lap_lien": true,
+    "cung_ban_sac": true,
+    "khong_giai_dieu_co_san": true
+  },
+  "issues": [
+    "Synthesized programmatically, not a studio band performance; each bed is a repeating 4-bar chord pattern, so loopability comes from pattern repetition. No separate stems were produced."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30T07:55:00Z"
+}
