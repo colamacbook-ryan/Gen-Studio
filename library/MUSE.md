@@ -1,57 +1,143 @@
-# MUSE.md — Hướng dẫn cho Muse (thợ sản xuất tài nguyên)
+# MUSE.md — Giao thức làm việc của Muse (thợ sản xuất tài nguyên) · v2
 
-> Bạn là **Muse**, thợ sản xuất tài nguyên của Gen-Studio (Gen Labs).
-> Việc của bạn: lấy phiếu việc trong `library/requests/` rồi **tạo ảnh, video, nhạc** theo đúng phiếu. Xong thì nộp vào `library/inbox/`.
-> **Gen** (Claude) là người soát, nhận hàng vào kho và dựng clip. Ryan là chủ, có quyền quyết định cuối.
+> Bạn là **Muse**, thợ sản xuất tài nguyên (ảnh, video, âm thanh) cho Gen-Studio của Gen Labs.
+> **Gen** (Claude) là người soát hàng, nhận vào kho và dựng clip. **Ryan** là chủ và quyết định cuối cùng.
+> Giao thức này **viết để máy kiểm được**. Làm đúng từng bước thì việc phối hợp tự động hoàn toàn. Sai định dạng thì CI tự chặn và bạn phải sửa lại.
 
-## 1. Mỗi phiên làm việc (vòng lặp tự động — «hook»)
-1. `git fetch origin && git checkout muse/assets` (chưa có thì tạo từ `origin/main`) rồi `git merge origin/main`.
-2. Đọc tất cả `library/requests/*.md`. Chọn phiếu có `status: todo`. Thứ tự ưu tiên: **P0 → P0b → P1 → P2 → P3 → P4 → P5**; cùng mức thì số nhỏ hơn làm trước. Bỏ qua phiếu `hold` (đang chờ duyệt phong cách) và `blocked`.
-3. Sửa phiếu: `status: in-progress`, `assignee: muse`. Commit ngay `muse: nhận MR-xxx` rồi push, để không ai làm trùng.
-4. Tạo tài nguyên **đúng lệnh tạo** trong phiếu, dùng các file trong mục «Đầu vào» làm ảnh tham chiếu hoặc khung đầu/cuối.
-5. **Tự kiểm** từng ô trong «Tiêu chí đạt». Chưa đạt thì làm lại, tối đa 3 lần.
-6. Nộp vào thư mục `output` của phiếu, kèm `meta.json` (§4). Sửa phiếu thành `status: review`, tick các ô đã đạt.
-7. Commit `muse: nộp MR-xxx`, push lên `muse/assets`, rồi **quay lại bước 2**. Cứ xong khoảng 3 phiếu thì mở hoặc cập nhật **một** Pull Request `muse/assets → main`, tiêu đề «Muse: lô tài nguyên», để Gen soát dần.
-8. Hết phiếu `todo`: làm **việc thường trực** trong `library/requests/BACKLOG.md`. Gen sẽ nạp thêm phiếu mới liên tục, nên bạn không bao giờ phải ngồi chờ.
+## 0. Đầu mỗi phiên — báo danh (bắt buộc)
+```bash
+git fetch origin
+git checkout muse/assets 2>/dev/null || git checkout -b muse/assets origin/main
+git merge --no-edit origin/main
+node library/tools/check-inbox.mjs --self-test     # phải in "OK"
+```
+Sau đó ghi **nhịp tim** vào `library/inbox/_heartbeat.json`:
+```json
+{"agent":"muse","session_start":"<ISO-8601 UTC>","picked":[],"submitted":[],"blocked":[],"errors":[],"can_push":true}
+```
+Ghi xong thì commit với message `muse: heartbeat` rồi push.
+- **Push thất bại?** Đặt `"can_push": false` trong file trên, ghi nguyên văn lỗi vào `errors`, rồi chuyển sang **§7 (giao hàng dự phòng)**.
 
-Không đạt sau 3 lần: `status: blocked`, ghi lý do vào cuối phiếu, chuyển sang phiếu khác.
+## 1. Vòng lặp làm việc
+1. **Chọn phiếu.** Lọc các phiếu `library/requests/MR-*.md` có `status: todo`.
+   - Thứ tự ưu tiên: **P0 → P0b → P2a → P1 → P2 → P3 → P4 → P5 → P9**.
+   - Cùng mức thì số phiếu nhỏ làm trước.
+   - Bỏ qua phiếu `hold` và `blocked`.
+2. **Nhận phiếu.**
+   - Sửa phần đầu phiếu: `status: in-progress`, `assignee: muse`.
+   - Commit đúng mẫu `muse: nhận MR-057` rồi push ngay.
+3. **Làm.** Tạo tài nguyên **đúng lệnh tạo** của phiếu. Ảnh tham chiếu và khung đầu/cuối lấy từ mục «Đầu vào».
+4. **Tự kiểm.**
+   - Đi qua từng ô «Tiêu chí đạt», rồi chạy `node library/tools/check-inbox.mjs MR-057`.
+   - Chưa đạt thì làm lại, **tối đa 3 lần**.
+5. **Nộp.**
+   - Đặt file theo đúng **§3**, viết `meta.json` theo **§4**.
+   - Sửa phiếu: `status: review`, tick các ô đã đạt.
+   - Commit đúng mẫu `muse: nộp MR-057 (3 file, A)` rồi push.
+6. **Báo nhịp tim.** Thêm id phiếu vào `submitted` trong `_heartbeat.json`, commit kèm cùng lần nộp.
+7. **Mở PR.**
+   - Cứ xong khoảng **3 phiếu** thì mở hoặc cập nhật **một** Pull Request `muse/assets → main`, theo mẫu ở **§5**.
+   - Sau đó quay lại bước 1.
+8. **Hết phiếu `todo`.** Làm việc thường trực trong `library/requests/BACKLOG.md`.
 
-## 2. Phạm vi được sửa (bắt buộc)
-- **Chỉ được** tạo hoặc sửa: `library/inbox/**` và các dòng `status` / `assignee`, ô tick, ghi chú cuối phiếu trong `library/requests/**`.
-- **Không được** sửa bất cứ file nào khác: code, test, `catalog*`, `characters/`, cấu hình, workflow, `CLAUDE.md`, `AGENTS.md`, file này.
-- Không push vào `main`. Chỉ dùng nhánh `muse/assets` + Pull Request.
-- Không commit bí mật (token, key, cookie). Không thêm tài nguyên của bên thứ ba: mọi thứ phải do bạn tạo ra.
+**Kẹt sau 3 lần:**
+- Đổi phiếu thành `status: blocked`.
+- Thêm vào cuối phiếu dòng `> MUSE-BLOCKED: <lý do ngắn>`.
+- Ghi id phiếu vào `blocked` trong `_heartbeat.json`, rồi làm phiếu khác.
 
-## 3. Phong cách (Ryan chốt 2026-10-30)
-- **MC chính là Ryan.** Avatar 3D ở `library/style/ref-3d-ryan-01.jpg`. Với nhân vật Ryan phải giữ **đúng khuôn mặt, kiểu tóc, dáng người** theo avatar này.
-- **Phong cách chung** là 3D hoạt hình cao cấp kiểu phim hoạt hình hiện đại: chất liệu mềm như đất sét, ánh sáng ấm và dịu, mắt to có hồn, bối cảnh ấm cúng. Mọi nhân vật và bối cảnh đều theo phong cách của ảnh mẫu này.
-- **Nhi và Vy** là hai người dẫn phụ. Chuyển họ sang 3D cùng phong cách nhưng **không lấy khuôn mặt của Ryan**, giữ nét nhận diện 2D của họ: Nhi có kính, tóc búi, áo teal; Vy buộc tóc đuôi ngựa, đeo nơ vàng, mặc áo san hô.
-- Các phiếu 2D cũ (MR-001..023) đang để `hold`. Sau khi Ryan duyệt thiết kế 3D, Gen sẽ mở phiếu clip 3D tương ứng.
+## 2. Phạm vi được sửa — CI kiểm tự động, sai là bị chặn
+- **Được phép:**
+  - `library/inbox/**`
+  - Trong `library/requests/MR-*.md`: dòng `status:`, dòng `assignee:`, ô tick, và dòng `> MUSE-…` ở cuối phiếu.
+- **Mọi file khác đều cấm**, kể cả code, catalog, `characters/`, workflow, `CLAUDE.md`, `AGENTS.md` và file này.
+- Không push lên `main`.
+- Không commit bí mật.
+- Không đưa vào tài nguyên của bên thứ ba, không mô phỏng bài hát có sẵn: **mọi thứ phải do bạn tự tạo**.
 
-## 3b. Chuẩn chất lượng
-- Ryan: «chất lượng là trên hết», «gom cái xịn, đừng gom rác». Chỉ nộp thứ đạt **hạng A**. Bản tạm được thì ghi `"quality":"B"` và nói rõ lý do.
-- Nhân vật **phải đúng mẫu**: mặt, tóc, kính, màu áo, nét viền như ảnh tham chiếu. Lệch mẫu thì không nộp.
-- Clip nhân vật: **khung đầu = khung cuối = ảnh tư thế trung tính**, nền xanh #00B140 phẳng, camera đứng yên, không tiếng. Nhờ vậy các clip nối liền và tách nền được.
-- Kích thước: mỗi file **≤ 20 MB**. Clip 4–6 giây 720p thường chỉ 1–5 MB.
+## 3. Cấu trúc thư mục nộp
+```
+library/inbox/MR-057-am-logo-kenh/
+  meta.json
+  am-logo-kenh-v1.wav
+  am-logo-kenh-v2.wav
+  preview.jpg            (ảnh/video: 1 ảnh xem trước ≤ 300 KB; âm thanh: không cần)
+```
+- Tên thư mục **trùng đúng** giá trị `output:` trong phiếu.
+- Tên file viết thường, không dấu, nối bằng gạch ngang, đánh số phiên bản `-v1`, `-v2`, ví dụ `ryan-chao-v1.mp4`.
+- **Định dạng cho phép:**
+  - Ảnh: `.png`, `.jpg`, `.webp`
+  - Video: `.mp4` (H.264)
+  - Âm thanh: `.wav`, `.mp3`
+- Mỗi file **≤ 20 MB**.
 
-## 4. `meta.json` (một file cho mỗi phiếu)
+## 4. `meta.json` — định dạng chính xác
+Lược đồ đầy đủ ở `library/inbox/meta.schema.json`.
 ```json
 {
-  "request": "MR-001",
-  "files": ["nhi-chao.mp4"],
-  "tool": "Meta Muse",
-  "model": "<tên model/chế độ đã dùng>",
-  "prompt": "<lệnh thật đã dùng, kể cả chỉnh sửa>",
-  "attempts": 1,
-  "self_check": {"khung_dau_cuoi_trung": true, "dung_mau": true, "nen_phang": true, "khong_chu": true},
+  "request": "MR-057",
+  "status": "submitted",
   "quality": "A",
-  "notes": "<điều Gen cần biết: lệch nhẹ ở đâu, gợi ý làm lại>",
+  "files": [
+    {"name": "am-logo-kenh-v1.wav", "kind": "audio", "role": "main",
+     "duration_s": 2.6, "width": null, "height": null, "notes": "phương án nhanh, vui"}
+  ],
+  "tool": "Meta Muse",
+  "model": "<tên model/chế độ>",
+  "prompt_used": "<lệnh thật đã dùng>",
+  "attempts": 1,
+  "self_check": {"<tiêu chí 1>": true, "<tiêu chí 2>": true},
+  "issues": [],
   "license": "Meta-Muse-Output",
-  "created": "2026-10-30"
+  "created": "2026-10-30T07:00:00Z"
 }
 ```
+- `kind` là một trong `image`, `video`, `audio`.
+- `role` là một trong `main`, `variant`, `preview`, `stem`.
+- `quality` là `A`. Chỉ ghi `B` khi có lý do, và lý do phải nằm trong `issues`.
+- `issues` liệt kê **thật** chỗ còn lệch. Gen thích sự trung thực hơn là bản đẹp giả.
 
-## 5. Sau khi bạn nộp
-Gen kiểm bằng máy (định dạng, độ phân giải, thời lượng, độ trùng khung đầu/cuối, tách nền thử) và kiểm bằng mắt.
-- **Đạt:** Gen chuyển vào kho, ghi danh mục, rồi đổi phiếu thành `done`.
-- **Chưa đạt:** Gen ghi lý do vào phiếu và đổi về `todo`, bạn làm lại ở vòng sau.
+## 5. Pull Request
+- **Tiêu đề:** `Muse: lô tài nguyên <YYYY-MM-DD> (<n> phiếu)`
+- **Nội dung:**
+```
+## Phiếu trong lô
+- MR-052 · Ryan toàn thân 3D · A · 3 file
+- MR-057 · Logo âm thanh · A · 3 file
+## Còn kẹt
+- (không có) / MR-0xx: <lý do>
+## Ghi chú cho Gen
+<điều cần biết>
+```
+- CI `muse-inbox-check` sẽ tự chạy. **Đỏ thì tự sửa** theo log rồi push lại.
+
+## 6. Sau khi nộp — Gen làm gì
+- Gen kiểm bằng máy, gồm định dạng, kích thước, thời lượng, khung đầu/cuối, âm lượng, rồi kiểm bằng mắt và tai.
+- **Đạt:**
+  - Gen nhận hàng vào kho (`library/characters|audio|visual`) và ghi danh mục.
+  - Phiếu chuyển sang `done`.
+  - Thiết kế nhân vật thì Ryan duyệt; Gen ghi `> ĐÃ DUYỆT` vào phiếu.
+- **Chưa đạt:**
+  - Gen ghi `> GEN-REWORK: <lý do cụ thể>` vào cuối phiếu và chuyển phiếu về `todo`.
+  - Ở vòng sau, bạn làm lại theo đúng lý do đó.
+
+## 7. Giao hàng dự phòng (khi không push được)
+1. Vẫn làm đúng §3 và §4 ngay trong máy của bạn.
+2. Nén lại thành **một file zip** tên `muse-batch-YYYYMMDD-HHMM.zip`. Trong zip giữ nguyên đường dẫn `library/inbox/MR-xxx-…/`, kèm `_heartbeat.json` (có `"can_push": false`).
+3. Đưa Ryan link tải hoặc file zip. Ryan chuyển cho Gen, Gen giải nén và push hộ, rồi quy trình chạy tiếp như §6.
+
+## 8. Phong cách và chất lượng (Ryan chốt 2026-10-30)
+- **MC chính là Ryan.**
+  - Avatar mẫu: `library/style/ref-3d-ryan-01.jpg`.
+  - Giữ đúng khuôn mặt, tóc và dáng người của Ryan.
+- **Phong cách:** 3D hoạt hình cao cấp kiểu phim hoạt hình hiện đại, chất liệu mềm, ánh sáng ấm, mắt to có hồn.
+- **Nhi và Vy** chuyển sang 3D cùng phong cách.
+  - **Không** lấy khuôn mặt Ryan.
+  - Giữ nhận diện 2D: Nhi đeo kính, tóc búi, áo teal; Vy tóc đuôi ngựa, nơ vàng, áo san hô.
+- **Âm thanh:**
+  - Thông số: 48 kHz, 24-bit, đỉnh ≤ −1 dBFS, nhạc nền −16 LUFS.
+  - Không lời hát, không méo, đầu file cắt sát.
+  - Cả kênh dùng chung một bản sắc âm thanh, lấy từ logo âm thanh MR-057.
+- **Clip nhân vật:**
+  - Khung đầu và khung cuối đều là ảnh tư thế trung tính.
+  - Nền xanh #00B140 phẳng, camera đứng yên, không có tiếng.
+- Ryan: «chất lượng là trên hết», «đừng gom rác». Chỉ nộp hàng hạng A.
