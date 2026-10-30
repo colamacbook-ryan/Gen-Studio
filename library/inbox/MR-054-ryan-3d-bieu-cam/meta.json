@@ -1,0 +1,142 @@
+{
+  "request": "MR-054",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "ryan-expr-01-wink.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": "signature wink, both? one eye closed"
+    },
+    {
+      "name": "ryan-expr-02-warm-smile.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "ryan-expr-03-explaining.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "ryan-expr-04-listening.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "ryan-expr-05-thinking.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "ryan-expr-06-surprised.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "ryan-expr-07-happy-surprise.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": "gentle happy-surprise alternative, not the original shocked expression"
+    },
+    {
+      "name": "ryan-expr-08-laughing.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "ryan-expr-09-facepalm.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "ryan-expr-10-celebrating.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "ryan-expr-11-talking-calmly.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "ryan-expr-12-talking-excitedly.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "ryan-expressions-sheet.png",
+      "kind": "image",
+      "role": "preview",
+      "duration_s": null,
+      "width": 3072,
+      "height": 4096,
+      "notes": "3x4 composite of the 12 square files, 3072x4096, no new generation"
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse Image",
+  "prompt_used": "Premium stylized 3D animation style like a modern animated feature film, same man as in the reference avatar (library/style/ref-3d-ryan-01.jpg): young Vietnamese man, short spiky black hair, round friendly face, brown eyes, wearing a plain grey crew-neck tee. Head-and-shoulders portraits, shoulders up, head centered, solid flat chroma green background. 12 expressions, each generated individually: signature wink, warm smile, explaining with hand, listening/nodding, thinking, pleasantly surprised, delighted happy surprise, laughing, facepalm embarrassed, celebrating, talking calmly, talking excitedly. Each file padded centered with its own sampled corner green to exactly 2048x2048, no distortion, no cropping.",
+  "attempts": 1,
+  "self_check": {
+    "cung_khuon_mat": true,
+    "bieu_cam_ro": true,
+    "nen_phang": true,
+    "khong_chu": true
+  },
+  "issues": [
+    "Set delivered as 12 expressions per the user's 2026-10-30 instruction, not the ticket's original 14: worried and serious warning are omitted; happy surprise is a gentler alternative to shocked, not a retry of the original shocked prompt.",
+    "Green is flat within each image but varies across the set, about (2-51,150-189,52-75) at corners, close to but not exactly #00B140 (0,177,64).",
+    "Celebrating image has a small white sparkle artifact on the shirt, noted as minor.",
+    "Sheet is a composite of the 12 square files, not a new generation."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}
