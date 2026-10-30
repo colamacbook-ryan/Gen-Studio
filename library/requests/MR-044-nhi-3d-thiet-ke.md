@@ -2,7 +2,7 @@
 id: MR-044
 priority: P0b
 kind: character-design
-status: todo
+status: done
 assignee: ""
 output: library/inbox/MR-044-nhi-3d-thiet-ke/
 ---
@@ -29,3 +29,5 @@ PNG ≥ 2048 px chiều cao: (1) toàn thân chính diện; (2) 3 phương án k
 ## Nộp
 Đặt file vào thư mục `output` ở trên + `meta.json` (xem `library/MUSE.md` §4). Đổi `status` thành `review`.
 **Cổng duyệt:** thiết kế nhân vật cần Ryan duyệt trước khi làm clip — Gen sẽ báo kết quả trong phiếu.
+
+> ĐÃ DUYỆT (Ryan 2026-10-30): phương án A (`nhi-3d-variant-a.png`) → mẫu gốc `library/style/ref-3d-nhi-a.png`.

@@ -2,14 +2,14 @@
 id: MR-051
 priority: P0b
 kind: character-design
-status: todo
+status: review
 assignee: ""
 output: library/inbox/MR-051-vy-3d-khung-clip/
 ---
 # MR-051 · Vy — khung tư thế trung tính cho clip 16:9
 
 ## Đầu vào
-- `library/inbox/ phiếu thiết kế vy đã duyệt`
+- `library/style/ref-3d-vy-a.png (MẪU GỐC ĐÃ DUYỆT — Vy phương án A: bé, đầu to; tỉ lệ chuẩn theo bộ biểu cảm MR-050)`
 
 ## Lệnh tạo (prompt)
 ```

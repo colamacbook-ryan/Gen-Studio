@@ -129,6 +129,11 @@ Lược đồ đầy đủ ở `library/inbox/meta.schema.json`.
 - **MC chính là Ryan.**
   - Avatar mẫu: `library/style/ref-3d-ryan-01.jpg`.
   - Giữ đúng khuôn mặt, tóc và dáng người của Ryan.
+- **Mẫu gốc đã duyệt (Ryan 2026-10-30)** — mọi phiếu biểu cảm, xoay, khung clip phải bám đúng mẫu này, kể cả tỉ lệ đầu/thân:
+  - Ryan áo thun xám: `library/style/ref-3d-ryan-tee.png`
+  - Nhi phương án A: `library/style/ref-3d-nhi-a.png`
+  - Vy phương án A: `library/style/ref-3d-vy-a.png` (tỉ lệ chuẩn theo bộ biểu cảm MR-050)
+  - Danh sách và quy tắc: `library/style/README.md`.
 - **Phong cách:** 3D hoạt hình cao cấp kiểu phim hoạt hình hiện đại, chất liệu mềm, ánh sáng ấm, mắt to có hồn.
 - **Nhi và Vy** chuyển sang 3D cùng phong cách.
   - **Không** lấy khuôn mặt Ryan.

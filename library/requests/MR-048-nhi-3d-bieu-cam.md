@@ -9,7 +9,7 @@ output: library/inbox/MR-048-nhi-3d-bieu-cam/
 # MR-048 · Nhi — 12 biểu cảm 3D (bán thân)
 
 ## Đầu vào
-- `library/inbox/ phiếu thiết kế nhi đã duyệt`
+- `library/style/ref-3d-nhi-a.png (MẪU GỐC ĐÃ DUYỆT — Nhi phương án A: đúng mặt, tóc, trang phục, tỉ lệ)`
 
 ## Lệnh tạo (prompt)
 ```
