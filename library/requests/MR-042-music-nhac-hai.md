@@ -32,3 +32,4 @@ MP3 hoặc WAV 48 kHz stereo, chỉ cần âm thanh (nếu Muse chỉ xuất vid
 
 ## Nộp
 Đặt file vào thư mục `output` ở trên + `meta.json` (xem `library/MUSE.md` §4). Đổi `status` thành `review`.
+> MUSE-NOP: nhac hai 30s, pluck ngat quang, 120 BPM, 15 o nhip, khong loi, -16.01 LUFS, dinh -2.34 dBTP, 48 kHz 24-bit stereo, tong hop bang numpy + ffmpeg.
