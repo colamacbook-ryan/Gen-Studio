@@ -1,0 +1,52 @@
+name: muse-status
+# Bảng tiến độ của Muse (thợ sản xuất tài nguyên): đếm phiếu theo trạng thái + lần làm việc gần nhất.
+# Chỉ đọc repo, không push, không cần secret. Xem kết quả ở tab Actions → Job Summary.
+on:
+  push:
+    branches: [muse/assets]
+  schedule:
+    - cron: "17 */2 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Đếm phiếu và hoạt động của Muse
+        run: |
+          set -eu
+          REF=origin/main
+          if git rev-parse --verify -q origin/muse/assets >/dev/null; then REF=origin/muse/assets; fi
+          git checkout -q "$REF" -- library/requests 2>/dev/null || true
+          {
+            echo "## Muse — bảng tiến độ ($(date -u '+%Y-%m-%d %H:%M') UTC)"
+            echo
+            echo "Nguồn: \`$REF\`"
+            echo
+            echo "| Trạng thái | Số phiếu |"
+            echo "|---|---|"
+            for s in todo in-progress review done blocked hold; do
+              n=$(grep -l "^status: $s\$" library/requests/MR-*.md 2>/dev/null | wc -l)
+              echo "| $s | $n |"
+            done
+            echo
+            if git rev-parse --verify -q origin/muse/assets >/dev/null; then
+              last=$(git log -1 --format='%ct' origin/muse/assets --grep='^muse:' || true)
+              if [ -n "$last" ]; then
+                age=$(( ( $(date +%s) - last ) / 3600 ))
+                echo "Lần làm việc gần nhất của Muse: **$(git log -1 --format='%s (%cr)' origin/muse/assets --grep='^muse:')**"
+                [ "$age" -ge 6 ] && echo && echo "> ⚠️ Muse im lặng ${age} giờ — nhắc Muse «làm tiếp»."
+              else
+                echo "> Nhánh muse/assets có nhưng chưa có commit \`muse:\` nào."
+              fi
+              echo
+              echo "### 10 commit gần nhất của Muse"
+              git log -10 --format='- %cd · %s' --date=format:'%m-%d %H:%M' origin/muse/assets --grep='^muse:' || true
+            else
+              echo "> Chưa có nhánh \`muse/assets\` — Muse chưa bắt đầu làm."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

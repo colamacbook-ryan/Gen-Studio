@@ -10,3 +10,8 @@
   - **P2–P5:** bối cảnh 3D, ảnh bìa, nền động lặp, nhạc.
   - **P9:** việc thường trực, xem `BACKLOG.md`.
 - Thêm phiếu mới: chép một phiếu cùng loại, đặt số tiếp theo, rồi sửa nội dung.
+
+## Theo dõi tiến độ Muse
+- **Nhanh nhất:** xem các commit `muse:` trên nhánh `muse/assets` tại github.com/colamacbook-ryan/Gen-Studio/commits/muse/assets.
+- **Bảng tiến độ:** vào tab Actions → workflow `muse-status` → Job Summary. Bảng chạy mỗi khi Muse push và tự chạy 2 giờ một lần. Nó đếm phiếu theo trạng thái, ghi lần làm việc gần nhất, và cảnh báo khi Muse im lặng quá 6 giờ.
+- **Gen tự canh:** Gen theo dõi PR «Muse: lô tài nguyên», kiểm định kỳ và báo Ryan.
