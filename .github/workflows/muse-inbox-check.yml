@@ -41,4 +41,5 @@ jobs:
         with:
           node-version: 22
       - name: Kiểm hàng trong inbox
+        shell: bash   # = bash -eo pipefail: lỗi của check-inbox không bị tee nuốt
         run: node library/tools/check-inbox.mjs --all | tee -a "$GITHUB_STEP_SUMMARY"

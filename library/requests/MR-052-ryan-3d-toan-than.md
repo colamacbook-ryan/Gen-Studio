@@ -2,7 +2,7 @@
 id: MR-052
 priority: P0
 kind: character-design
-status: todo
+status: done
 assignee: ""
 output: library/inbox/MR-052-ryan-3d-toan-than/
 ---
@@ -29,3 +29,5 @@ PNG ≥ 2048 px chiều cao: 3 phương án trang phục, toàn thân chính di�
 ## Nộp
 Đặt file vào `output` + `meta.json` (xem `library/MUSE.md` §4). Đổi `status` thành `review`.
 **Cổng duyệt:** Ryan duyệt thiết kế trước khi làm clip.
+
+> ĐÃ DUYỆT (Ryan 2026-10-30): áo thun xám (`ryan-3d-grey-tee.png`) → mẫu gốc `library/style/ref-3d-ryan-tee.png`.

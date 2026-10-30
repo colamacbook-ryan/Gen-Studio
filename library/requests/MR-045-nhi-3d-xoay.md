@@ -2,14 +2,14 @@
 id: MR-045
 priority: P0b
 kind: character-design
-status: todo
+status: review
 assignee: ""
 output: library/inbox/MR-045-nhi-3d-xoay/
 ---
 # MR-045 · Nhi — bảng xoay 3D (turnaround)
 
 ## Đầu vào
-- `library/inbox/MR-044-nhi-3d-thiet-ke/ (phương án đã chọn — nếu chưa chọn, dùng phương án 1)`
+- `library/style/ref-3d-nhi-a.png (MẪU GỐC ĐÃ DUYỆT — Nhi phương án A: đúng mặt, tóc, trang phục, tỉ lệ)`
 
 ## Lệnh tạo (prompt)
 ```

@@ -2,7 +2,7 @@
 id: MR-056
 priority: P0
 kind: character-design
-status: todo
+status: review
 assignee: ""
 output: library/inbox/MR-056-ryan-3d-goc-quay/
 ---
@@ -11,7 +11,7 @@ output: library/inbox/MR-056-ryan-3d-goc-quay/
 > Ryan 2026-10-30: «đây là avatar (tôi) dùng là MC chính luôn càng tốt». Nhân vật này **là Ryan** — được phép và cần giữ đúng khuôn mặt từ avatar mẫu.
 
 ## Đầu vào
-- `library/style/ref-3d-ryan-01.jpg (avatar 3D của Ryan — ĐÚNG khuôn mặt, tóc, dáng người cần giữ)`
+- `library/style/ref-3d-ryan-tee.png (MẪU GỐC ĐÃ DUYỆT — Ryan áo thun xám: đúng mặt, tóc, tỉ lệ đầu/thân)`
 
 ## Lệnh tạo (prompt)
 ```
