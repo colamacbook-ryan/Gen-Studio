@@ -1,0 +1,42 @@
+name: muse-inbox-check
+# Cổng tự động cho hàng Muse nộp (library/MUSE.md §2–§5):
+#  1) Muse chỉ được sửa library/inbox/** và dòng trạng thái của phiếu MR-*.md
+#  2) Mỗi phiếu nộp có meta.json đúng lược đồ, file đúng định dạng, ≤ 20 MB, đọc được bằng ffprobe
+on:
+  pull_request:
+    paths: ["library/inbox/**", "library/requests/**"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Phạm vi sửa của Muse
+        if: github.head_ref == 'muse/assets'
+        run: |
+          set -eu
+          base="origin/${{ github.base_ref }}"
+          bad=0
+          for f in $(git diff --name-only "$base"...HEAD); do
+            case "$f" in
+              library/inbox/*) ;;
+              library/requests/MR-*.md)
+                # chỉ cho phép đổi status/assignee, ô tick, dòng > MUSE-
+                if git diff -U0 "$base"...HEAD -- "$f" | grep -E '^[+-][^+-]' | grep -vE '^[+-](status: |assignee: |- \[[ x]\] |> MUSE-)' ; then
+                  echo "::error file=$f::Muse chỉ được đổi status/assignee, ô tick và dòng '> MUSE-…'"; bad=1
+                fi ;;
+              *) echo "::error file=$f::Ngoài phạm vi của Muse (MUSE.md §2)"; bad=1 ;;
+            esac
+          done
+          exit $bad
+      - name: Cài ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Kiểm hàng trong inbox
+        run: node library/tools/check-inbox.mjs --all | tee -a "$GITHUB_STEP_SUMMARY"

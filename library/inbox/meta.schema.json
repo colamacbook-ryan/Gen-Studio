@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Muse inbox meta.json",
+  "type": "object",
+  "required": ["request", "status", "quality", "files", "tool", "prompt_used", "attempts", "self_check", "issues", "license", "created"],
+  "properties": {
+    "request": {"type": "string", "pattern": "^MR-[0-9]{3}$"},
+    "status": {"enum": ["submitted"]},
+    "quality": {"enum": ["A", "B"]},
+    "files": {"type": "array", "minItems": 1, "items": {
+      "type": "object", "required": ["name", "kind", "role"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*(-v[0-9]+)?\\.(png|jpg|webp|mp4|wav|mp3)$"},
+        "kind": {"enum": ["image", "video", "audio"]},
+        "role": {"enum": ["main", "variant", "preview", "stem"]},
+        "duration_s": {"type": ["number", "null"]},
+        "width": {"type": ["integer", "null"]},
+        "height": {"type": ["integer", "null"]},
+        "notes": {"type": "string"}
+      }}},
+    "tool": {"type": "string"},
+    "model": {"type": "string"},
+    "prompt_used": {"type": "string", "minLength": 10},
+    "attempts": {"type": "integer", "minimum": 1},
+    "self_check": {"type": "object"},
+    "issues": {"type": "array", "items": {"type": "string"}},
+    "license": {"enum": ["Meta-Muse-Output"]},
+    "created": {"type": "string"}
+  }
+}
