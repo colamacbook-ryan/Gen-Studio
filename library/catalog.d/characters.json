@@ -1,0 +1,1306 @@
+[
+ {
+  "id": "char.nhi.still.neutral",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Bình thường (neutral)",
+  "tags": [
+   "nhi",
+   "neutral",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "build",
+   "breath"
+  ],
+  "path": "characters/nhi/stills/nhi-neutral.png",
+  "size_bytes": 241658,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=normal, motion=talk, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-neutral.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','neutral')."
+ },
+ {
+  "id": "char.nhi.still.explain",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Giải thích (explain)",
+  "tags": [
+   "nhi",
+   "explain",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "build",
+   "breath"
+  ],
+  "path": "characters/nhi/stills/nhi-explain.png",
+  "size_bytes": 236353,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=normal, motion=point, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-explain.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','explain')."
+ },
+ {
+  "id": "char.nhi.still.excited",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Hào hứng (excited)",
+  "tags": [
+   "nhi",
+   "excited",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "build",
+   "payoff",
+   "cta"
+  ],
+  "path": "characters/nhi/stills/nhi-excited.png",
+  "size_bytes": 233545,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=proud, motion=fistPump, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-excited.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','excited')."
+ },
+ {
+  "id": "char.nhi.still.shock",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Sốc (shock)",
+  "tags": [
+   "nhi",
+   "shock",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "climax"
+  ],
+  "path": "characters/nhi/stills/nhi-shock.png",
+  "size_bytes": 342177,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=shock, motion=recoil, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-shock.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','shock')."
+ },
+ {
+  "id": "char.nhi.still.think",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Suy nghĩ (think)",
+  "tags": [
+   "nhi",
+   "think",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "build",
+   "breath"
+  ],
+  "path": "characters/nhi/stills/nhi-think.png",
+  "size_bytes": 246203,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=think, motion=chinHand, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-think.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','think')."
+ },
+ {
+  "id": "char.nhi.still.unsure",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Phân vân (unsure)",
+  "tags": [
+   "nhi",
+   "unsure",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "build",
+   "breath"
+  ],
+  "path": "characters/nhi/stills/nhi-unsure.png",
+  "size_bytes": 249899,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=unsure, motion=shrug, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-unsure.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','unsure')."
+ },
+ {
+  "id": "char.nhi.still.smug",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Đắc ý (smug)",
+  "tags": [
+   "nhi",
+   "smug",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "build",
+   "payoff",
+   "cta"
+  ],
+  "path": "characters/nhi/stills/nhi-smug.png",
+  "size_bytes": 257347,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=smug, motion=gloat, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-smug.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','smug')."
+ },
+ {
+  "id": "char.nhi.still.sad",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Buồn (sad)",
+  "tags": [
+   "nhi",
+   "sad",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "build",
+   "breath"
+  ],
+  "path": "characters/nhi/stills/nhi-sad.png",
+  "size_bytes": 243736,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=cry, motion=weep, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-sad.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','sad')."
+ },
+ {
+  "id": "char.nhi.still.angry",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Giận (angry)",
+  "tags": [
+   "nhi",
+   "angry",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "climax"
+  ],
+  "path": "characters/nhi/stills/nhi-angry.png",
+  "size_bytes": 261007,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=rage, motion=stomp, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-angry.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','angry')."
+ },
+ {
+  "id": "char.nhi.still.panic",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Hoảng (panic)",
+  "tags": [
+   "nhi",
+   "panic",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "climax"
+  ],
+  "path": "characters/nhi/stills/nhi-panic.png",
+  "size_bytes": 298272,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=panic, motion=flail, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-panic.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','panic')."
+ },
+ {
+  "id": "char.nhi.still.greedy",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Tham (greedy)",
+  "tags": [
+   "nhi",
+   "greedy",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "build",
+   "payoff",
+   "cta"
+  ],
+  "path": "characters/nhi/stills/nhi-greedy.png",
+  "size_bytes": 259771,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=greedy, motion=rubHands, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-greedy.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','greedy')."
+ },
+ {
+  "id": "char.nhi.still.beg",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Van xin (beg)",
+  "tags": [
+   "nhi",
+   "beg",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "build",
+   "payoff",
+   "cta"
+  ],
+  "path": "characters/nhi/stills/nhi-beg.png",
+  "size_bytes": 228065,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=beg, motion=plead, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-beg.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','beg')."
+ },
+ {
+  "id": "char.nhi.still.proud",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Tự hào (proud)",
+  "tags": [
+   "nhi",
+   "proud",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "build",
+   "payoff",
+   "cta"
+  ],
+  "path": "characters/nhi/stills/nhi-proud.png",
+  "size_bytes": 260590,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=proud, motion=chestOut, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-proud.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','proud')."
+ },
+ {
+  "id": "char.nhi.still.vow",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Thề (vow)",
+  "tags": [
+   "nhi",
+   "vow",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "build",
+   "payoff",
+   "cta"
+  ],
+  "path": "characters/nhi/stills/nhi-vow.png",
+  "size_bytes": 298645,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=vow, motion=resolve, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-vow.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','vow')."
+ },
+ {
+  "id": "char.nhi.still.bored",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Chán (bored)",
+  "tags": [
+   "nhi",
+   "bored",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "build",
+   "breath"
+  ],
+  "path": "characters/nhi/stills/nhi-bored.png",
+  "size_bytes": 246477,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=lazy, motion=slouch, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-bored.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','bored')."
+ },
+ {
+  "id": "char.nhi.still.yell",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — Gào (yell)",
+  "tags": [
+   "nhi",
+   "yell",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "climax"
+  ],
+  "path": "characters/nhi/stills/nhi-yell.png",
+  "size_bytes": 262884,
+  "dimensions": "1252x1491",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/gen-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=rage, motion=fury, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/nhi-yell.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('nhi','yell')."
+ },
+ {
+  "id": "char.nhi.still.neutral-chroma",
+  "type": "character-still",
+  "title": "Nhi (người dẫn, hoodie teal) — tư thế trung tính trên nền chroma #00B140 (keyframe AI video)",
+  "tags": [
+   "nhi",
+   "neutral",
+   "chroma-key",
+   "keyframe",
+   "first-last-frame"
+  ],
+  "energy": [
+   "light"
+  ],
+  "path": "characters/nhi/stills/nhi-neutral-chroma-1280x720.png",
+  "size_bytes": 184293,
+  "dimensions": "1280x720",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — ghép từ still neutral",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem; Veo giữ đúng nét khi dùng làm first=last frame.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "python3 characters/src/crop.py (nhân vật cao 600 px, đáy cách 48 px, nền #00B140)",
+  "reuse": "Làm first_frame = last_frame khi gọi model video (loop-test/src/veo.mjs) để clip khâu nối được."
+ },
+ {
+  "id": "char.vy.still.neutral",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Bình thường (neutral)",
+  "tags": [
+   "vy",
+   "neutral",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "build",
+   "breath"
+  ],
+  "path": "characters/vy/stills/vy-neutral.png",
+  "size_bytes": 285511,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=normal, motion=talk, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-neutral.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','neutral')."
+ },
+ {
+  "id": "char.vy.still.explain",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Giải thích (explain)",
+  "tags": [
+   "vy",
+   "explain",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "build",
+   "breath"
+  ],
+  "path": "characters/vy/stills/vy-explain.png",
+  "size_bytes": 281262,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=normal, motion=point, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-explain.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','explain')."
+ },
+ {
+  "id": "char.vy.still.excited",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Hào hứng (excited)",
+  "tags": [
+   "vy",
+   "excited",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "build",
+   "payoff",
+   "cta"
+  ],
+  "path": "characters/vy/stills/vy-excited.png",
+  "size_bytes": 270441,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=proud, motion=fistPump, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-excited.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','excited')."
+ },
+ {
+  "id": "char.vy.still.shock",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Sốc (shock)",
+  "tags": [
+   "vy",
+   "shock",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "climax"
+  ],
+  "path": "characters/vy/stills/vy-shock.png",
+  "size_bytes": 389707,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=shock, motion=recoil, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-shock.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','shock')."
+ },
+ {
+  "id": "char.vy.still.think",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Suy nghĩ (think)",
+  "tags": [
+   "vy",
+   "think",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "build",
+   "breath"
+  ],
+  "path": "characters/vy/stills/vy-think.png",
+  "size_bytes": 284162,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=think, motion=chinHand, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-think.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','think')."
+ },
+ {
+  "id": "char.vy.still.unsure",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Phân vân (unsure)",
+  "tags": [
+   "vy",
+   "unsure",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "build",
+   "breath"
+  ],
+  "path": "characters/vy/stills/vy-unsure.png",
+  "size_bytes": 299283,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=unsure, motion=shrug, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-unsure.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','unsure')."
+ },
+ {
+  "id": "char.vy.still.smug",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Đắc ý (smug)",
+  "tags": [
+   "vy",
+   "smug",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "build",
+   "payoff",
+   "cta"
+  ],
+  "path": "characters/vy/stills/vy-smug.png",
+  "size_bytes": 298633,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=smug, motion=gloat, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-smug.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','smug')."
+ },
+ {
+  "id": "char.vy.still.sad",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Buồn (sad)",
+  "tags": [
+   "vy",
+   "sad",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "build",
+   "breath"
+  ],
+  "path": "characters/vy/stills/vy-sad.png",
+  "size_bytes": 268889,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=cry, motion=weep, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-sad.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','sad')."
+ },
+ {
+  "id": "char.vy.still.angry",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Giận (angry)",
+  "tags": [
+   "vy",
+   "angry",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "climax"
+  ],
+  "path": "characters/vy/stills/vy-angry.png",
+  "size_bytes": 319123,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=rage, motion=stomp, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-angry.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','angry')."
+ },
+ {
+  "id": "char.vy.still.panic",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Hoảng (panic)",
+  "tags": [
+   "vy",
+   "panic",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "climax"
+  ],
+  "path": "characters/vy/stills/vy-panic.png",
+  "size_bytes": 360472,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=panic, motion=flail, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-panic.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','panic')."
+ },
+ {
+  "id": "char.vy.still.greedy",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Tham (greedy)",
+  "tags": [
+   "vy",
+   "greedy",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "build",
+   "payoff",
+   "cta"
+  ],
+  "path": "characters/vy/stills/vy-greedy.png",
+  "size_bytes": 295378,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=greedy, motion=rubHands, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-greedy.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','greedy')."
+ },
+ {
+  "id": "char.vy.still.beg",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Van xin (beg)",
+  "tags": [
+   "vy",
+   "beg",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "build",
+   "payoff",
+   "cta"
+  ],
+  "path": "characters/vy/stills/vy-beg.png",
+  "size_bytes": 253813,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=beg, motion=plead, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-beg.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','beg')."
+ },
+ {
+  "id": "char.vy.still.proud",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Tự hào (proud)",
+  "tags": [
+   "vy",
+   "proud",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "build",
+   "payoff",
+   "cta"
+  ],
+  "path": "characters/vy/stills/vy-proud.png",
+  "size_bytes": 299461,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=proud, motion=chestOut, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-proud.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','proud')."
+ },
+ {
+  "id": "char.vy.still.vow",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Thề (vow)",
+  "tags": [
+   "vy",
+   "vow",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "build",
+   "payoff",
+   "cta"
+  ],
+  "path": "characters/vy/stills/vy-vow.png",
+  "size_bytes": 338813,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=vow, motion=resolve, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-vow.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','vow')."
+ },
+ {
+  "id": "char.vy.still.bored",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Chán (bored)",
+  "tags": [
+   "vy",
+   "bored",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "build",
+   "breath"
+  ],
+  "path": "characters/vy/stills/vy-bored.png",
+  "size_bytes": 286125,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=lazy, motion=slouch, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-bored.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','bored')."
+ },
+ {
+  "id": "char.vy.still.yell",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — Gào (yell)",
+  "tags": [
+   "vy",
+   "yell",
+   "chibi",
+   "transparent",
+   "png"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "climax"
+  ],
+  "path": "characters/vy/stills/vy-yell.png",
+  "size_bytes": 320124,
+  "dimensions": "1543x1572",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — Gen-Chibi engine 0.26 (gen-studio/vendor/gen-chibi) + pack design/vy-chibi",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem lưới 16 mood; khung chung cho cả 16 mood (đổi mood không nhảy cỡ); nền trong suốt.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "node characters/src/export.js && python3 characters/src/crop.py  (state=rage, motion=fury, mặt theo render/engine/moods.json)",
+  "reuse": "Remotion: <Img src={staticFile('characters/vy-yell.png')}/> (sync bằng motion-kit/tools/sync-assets.sh) hoặc charSrc('vy','yell')."
+ },
+ {
+  "id": "char.vy.still.neutral-chroma",
+  "type": "character-still",
+  "title": "Vy (người hỏi, cardigan san hô) — tư thế trung tính trên nền chroma #00B140 (keyframe AI video)",
+  "tags": [
+   "vy",
+   "neutral",
+   "chroma-key",
+   "keyframe",
+   "first-last-frame"
+  ],
+  "energy": [
+   "light"
+  ],
+  "path": "characters/vy/stills/vy-neutral-chroma-1280x720.png",
+  "size_bytes": 217874,
+  "dimensions": "1280x720",
+  "format": "png",
+  "stored": "git",
+  "source": "Gen Labs — ghép từ still neutral",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem; Veo giữ đúng nét khi dùng làm first=last frame.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "python3 characters/src/crop.py (nhân vật cao 600 px, đáy cách 48 px, nền #00B140)",
+  "reuse": "Làm first_frame = last_frame khi gọi model video (loop-test/src/veo.mjs) để clip khâu nối được."
+ },
+ {
+  "id": "char.vy.clip.shocked",
+  "type": "character-clip",
+  "title": "Vy giật mình (tay ôm má) rồi bình tĩnh lại — nền chroma, lặp được",
+  "tags": [
+   "vy",
+   "shock",
+   "shocked",
+   "chroma-key",
+   "seamless-loop",
+   "ai-video",
+   "tier=reserve"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "climax"
+  ],
+  "path": "characters/vy/clips/vy-shocked.mp4",
+  "size_bytes": 781118,
+  "duration_s": 4,
+  "dimensions": "1280x720",
+  "format": "mp4",
+  "loop": true,
+  "stored": "git",
+  "source": "OpenRouter google/veo-3.1-lite (first_frame = last_frame = char.vy.still.neutral-chroma)",
+  "source_url": "https://openrouter.ai/google/veo-3.1-lite",
+  "license": "Veo-Output",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "B",
+  "quality_note": "Đã xem: biểu cảm tốt nhưng giữa clip mắt đổi sang kiểu chấm (lệch model sheet) — dùng được cho cú sốc ngắn.",
+  "added": "2026-10-30",
+  "cost_usd": 0.12,
+  "how_made": "node loop-test/src/veo.mjs characters/vy/stills/vy-neutral-chroma-1280x720.png <out> \"<prompt>\" — prompt: 2D cel-shaded chibi cartoon girl with brown ponytail and yellow bow, coral cardigan. She is suddenly shocked: eyes widen, mouth drops open, both hands fly up to her cheeks and her ponytail jolts, she holds the shocked look for a beat, then calms down and returns to the exact same starting pose and smile. Solid flat chroma green background (#00B140) that stays perfectly uniform, no shadows, no props, no text. Static locked-off camera, no zoom, no pan. Keep the flat 2D cartoon style and thick dark outlines identical to the reference image.",
+  "reuse": "Tách nền: ffmpeg chromakey=0x01B141:similarity=0.13:blend=0.05 (KHÔNG despill — làm nơ vàng ngả cam); bỏ khung cuối khi nối; xem loop-test/src/loop.sh.",
+  "note": "24 fps, 96 khung, không tiếng."
+ },
+ {
+  "id": "char.vy.clip.wave",
+  "type": "character-clip",
+  "title": "Vy vẫy tay cười, về đúng tư thế đầu — nền chroma, lặp được",
+  "tags": [
+   "vy",
+   "greeting",
+   "wave",
+   "chroma-key",
+   "seamless-loop",
+   "ai-video"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "hook",
+   "setup",
+   "cta"
+  ],
+  "path": "characters/vy/clips/vy-wave.mp4",
+  "size_bytes": 797419,
+  "duration_s": 4,
+  "dimensions": "1280x720",
+  "format": "mp4",
+  "loop": true,
+  "stored": "git",
+  "source": "OpenRouter google/veo-3.1-lite (first_frame = last_frame = char.vy.still.neutral-chroma)",
+  "source_url": "https://openrouter.ai/google/veo-3.1-lite",
+  "license": "Veo-Output",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem từng khung: đúng nét, đúng màu, khung đầu ≈ khung cuối (sai khác TB 1,2/255).",
+  "added": "2026-10-30",
+  "cost_usd": 0.12,
+  "how_made": "node loop-test/src/veo.mjs characters/vy/stills/vy-neutral-chroma-1280x720.png <out> \"<prompt>\" — prompt: 2D cel-shaded chibi cartoon girl with brown ponytail and yellow bow, coral cardigan. She raises her right hand and waves cheerfully with a big smile, then lowers her hand and returns to the exact same starting pose. Solid flat chroma green background (#00B140) that stays perfectly uniform, no shadows, no props. Static locked-off camera, no zoom, no pan. Keep the flat 2D cartoon style and thick dark outlines identical to the reference image.",
+  "reuse": "Tách nền: ffmpeg chromakey=0x01B141:similarity=0.13:blend=0.05 (KHÔNG despill — làm nơ vàng ngả cam); bỏ khung cuối khi nối; xem loop-test/src/loop.sh.",
+  "note": "24 fps, 96 khung, không tiếng."
+ },
+ {
+  "id": "char.vy.clip.wave-alpha",
+  "type": "character-clip",
+  "title": "Vy vẫy tay — đã tách nền, WebM VP9 có kênh alpha (dùng thẳng trong Remotion)",
+  "tags": [
+   "vy",
+   "greeting",
+   "wave",
+   "transparent",
+   "alpha",
+   "seamless-loop",
+   "ai-video"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "hook",
+   "setup",
+   "cta"
+  ],
+  "path": "characters/vy/clips/vy-wave-alpha.webm",
+  "size_bytes": 922589,
+  "duration_s": 3.9583333333333335,
+  "dimensions": "1280x720",
+  "format": "webm",
+  "loop": true,
+  "stored": "git",
+  "source": "Gen Labs — ffmpeg chromakey từ char.vy.clip.wave (Veo 3.1 Lite)",
+  "source_url": "https://openrouter.ai/google/veo-3.1-lite",
+  "license": "Veo-Output",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem trong showcase: viền sạch, nơ giữ đúng màu vàng; tay vẫy có nhoè nhẹ (từ model).",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "ffmpeg -i vy-wave.mp4 -vf trim=end_frame=95,format=yuva420p,chromakey=0x01B141:similarity=0.13:blend=0.05 -c:v libvpx-vp9 -pix_fmt yuva420p -auto-alt-ref 0 vy-wave-alpha.webm",
+  "reuse": "<Loop durationInFrames={Math.round(95/24*fps)}><OffthreadVideo src={staticFile('clips/vy-wave-alpha.webm')} transparent muted/></Loop>"
+ }
+]

@@ -13,6 +13,7 @@ const { spawnSync } = require('node:child_process');
 const chromium = require('./chromium');
 const cdp = require('./cdp');
 const aspects = require('./aspects');
+const registry = require('./blocks/registry');
 
 const STAGE = path.join(__dirname, 'stage', 'stage.html');
 const LOCAL_FONTS = path.join(__dirname, 'stage', 'fonts', 'local.css');   // gói F có thể đặt file này (phông cục bộ); không có thì dùng phông hệ thống
@@ -69,6 +70,8 @@ function resolveAssets(plan, errors, assetRoot, opts) {
   };
   (plan.assetRefs || []).forEach((r, i) => { const o = typeof r === 'string' ? { asset: r } : r || {}; one(o.asset, o.label || 'assetRefs[' + i + ']', o.maxPx); });
   plan.beats.filter(b => b.block === 'illustration').forEach(b => one(b.params.asset, 'illustration ' + b.id));
+  // khối 0.2.x khai assetsOf(params) (compare-split, morph…): ảnh ngoài bộ biểu tượng — cùng luật đọc như trên
+  plan.beats.forEach(b => { const d = registry.get(b.block); if (d && d.assetsOf) d.assetsOf(b.params || {}).forEach(a => one(a, b.block + ' ' + b.id)); });
   return data;
 }
 
@@ -78,7 +81,7 @@ function resolveAssets(plan, errors, assetRoot, opts) {
 async function openStage(opts) {
   opts = opts || {};
   const errors = opts.errors || [], holder = opts.holder || {}, shared = opts.shared || null;
-  const ch = shared ? shared.ch : await chromium.launch({ path: opts.chromiumPath, nice: opts.nice });
+  const ch = shared ? shared.ch : await chromium.launch({ path: opts.chromiumPath, nice: opts.nice, args: opts.chromiumArgs });
   holder.ch = ch;
   const client = shared ? shared.client : await cdp.connect(ch.wsUrl, undefined, { sendTimeoutMs: opts.sendTimeoutMs });
   holder.client = client;
@@ -153,8 +156,9 @@ async function renderPlan(opts) {
   }
 
   async function execute() {
-    const size = Array.isArray(plan.size) ? plan.size : [1920, 1080];
-    const st = await openStage({ chromiumPath: opts.chromiumPath, sendTimeoutMs: opts.sendTimeoutMs, errors, holder, width: size[0], height: size[1] });
+    // plan.output (0.2.x): Chromium mở đúng cỡ xuất, sân khấu tự thu bằng CSS zoom ⇒ chụp 1:1 (không clip.scale — L-108)
+    const size = Array.isArray(plan.output) ? plan.output : Array.isArray(plan.size) ? plan.size : [1920, 1080];
+    const st = await openStage({ chromiumPath: opts.chromiumPath, chromiumArgs: opts.chromiumArgs, sendTimeoutMs: opts.sendTimeoutMs, errors, holder, width: size[0], height: size[1] });
     if (dead) { await st.close().catch(() => {}); throw dead; }
     stage = st;
     alive();   // đồng hồ treo chạy từ khi sân khấu mở (mở Chromium có hạn riêng GS_CHROMIUM_START_MS, từng lệnh CDP có sendTimeoutMs)
@@ -162,15 +166,20 @@ async function renderPlan(opts) {
     await ev('window.__load(' + JSON.stringify(plan2) + ')');
 
     const N = Math.ceil(plan.duration_ms / 1000 * fps), writes = [], t0 = Date.now();
+    // 0.2.x clip dài: frameRange [đầu, cuối) để chia việc cho nhiều tiến trình (khung là hàm thuần của t ⇒ ghép nối không lệch);
+    // videoOut ⇒ JPEG từng khung đi thẳng vào ffmpeg (H.264, không lưu khung ra đĩa — clip 11 phút ≈ 20 nghìn khung)
+    const F0 = opts.frameRange ? Math.max(0, opts.frameRange[0] | 0) : 0, F1 = opts.frameRange ? Math.min(N, opts.frameRange[1] | 0) : N;
+    const enc = opts.videoOut ? encoder(opts.videoOut, fps, opts.ffmpegPath || 'ffmpeg', opts.crf) : null;
     // đo vùng an toàn (L-42: ≤ 240 mốc, mỗi mốc ≤ 5 ms ⇒ ≤ 1 % thời gian dựng); mốc gán cho khung gần nhất, đo SAU khi chụp khung đó
     const marks = plan.layout ? aspects.sampleTimes(plan) : null, samples = [];
     let mi = 0, measureMs = 0;
-    for (let i = 0; i < N; i++) {
-      if (dead) throw dead;
+    for (let i = F0; i < F1; i++) {
+      if (dead) { if (enc) enc.abort(); throw dead; }
       const tf = i * 1000 / fps;
       await ev('window.__seek(' + tf + ')');
-      const buf = await shot();
-      writes.push(fs.promises.writeFile(path.join(framesDir, 'f' + String(i).padStart(5, '0') + '.jpg'), buf));
+      const buf = await shot(enc ? 'jpeg' : undefined, enc ? (opts.jpegQuality || 95) : undefined);
+      if (enc) await enc.write(buf);
+      else writes.push(fs.promises.writeFile(path.join(framesDir, 'f' + String(i).padStart(5, '0') + '.jpg'), buf));
       if (marks) {
         while (mi < marks.length && (marks[mi].t <= tf + 500 / fps || i === N - 1)) {
           const m0 = Date.now(), mk = marks[mi++], r = await ev('window.__measure()');
@@ -182,10 +191,11 @@ async function renderPlan(opts) {
       }
       if (writes.length >= 16) await Promise.all(writes.splice(0));
       alive();
-      if (opts.onProgress && i % 10 === 0) opts.onProgress(i / N);
+      if (opts.onProgress && i % 10 === 0) opts.onProgress((i - F0) / Math.max(1, F1 - F0));
     }
     await Promise.all(writes);
-    const renderMs = Date.now() - t0;
+    if (enc) await enc.end();
+    const renderMs = Date.now() - t0, N_done = F1 - F0;
 
     // ảnh bìa: lúc tiêu đề đã dựng xong (≥ 1,5 s sau beat đầu), nằm trong clip — công thức một nguồn ở aspects.coverFrameMs (CNS-337)
     const coverT = aspects.coverFrameMs(plan);
@@ -205,10 +215,26 @@ async function renderPlan(opts) {
       for (const [n, v] of Object.entries(b64)) { const p = path.join(sfxDir, n + '.wav'); fs.writeFileSync(p, Buffer.from(v, 'base64')); sfx[n] = p; }
     }
     if (opts.onProgress) opts.onProgress(1);
-    const out = { framesPattern: path.join(framesDir, 'f%05d.jpg'), frames: N, fps, errors, sfx, cover, thumbs, render_ms: renderMs, render_fps: +(N / (renderMs / 1000)).toFixed(2) };
+    const out = { framesPattern: enc ? null : path.join(framesDir, 'f%05d.jpg'), frames: F1 - F0, fps, video: enc ? opts.videoOut : undefined, frame_range: opts.frameRange ? [F0, F1] : undefined, errors, sfx, cover, thumbs, render_ms: renderMs, render_fps: +(N_done / (renderMs / 1000)).toFixed(2) };
     if (marks) { out.measures = { duration_s: +(plan.duration_ms / 1000).toFixed(3), samples }; out.measure_ms = measureMs; out.cover_frame_ms = coverT; }
     return out;
   }
+}
+
+// Bộ mã hoá luồng: JPEG từng khung → ffmpeg (image2pipe) → H.264 yuv420p, faststart. write() chờ khi ống đầy (không dồn RAM). end() → chờ ffmpeg xong, lỗi ⇒ ném.
+function encoder(out, fps, ffmpegPath, crf) {
+  const { spawn } = require('node:child_process');
+  const p = spawn(ffmpegPath, ['-v', 'error', '-y', '-f', 'image2pipe', '-c:v', 'mjpeg', '-framerate', String(fps), '-i', 'pipe:0',
+    '-c:v', 'libx264', '-preset', 'medium', '-crf', String(crf || 18), '-pix_fmt', 'yuv420p', '-r', String(fps), '-movflags', '+faststart', out], { stdio: ['pipe', 'ignore', 'pipe'] });
+  let err = '', exit = null;
+  p.stderr.on('data', d => { err += d; });
+  const done = new Promise(res => p.on('close', code => { exit = code; res(code); }));
+  p.stdin.on('error', () => {});
+  return {
+    write: (buf) => new Promise((res, rej) => { if (exit !== null) return rej(new Error('ffmpeg dừng sớm: ' + err.slice(0, 300))); if (p.stdin.write(buf)) res(); else p.stdin.once('drain', res); }),
+    end: async () => { p.stdin.end(); const c = await done; if (c !== 0) throw new Error('ffmpeg mã hoá lỗi (' + c + '): ' + err.slice(0, 300)); },
+    abort: () => { try { p.kill('SIGKILL'); } catch (e) { /* đã dừng */ } }
+  };
 }
 
 // → [{index, spec, measures, png, png_notext, jpg1280, jpg1920}]; không có phương án ⇒ [] (đường cũ, không tốn gì)

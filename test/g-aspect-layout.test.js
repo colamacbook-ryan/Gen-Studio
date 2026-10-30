@@ -15,7 +15,8 @@ const aspects = require('../render/aspects');
 const DATA = require('../render/aspects.json');
 
 const V = aspects.get('9:16'), L = V.layout, [W, H] = V.size;
-const LESSON_BLOCKS = ['title', 'concept-chip', 'token-row', 'prob-card', 'stamp', 'takeaway', 'lesson-map', 'end-card', 'illustration'];
+const { LONG_BLOCKS_916 } = require('./k-blocks-list');
+const LESSON_BLOCKS = ['title', 'concept-chip', 'token-row', 'prob-card', 'stamp', 'takeaway', 'lesson-map', 'end-card', 'illustration'].concat(LONG_BLOCKS_916);
 
 function lesson(extra) {
   const lines = [

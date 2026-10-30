@@ -13,6 +13,7 @@ const events = require('./events.js');
 const grids = require('./grids.js');
 const rights = require('./rights.js');
 const aspects = require('../render/aspects.js');   // F7: tỉ lệ khung (nguồn duy nhất render/aspects.json)
+const blockRegistry = require('../render/blocks/registry.js');   // khối khai assetsOf/mapAssets (0.2.x) — ảnh ngoài bộ biểu tượng
 const gateIds = require('../media/gates/index.js').gatesFor;   // cổng áp cho loại bài (SPEC §2.5) — luôn bản thật, kể cả khi test tiêm deps.gates
 
 const J = grids.J;
@@ -298,6 +299,16 @@ async function execute(ctx, run, renderId) {
         if (!a || !a.media_present) throw new Block('asset_invalid', `Beat ${b.display_id}: params.asset phải là mã asset (AS-…) còn tệp trong xưởng.`, { beat: b.display_id, asset: params.asset });
         params = Object.assign({}, params, { asset: a.path });
         illusRefs.push({ asset: a.path, label: 'illustration ' + b.display_id });
+      }
+      // khối 0.2.x có ảnh ngoài bộ biểu tượng (assetsOf/mapAssets): cùng luật mã AS-… → đường dẫn như illustration
+      const bdef = blockRegistry.get(b.block_type);
+      if (bdef && bdef.mapAssets && params && bdef.assetsOf(params).length) {
+        params = bdef.mapAssets(params, (ref) => {
+          const a = typeof ref === 'string' && /^AS-\d+$/.test(ref) ? db.get('SELECT path, media_present FROM assets WHERE workspace_id=? AND display_id=?', db.ws, ref) : null;
+          if (!a || !a.media_present) throw new Block('asset_invalid', `Beat ${b.display_id}: ảnh của khối ${b.block_type} phải là mã asset (AS-…) còn tệp trong xưởng, hoặc tên biểu tượng có sẵn.`, { beat: b.display_id, asset: ref });
+          illusRefs.push({ asset: a.path, label: b.block_type + ' ' + b.display_id });
+          return a.path;
+        });
       }
       return { id: b.display_id, block: b.block_type, params, anchor: { line: b.anchor_line_display_id, word_index: b.anchor_word_index } };
     });

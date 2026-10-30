@@ -4,10 +4,11 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const reg = require('../render/blocks/registry');
+const { LONG_BLOCKS } = require('./k-blocks-list');
 
 test('registry có đủ 9 khối MVP kèm schema', () => {
   const names = reg.list().map(b => b.name);
-  assert.deepStrictEqual(names.sort(), ['concept-chip', 'end-card', 'illustration', 'lesson-map', 'prob-card', 'stamp', 'takeaway', 'title', 'token-row'].sort());
+  assert.deepStrictEqual(names.sort(), ['concept-chip', 'end-card', 'illustration', 'lesson-map', 'prob-card', 'stamp', 'takeaway', 'title', 'token-row'].concat(LONG_BLOCKS).sort());
   reg.list().forEach(b => { assert.ok(b.version >= 1); assert.strictEqual(b.schema.type, 'object'); });
 });
 

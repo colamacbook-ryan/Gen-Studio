@@ -1,0 +1,17 @@
+{
+ "model": "google/veo-3.1-lite",
+ "prompt": "2D cel-shaded chibi cartoon girl with brown ponytail and yellow bow, coral cardigan. She raises her right hand and waves cheerfully with a big smile, then lowers her hand and returns to the exact same starting pose. Solid flat chroma green background (#00B140) that stays perfectly uniform, no shadows, no props. Static locked-off camera, no zoom, no pan. Keep the flat 2D cartoon style and thick dark outlines identical to the reference image.",
+ "duration": 4,
+ "resolution": "720p",
+ "generate_audio": false,
+ "first_last_frame": "vy-neutral-chroma-1280x720.png",
+ "seconds": 58,
+ "usage_before": 6.712661233,
+ "usage_after": 6.8326612330000005,
+ "cost_usd": 0.12,
+ "job_usage": {
+  "cost": 0.12,
+  "is_byok": false
+ },
+ "date": "2026-10-30T04:22:04.418Z"
+}

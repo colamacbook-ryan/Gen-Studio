@@ -1,0 +1,583 @@
+[
+ {
+  "id": "motion.kinetic-title",
+  "type": "motion-template",
+  "title": "KineticTitle — tiêu đề chữ động 3 cấp (light: thở vào · medium: trồi khỏi mặt nạ + bút dạ vàng · heavy: đập chữ + rung + RGB tách)",
+  "tags": [
+   "title",
+   "text",
+   "hook",
+   "payoff",
+   "remotion"
+  ],
+  "energy": [
+   "light",
+   "medium",
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "setup",
+   "payoff",
+   "climax"
+  ],
+  "path": "motion-kit/src/components/KineticTitle.tsx",
+  "size_bytes": 8867,
+  "format": "tsx",
+  "stored": "git",
+  "source": "Gen Labs — motion-kit (Remotion 4.0.539, React 19)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem từng khung ở các mốc vào/giữa/ra (tools/stills.sh) và trong showcase.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "Code tay; demo: composition Demo-KineticTitle-Light|Medium|Heavy (motion-kit/src/demos.tsx)",
+  "reuse": "<KineticTitle level=\"medium\" text={\"Mỗi clip sau\\nchỉ tốn *0 đồng*\"} sub=\"...\" start={10} exitAt={200} />",
+  "note": "Remotion: miễn phí cho cá nhân và công ty ≤3 người; công ty lớn hơn cần Remotion Company License (remotion.pro)."
+ },
+ {
+  "id": "motion.lower-third",
+  "type": "motion-template",
+  "title": "LowerThird — dải tên: avatar nảy, thanh kính lau ra, tên trồi khỏi mặt nạ, vạch nhấn",
+  "tags": [
+   "name-strap",
+   "intro",
+   "character",
+   "remotion"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup"
+  ],
+  "path": "motion-kit/src/components/LowerThird.tsx",
+  "size_bytes": 4013,
+  "format": "tsx",
+  "stored": "git",
+  "source": "Gen Labs — motion-kit (Remotion 4.0.539, React 19)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem từng khung ở các mốc vào/giữa/ra (tools/stills.sh) và trong showcase.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "Code tay; demo: composition Demo-LowerThird (motion-kit/src/demos.tsx)",
+  "reuse": "<LowerThird name=\"Nhi\" role=\"Người dẫn\" who=\"nhi\" mood=\"explain\" start={15} exitAt={200} />",
+  "note": "Remotion: miễn phí cho cá nhân và công ty ≤3 người; công ty lớn hơn cần Remotion Company License (remotion.pro)."
+ },
+ {
+  "id": "motion.chat-bubble",
+  "type": "motion-template",
+  "title": "ChatBubble — hội thoại Nhi/Vy: chấm đang gõ → bong bóng bật từ đuôi → tin cũ trôi lên (độ dài chữ tuỳ ý)",
+  "tags": [
+   "chat",
+   "dialogue",
+   "character",
+   "remotion"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "setup",
+   "build"
+  ],
+  "path": "motion-kit/src/components/ChatBubble.tsx",
+  "size_bytes": 4434,
+  "format": "tsx",
+  "stored": "git",
+  "source": "Gen Labs — motion-kit (Remotion 4.0.539, React 19)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem từng khung ở các mốc vào/giữa/ra (tools/stills.sh) và trong showcase.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "Code tay; demo: composition Demo-ChatBubble (motion-kit/src/demos.tsx)",
+  "reuse": "<ChatBubble messages={[{ who: \"vy\", text: \"...\", at: 0.9 }, { who: \"nhi\", text: \"...\", at: 2.6 }]} />",
+  "note": "Remotion: miễn phí cho cá nhân và công ty ≤3 người; công ty lớn hơn cần Remotion Company License (remotion.pro)."
+ },
+ {
+  "id": "motion.cursor-click",
+  "type": "motion-template",
+  "title": "CursorClick — cửa sổ app, con trỏ lướt cung cong, bấm, gợn sóng, nút chuyển 'xong'",
+  "tags": [
+   "ui",
+   "click",
+   "demo",
+   "tutorial",
+   "remotion"
+  ],
+  "energy": [
+   "light",
+   "medium"
+  ],
+  "phase": [
+   "build"
+  ],
+  "path": "motion-kit/src/components/CursorClick.tsx",
+  "size_bytes": 7852,
+  "format": "tsx",
+  "stored": "git",
+  "source": "Gen Labs — motion-kit (Remotion 4.0.539, React 19)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem từng khung ở các mốc vào/giữa/ra (tools/stills.sh) và trong showcase.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "Code tay; demo: composition Demo-CursorClick (motion-kit/src/demos.tsx)",
+  "reuse": "<CursorClick buttons={[{ label: \"Kịch bản\" }, ...]} clicks={[{ target: 0, at: 1.3 }, ...]} />",
+  "note": "Remotion: miễn phí cho cá nhân và công ty ≤3 người; công ty lớn hơn cần Remotion Company License (remotion.pro)."
+ },
+ {
+  "id": "motion.stamp",
+  "type": "motion-template",
+  "title": "Stamp — cú đóng dấu climax: lơ lửng → đập xuống → nén, sóng xung kích, mảnh vụn, vân mực",
+  "tags": [
+   "stamp",
+   "impact",
+   "verdict",
+   "remotion"
+  ],
+  "energy": [
+   "heavy"
+  ],
+  "phase": [
+   "climax"
+  ],
+  "path": "motion-kit/src/components/Stamp.tsx",
+  "size_bytes": 4769,
+  "format": "tsx",
+  "stored": "git",
+  "source": "Gen Labs — motion-kit (Remotion 4.0.539, React 19)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem từng khung ở các mốc vào/giữa/ra (tools/stills.sh) và trong showcase.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "Code tay; demo: composition Demo-Stamp (motion-kit/src/demos.tsx)",
+  "reuse": "<Stamp text=\"ĐÃ DUYỆT\" start={40} />  // đồng bộ rung/flash/SFX theo stampImpact(start, fps)",
+  "note": "Remotion: miễn phí cho cá nhân và công ty ≤3 người; công ty lớn hơn cần Remotion Company License (remotion.pro)."
+ },
+ {
+  "id": "motion.checklist-reveal",
+  "type": "motion-template",
+  "title": "ChecklistReveal — thẻ danh sách: hàng trượt vào, ô vẽ viền, dấu tích vẽ nét, quét sáng, thanh tiến độ",
+  "tags": [
+   "list",
+   "steps",
+   "checklist",
+   "remotion"
+  ],
+  "energy": [
+   "light",
+   "medium"
+  ],
+  "phase": [
+   "build",
+   "payoff"
+  ],
+  "path": "motion-kit/src/components/ChecklistReveal.tsx",
+  "size_bytes": 3958,
+  "format": "tsx",
+  "stored": "git",
+  "source": "Gen Labs — motion-kit (Remotion 4.0.539, React 19)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem từng khung ở các mốc vào/giữa/ra (tools/stills.sh) và trong showcase.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "Code tay; demo: composition Demo-ChecklistReveal (motion-kit/src/demos.tsx)",
+  "reuse": "<ChecklistReveal title=\"...\" items={[\"...\", \"...\"]} stepSec={0.7} />",
+  "note": "Remotion: miễn phí cho cá nhân và công ty ≤3 người; công ty lớn hơn cần Remotion Company License (remotion.pro)."
+ },
+ {
+  "id": "motion.compare-two",
+  "type": "motion-template",
+  "title": "CompareTwo — hai thẻ cũ/mới, huy hiệu VS, phán quyết: bên thua chìm + mờ, bên thắng nổi + phát sáng + nhãn TỐT HƠN",
+  "tags": [
+   "compare",
+   "versus",
+   "before-after",
+   "remotion"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "build"
+  ],
+  "path": "motion-kit/src/components/CompareTwo.tsx",
+  "size_bytes": 4433,
+  "format": "tsx",
+  "stored": "git",
+  "source": "Gen Labs — motion-kit (Remotion 4.0.539, React 19)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem từng khung ở các mốc vào/giữa/ra (tools/stills.sh) và trong showcase.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "Code tay; demo: composition Demo-CompareTwo (motion-kit/src/demos.tsx)",
+  "reuse": "<CompareTwo left={{ title, items }} right={{ title, items }} verdictSec={2.4} />",
+  "note": "Remotion: miễn phí cho cá nhân và công ty ≤3 người; công ty lớn hơn cần Remotion Company License (remotion.pro)."
+ },
+ {
+  "id": "motion.big-number-count",
+  "type": "motion-template",
+  "title": "BigNumberCount — đồng hồ đếm cơ khí (trống số có nhoè chuyển động), chạm đích nảy + sáng, thanh đo",
+  "tags": [
+   "number",
+   "stat",
+   "counter",
+   "remotion"
+  ],
+  "energy": [
+   "medium"
+  ],
+  "phase": [
+   "build",
+   "payoff"
+  ],
+  "path": "motion-kit/src/components/BigNumberCount.tsx",
+  "size_bytes": 5444,
+  "format": "tsx",
+  "stored": "git",
+  "source": "Gen Labs — motion-kit (Remotion 4.0.539, React 19)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem từng khung ở các mốc vào/giữa/ra (tools/stills.sh) và trong showcase.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "Code tay; demo: composition Demo-BigNumberCount (motion-kit/src/demos.tsx)",
+  "reuse": "<BigNumberCount value={1250} label=\"...\" durSec={1.8} />",
+  "note": "Remotion: miễn phí cho cá nhân và công ty ≤3 người; công ty lớn hơn cần Remotion Company License (remotion.pro)."
+ },
+ {
+  "id": "motion.quiz",
+  "type": "motion-template",
+  "title": "Quiz — câu hỏi → đáp án → vòng đếm ngược 3·2·1 → lặng 0,35 s → lật đáp án đúng",
+  "tags": [
+   "quiz",
+   "question",
+   "countdown",
+   "tension",
+   "remotion"
+  ],
+  "energy": [
+   "medium",
+   "heavy"
+  ],
+  "phase": [
+   "build",
+   "climax"
+  ],
+  "path": "motion-kit/src/components/Quiz.tsx",
+  "size_bytes": 6028,
+  "format": "tsx",
+  "stored": "git",
+  "source": "Gen Labs — motion-kit (Remotion 4.0.539, React 19)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem từng khung ở các mốc vào/giữa/ra (tools/stills.sh) và trong showcase.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "Code tay; demo: composition Demo-Quiz (motion-kit/src/demos.tsx)",
+  "reuse": "<Quiz question=\"...\" options={[...]} correct={2} />  // quizTimes() cho mốc SFX tick/reveal",
+  "note": "Remotion: miễn phí cho cá nhân và công ty ≤3 người; công ty lớn hơn cần Remotion Company License (remotion.pro)."
+ },
+ {
+  "id": "motion.end-card",
+  "type": "motion-template",
+  "title": "EndCard — logo chữ, lời hứa, nút CTA có vệt sáng + nhịp thở, Nhi & Vy trồi lên",
+  "tags": [
+   "end-card",
+   "cta",
+   "outro",
+   "character",
+   "remotion"
+  ],
+  "energy": [
+   "light"
+  ],
+  "phase": [
+   "cta"
+  ],
+  "path": "motion-kit/src/components/EndCard.tsx",
+  "size_bytes": 4133,
+  "format": "tsx",
+  "stored": "git",
+  "source": "Gen Labs — motion-kit (Remotion 4.0.539, React 19)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem từng khung ở các mốc vào/giữa/ra (tools/stills.sh) và trong showcase.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "Code tay; demo: composition Demo-EndCard (motion-kit/src/demos.tsx)",
+  "reuse": "<EndCard title={\"Làm một lần, *dùng mãi*\"} cta=\"Bắt đầu ngay\" />",
+  "note": "Remotion: miễn phí cho cá nhân và công ty ≤3 người; công ty lớn hơn cần Remotion Company License (remotion.pro)."
+ },
+ {
+  "id": "motion.transitions",
+  "type": "motion-template",
+  "title": "Chuyển cảnh: soft crossfade · whip (nhoè hướng + vệt) · zoom-through (bay xuyên + tia) · light-leak (vệt sáng phim) — qua <Scene enter/exit>",
+  "tags": [
+   "transition",
+   "crossfade",
+   "whip",
+   "zoom-through",
+   "light-leak",
+   "remotion"
+  ],
+  "energy": [
+   "light",
+   "medium",
+   "heavy"
+  ],
+  "phase": [
+   "setup",
+   "build",
+   "climax",
+   "breath",
+   "payoff"
+  ],
+  "path": "motion-kit/src/transitions/Scene.tsx",
+  "size_bytes": 7400,
+  "format": "tsx",
+  "stored": "git",
+  "source": "Gen Labs — motion-kit (Remotion 4.0.539, React 19)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem từng khung ở các mốc vào/giữa/ra (tools/stills.sh) và trong showcase.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "Code tay; demo: composition Demo-Transitions (motion-kit/src/demos.tsx)",
+  "reuse": "<Scene from={0} dur={130} exit={{ kind: \"whip\" }}>…</Scene><Scene from={110} dur={150} enter={{ kind: \"whip\" }}>…</Scene>",
+  "note": "Remotion: miễn phí cho cá nhân và công ty ≤3 người; công ty lớn hơn cần Remotion Company License (remotion.pro)."
+ },
+ {
+  "id": "motion.camera-rig",
+  "type": "motion-template",
+  "title": "Camera rig — máy quay ảo khoá khung (x, y, zoom log-space, roll) + rung tay + cú rung, lớp <Depth z> thị sai",
+  "tags": [
+   "camera",
+   "parallax",
+   "shake",
+   "push-in",
+   "pull-out",
+   "remotion"
+  ],
+  "energy": [
+   "light",
+   "medium",
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "setup",
+   "build",
+   "climax",
+   "breath",
+   "payoff",
+   "cta"
+  ],
+  "path": "motion-kit/src/kit/Camera.tsx",
+  "size_bytes": 3460,
+  "format": "tsx",
+  "stored": "git",
+  "source": "Gen Labs — motion-kit (Remotion 4.0.539, React 19)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem từng khung ở các mốc vào/giữa/ra (tools/stills.sh) và trong showcase.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "Code tay; demo: composition Demo-CameraRig (motion-kit/src/demos.tsx)",
+  "reuse": "<CameraRig keys={[{ t: 0, zoom: 1 }, { t: 90, zoom: 1.3 }]} shakes={[{ t: 300, amp: 22 }]}><Depth z={0.3}>…</Depth><Depth z={1}>…</Depth></CameraRig>",
+  "note": "Remotion: miễn phí cho cá nhân và công ty ≤3 người; công ty lớn hơn cần Remotion Company License (remotion.pro)."
+ },
+ {
+  "id": "motion.intensity-presets",
+  "type": "motion-template",
+  "title": "intensity.ts — preset STD-17 cho 7 giai đoạn (easing, độ mạnh, nhịp cắt, máy quay, chuyển cảnh, mức nhạc) + checkBudget()",
+  "tags": [
+   "std-17",
+   "pacing",
+   "presets",
+   "remotion"
+  ],
+  "energy": [
+   "light",
+   "medium",
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "setup",
+   "build",
+   "climax",
+   "breath",
+   "payoff",
+   "cta"
+  ],
+  "path": "motion-kit/src/kit/intensity.ts",
+  "size_bytes": 5068,
+  "format": "tsx",
+  "stored": "git",
+  "source": "Gen Labs — motion-kit (Remotion 4.0.539, React 19)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem từng khung ở các mốc vào/giữa/ra (tools/stills.sh) và trong showcase.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "Code tay; demo: composition — (motion-kit/src/demos.tsx)",
+  "reuse": "import { PRESETS, checkBudget } from \"./kit/intensity\"; const P = PRESETS.build;",
+  "note": "Remotion: miễn phí cho cá nhân và công ty ≤3 người; công ty lớn hơn cần Remotion Company License (remotion.pro)."
+ },
+ {
+  "id": "motion.backdrop",
+  "type": "motion-template",
+  "title": "Backdrop + Post — nền có chiều sâu (3 lớp thị sai, sàn lưới phối cảnh, bokeh) theo 4 mood + vignette, hạt phim, flash",
+  "tags": [
+   "background",
+   "depth",
+   "bokeh",
+   "grain",
+   "remotion"
+  ],
+  "energy": [
+   "light",
+   "medium"
+  ],
+  "phase": [
+   "hook",
+   "setup",
+   "build",
+   "breath",
+   "payoff",
+   "cta"
+  ],
+  "path": "motion-kit/src/kit/Backdrop.tsx",
+  "size_bytes": 5693,
+  "format": "tsx",
+  "stored": "git",
+  "source": "Gen Labs — motion-kit (Remotion 4.0.539, React 19)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem từng khung ở các mốc vào/giữa/ra (tools/stills.sh) và trong showcase.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "Code tay; demo: composition mọi Demo (motion-kit/src/demos.tsx)",
+  "reuse": "<Backdrop mood=\"calm|warm|tense|bright\" energy={0.5} /> … <Post flash={…} />",
+  "note": "Remotion: miễn phí cho cá nhân và công ty ≤3 người; công ty lớn hơn cần Remotion Company License (remotion.pro)."
+ },
+ {
+  "type": "motion-template",
+  "tags": [
+   "showcase",
+   "reel",
+   "demo",
+   "remotion"
+  ],
+  "energy": [
+   "light",
+   "medium",
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "setup",
+   "build",
+   "climax",
+   "breath",
+   "payoff",
+   "cta"
+  ],
+  "duration_s": 41,
+  "format": "mp4",
+  "source": "Gen Labs — npx remotion render (Showcase) + nhạc/SFX từ catalog (audio agent)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem dải khung toàn phim + cận cảnh climax và whip; âm lượng đỉnh −0,8 dBFS.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "cd motion-kit && npm run sync && npx remotion bundle --out-dir build && npx remotion render build Showcase out/showcase.mp4 --crf=20 (hình) + --codec=wav (tiếng), ghép bằng ffmpeg",
+  "reuse": "Khuôn cho clip mới: src/showcase/Showcase.tsx (beat sheet B[], camera CAM[], cue sheet SFX[]/BEDS[]).",
+  "note": "Nhạc CC BY 4.0 phải ghi công khi đăng: \"Digital Lemonade\", \"Furious Freak\", \"Neon Laser Horizon\" — Kevin MacLeod (incompetech.com), Licensed under Creative Commons: By Attribution 4.0 License; \"Uplift Me\" — Mixkit. >5 MB nên để scratch (dựng lại bằng how_made); bản xem nhanh 720p ở motion.showcase-preview.",
+  "id": "motion.showcase-reel",
+  "title": "Showcase reel 41 s 1080p60 — mọi khối motion-kit theo đường cong STD-17 (1 cú heavy)",
+  "path": "/tmp/claude-0/-home-user/bba20ac0-16bf-5912-8dd5-4d08b20490c6/scratchpad/alib-large/showcase.mp4",
+  "size_bytes": 26375550,
+  "dimensions": "1920x1080",
+  "stored": "local-scratch"
+ },
+ {
+  "type": "motion-template",
+  "tags": [
+   "showcase",
+   "reel",
+   "demo",
+   "remotion"
+  ],
+  "energy": [
+   "light",
+   "medium",
+   "heavy"
+  ],
+  "phase": [
+   "hook",
+   "setup",
+   "build",
+   "climax",
+   "breath",
+   "payoff",
+   "cta"
+  ],
+  "duration_s": 41,
+  "format": "mp4",
+  "source": "Gen Labs — npx remotion render (Showcase) + nhạc/SFX từ catalog (audio agent)",
+  "license": "Gen-Labs-proprietary",
+  "commercial_ok": true,
+  "redistribution": "in-product-only",
+  "quality": "A",
+  "quality_note": "Đã xem dải khung toàn phim + cận cảnh climax và whip; âm lượng đỉnh −0,8 dBFS.",
+  "added": "2026-10-30",
+  "cost_usd": 0,
+  "how_made": "cd motion-kit && npm run sync && npx remotion bundle --out-dir build && npx remotion render build Showcase out/showcase.mp4 --crf=20 (hình) + --codec=wav (tiếng), ghép bằng ffmpeg",
+  "reuse": "Khuôn cho clip mới: src/showcase/Showcase.tsx (beat sheet B[], camera CAM[], cue sheet SFX[]/BEDS[]).",
+  "note": "Nhạc CC BY 4.0 phải ghi công khi đăng: \"Digital Lemonade\", \"Furious Freak\", \"Neon Laser Horizon\" — Kevin MacLeod (incompetech.com), Licensed under Creative Commons: By Attribution 4.0 License; \"Uplift Me\" — Mixkit.",
+  "id": "motion.showcase-preview",
+  "title": "Showcase reel — bản xem nhanh 720p30 (≤5 MB, trong git)",
+  "path": "motion-kit/showcase-preview-720p.mp4",
+  "size_bytes": 4577784,
+  "dimensions": "1280x720",
+  "stored": "git"
+ }
+]
