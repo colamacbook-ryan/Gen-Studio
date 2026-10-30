@@ -20,13 +20,15 @@ jobs:
         run: |
           set -eu
           base="origin/${{ github.base_ref }}"
+          # dùng bản kiểm của nhánh gốc (main), Muse không sửa được; lần đầu chưa có thì dùng bản trong PR
+          git show "$base":.github/scripts/muse_scope.py > /tmp/muse_scope.py 2>/dev/null || cp .github/scripts/muse_scope.py /tmp/muse_scope.py
           bad=0
           for f in $(git diff --name-only "$base"...HEAD); do
             case "$f" in
               library/inbox/*) ;;
               library/requests/MR-*.md)
-                # chỉ cho phép đổi status/assignee, ô tick, dòng > MUSE-
-                if git diff -U0 "$base"...HEAD -- "$f" | grep -E '^[+-][^+-]' | grep -vE '^[+-](status: |assignee: |- \[[ x]\] |> MUSE-)' ; then
+                # chỉ cho phép đổi status/assignee, bật/tắt ô tick (giữ nguyên chữ), thêm dòng > MUSE-
+                if ! git diff -U0 "$base"...HEAD -- "$f" | python3 /tmp/muse_scope.py; then
                   echo "::error file=$f::Muse chỉ được đổi status/assignee, ô tick và dòng '> MUSE-…'"; bad=1
                 fi ;;
               *) echo "::error file=$f::Ngoài phạm vi của Muse (MUSE.md §2)"; bad=1 ;;
