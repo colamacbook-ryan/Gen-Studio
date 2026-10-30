@@ -1,1 +1,49 @@
-{"attempts":1,"created":"2026-10-30","files":["nhi-3d-variant-a.png","nhi-3d-variant-b.png","nhi-3d-variant-c.png"],"license":"Meta-Muse-Output","model":"Muse Image","notes":"3 full-body front variants from Nhi 2D neutral plus Ryan 3D style reference (style only, face NOT copied). Variant A: teal hoodie over white tee, arms relaxed. Variant B: teal hoodie zipped, hands clasped. Variant C: teal jacket open, waving greeting. All keep round glasses, two dark buns, teal outfit, beige skirt, teal socks/shoes. Variant C generated 1120x2240. Variants A and B generated 1440x1712, below the 2048 height requirement, so they were padded vertically with their own light-grey background colour to 1440x2048 (no resizing, no distortion, no cropping). All 3 are now at least 2048 px tall.","prompt":"Premium stylized 3D animation style like a modern animated feature film (soft clay-like shading, subsurface skin, smooth rounded forms, big expressive eyes, soft global illumination, warm cozy color palette, gentle depth of field), matching library/style/ref-3d-ryan-01.jpg. Full-body character design of Nhi — woman, about 25, the calm smart expert who explains AI. Round glasses, dark hair with two neat buns, teal hoodie over a white tee, friendly confident smile. Keep her identity recognizable from the 2D design: glasses, buns, teal outfit. Neutral relaxed standing pose facing camera, warm friendly expression. Clean neutral light-grey studio background. Do NOT copy the face of the person in the style reference — only its rendering style.","quality":"A","request":"MR-044","self_check":{"dung_mau":true,"khong_chu":true,"khung_dau_cuoi_trung":true,"nen_phang":true},"tool":"Meta Muse"}
+{
+  "request": "MR-044",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "nhi-3d-variant-a.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1440,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "nhi-3d-variant-b.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1440,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "nhi-3d-variant-c.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1120,
+      "height": 2240,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse Image",
+  "prompt_used": "Premium stylized 3D animation style like a modern animated feature film (soft clay-like shading, subsurface skin, smooth rounded forms, big expressive eyes, soft global illumination, warm cozy color palette, gentle depth of field), matching library/style/ref-3d-ryan-01.jpg. Full-body character design of Nhi — woman, about 25, the calm smart expert who explains AI. Round glasses, dark hair with two neat buns, teal hoodie over a white tee, friendly confident smile. Keep her identity recognizable from the 2D design: glasses, buns, teal outfit. Neutral relaxed standing pose facing camera, warm friendly expression. Clean neutral light-grey studio background. Do NOT copy the face of the person in the style reference — only its rendering style.",
+  "attempts": 1,
+  "self_check": {
+    "dung_mau": true,
+    "khong_chu": true,
+    "khung_dau_cuoi_trung": true,
+    "nen_phang": true
+  },
+  "issues": [
+    "3 full-body front variants from Nhi 2D neutral plus Ryan 3D style reference (style only, face NOT copied). Variant A: teal hoodie over white tee, arms relaxed. Variant B: teal hoodie zipped, hands clasped. Variant C: teal jacket open, waving greeting. All keep round glasses, two dark buns, teal outfit, beige skirt, teal socks/shoes. Variant C generated 1120x2240. Variants A and B generated 1440x1712, below the 2048 height requirement, so they were padded vertically with their own light-grey background colour to 1440x2048 (no resizing, no distortion, no cropping). All 3 are now at least 2048 px tall."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}
