@@ -35,6 +35,4 @@ Premium stylized 3D animation style like a modern animated feature film (soft cl
 ## Nộp
 Đặt file vào `output` + `meta.json` (xem `library/MUSE.md` §4). Đổi `status` thành `review`.
 **Cổng duyệt:** Ryan duyệt thiết kế trước khi làm clip.
-
-## Ghi chú nộp MR-054
-Đã nộp 12 biểu cảm vào `library/inbox/MR-054-ryan-3d-bieu-cam/`: wink, warm smile, explaining, listening, thinking, pleasantly surprised, happy surprise as a gentler alternative to shocked, laughing, facepalm, celebrating, talking calmly, talking excitedly; worried and serious warning omitted per the new 12-expression instruction.
+> MUSE-NOP: bo 12 bieu cam 2048x2048, ao thun xam, nen xanh phang, khung vai tro len; happy surprise la huong nhe thay shocked, worried va serious warning khong co trong bo 12 theo lenh moi; nen xanh phang tung anh nhung tong khac nhau, chi tiet trong meta.json issues.
