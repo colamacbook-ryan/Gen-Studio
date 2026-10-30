@@ -31,6 +31,4 @@ PNG 1920×1080 nền xanh phẳng + 1 bản toàn thân 1920×1080
 **Cổng duyệt:** Ryan duyệt thiết kế trước khi làm clip.
 
 > GEN-REWORK: khung đầu/cuối clip phải MỞ CẢ HAI MẮT, mặt trung tính (bản nộp nháy mắt). Tỉ lệ thân phải khớp ảnh xoay MR-053 (bản toàn thân nộp có đầu nhỏ, thân to). Giữ nền xanh phẳng.
-
-## Ghi chú nộp lại 2026-10-30
-Nộp lại MR-055 (REDO): khung clip mới mở cả hai mắt, biểu cảm trung tính, không nháy mắt, tỉ lệ cơ thể khớp với bản xoay MR-053, thay thế bản nháy mắt trước đó trong PR #26.
+> MUSE-NOP: khung clip lam lai mo ca hai mat, mat trung tinh, khong nhay mat, ti le than khop anh xoay MR-053, thay ban wink cu trong PR #26.
