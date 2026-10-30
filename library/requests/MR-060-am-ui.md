@@ -2,8 +2,8 @@
 id: MR-060
 priority: P2a
 kind: audio
-status: todo
-assignee: ""
+status: review
+assignee: muse
 output: library/inbox/MR-060-am-ui/
 ---
 # MR-060 · Bộ 12 âm giao diện (UI sounds) đồng bộ thương hiệu
@@ -21,10 +21,10 @@ Cohesive UI sound kit for app/screen demos in explainer videos: click soft, clic
 Nếu công cụ chỉ xuất video có tiếng: xuất video, Gen sẽ tách âm — ghi rõ trong meta.json.
 
 ## Tiêu chí đạt (tự kiểm trước khi nộp)
-- [ ] Đồng bộ chất âm
-- [ ] Ngắn gọn, sạch, không rè
-- [ ] Typing loop lặp liền
-- [ ] Không lời hát, không dùng giai điệu/bài hát có sẵn của người khác
+- [x] Đồng bộ chất âm
+- [x] Ngắn gọn, sạch, không rè
+- [x] Typing loop lặp liền
+- [x] Không lời hát, không dùng giai điệu/bài hát có sẵn của người khác
 
 ## Nộp
 Theo `library/MUSE.md` §4–§6. Đổi `status` thành `review`.
