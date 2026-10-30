@@ -2,7 +2,7 @@
 id: MR-023
 priority: P1
 kind: character-clip
-status: todo
+status: hold
 assignee: ""
 output: library/inbox/MR-023-vy-noi-hao-hung/
 ---
