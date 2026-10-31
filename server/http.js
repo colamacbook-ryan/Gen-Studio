@@ -37,6 +37,12 @@ async function start(ctx) {
   // hạn. Tái dùng auth.limiter() (như oauth.js): 60 lệnh/phút/agent nói chung; kit_upload_chunk (nhiều lệnh nhỏ cho
   // 1 tệp lớn — tới 50 chunk/50 MB) có trần riêng rộng hơn, 200/phút/agent.
   const mcpLim = auth.limiter();
+  // nợ review B.2: /mcp sai/thiếu token trước đây không giới hạn theo IP — dò token vô hạn (brute force) không bị chặn
+  // (trần 60/phút ở trên chỉ tính SAU KHI xác thực, khoá theo agent.id — không có agent.id thì không đếm được).
+  // Khoá theo địa chỉ socket (không tin header proxy ở đây — đơn giản, đủ cho một bản cài; GS_TRUST_PROXY đã có ở oauth.js
+  // cho kênh public nếu cần nâng cấp sau).
+  const mcpAuthFailLim = auth.limiter();
+  const MCP_AUTH_FAIL_MAX = 30;
   const baseHeaders = { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY' };
 
   function text(res, status, body, type = 'text/plain; charset=utf-8', extra) {
@@ -49,9 +55,14 @@ async function start(ctx) {
   async function handleMcp(req, res) {
     if (req.headers.origin && !originOk(req.headers.origin, req.headers.host)) return apiMod.send(res, 403, { error: { code: 'forbidden', text_human: 'Origin không được phép.', detail: null } });
     if (req.method !== 'POST') return text(res, 405, 'Dùng POST.', 'text/plain; charset=utf-8', { Allow: 'POST' });
+    const ip = req.socket.remoteAddress || '?';
+    if (mcpAuthFailLim.peek('mcp-authfail:' + ip, MCP_AUTH_FAIL_MAX)) {
+      return apiMod.send(res, 429, { error: { code: 'rate_limited', text_human: `Quá nhiều yêu cầu /mcp sai/thiếu token từ địa chỉ này (tối đa ${MCP_AUTH_FAIL_MAX}/phút).`, detail: null } }, { 'Retry-After': '60' });
+    }
     const tok = auth.bearer(req);
     const who = tok && auth.verifyAgentToken(db, tok, { audience: oauth.serverId() });
     if (!who) {
+      mcpAuthFailLim.hit('mcp-authfail:' + ip, MCP_AUTH_FAIL_MAX, 60e3);
       // RFC 9728: trỏ client tới metadata để tự xin quyền (Claude Code, claude.ai Connectors)
       const md = oauth.metadataUrl(req);   // chỉ khi Host hợp lệ; scope="…" để client MCP xin đủ phạm vi (chủ xưởng hạ bớt khi duyệt)
       const www = 'Bearer realm="gen-studio"' + (md ? ', resource_metadata="' + md + '"' : '') + ', scope="read compose run"' + (tok ? ', error="invalid_token"' : '');

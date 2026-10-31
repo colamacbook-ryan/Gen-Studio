@@ -111,11 +111,23 @@ function sweepStalled(ctx, now = new Date(), stallMin = Number(process.env.GS_WO
 function tick(ctx, now = new Date()) {
   return { opened: openScheduled(ctx, now), stalled: sweepStalled(ctx, now) };
 }
-function start(ctx, { intervalMs = 60000 } = {}) {
+
+// Gói 0.3.0-B.2 (nợ review B): nhả claim Bộ Neo hết hạn + dọn phiên tải >24h TOÀN WORKSPACE, mỗi 10 phút.
+// `kit.claim_expired`/`upload.pruned` (server/ops/kit.js) là op system-only — ghi audit cùng tên, không qua MCP.
+function kitSweep(ctx) {
+  const { write } = ctx;
+  const claims = write(SYS, 'kit.claim_expired', {});
+  const uploads = write(SYS, 'upload.pruned', {});
+  return { claims_expired: claims.expired, uploads_pruned: uploads.pruned };
+}
+function start(ctx, { intervalMs = 60000, kitSweepMs = 10 * 60000 } = {}) {
   const t = setInterval(() => { try { tick(ctx); } catch (e) { events.logError('scheduler', e); } }, intervalMs);
   t.unref();
+  const kt = setInterval(() => { try { kitSweep(ctx); } catch (e) { events.logError('scheduler', e); } }, kitSweepMs);
+  kt.unref();
   try { tick(ctx); } catch (e) { events.logError('scheduler', e); }
-  return { stop: () => clearInterval(t), tick: now => tick(ctx, now) };
+  try { kitSweep(ctx); } catch (e) { events.logError('scheduler', e); }
+  return { stop: () => { clearInterval(t); clearInterval(kt); }, tick: now => tick(ctx, now), kitSweep: () => kitSweep(ctx) };
 }
 
-module.exports = { start, tick, openScheduled, sweepStalled, nextSlot, parseSchedule, slotAround, parseMix, expandMix };
+module.exports = { start, tick, kitSweep, openScheduled, sweepStalled, nextSlot, parseSchedule, slotAround, parseMix, expandMix };

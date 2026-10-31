@@ -280,3 +280,71 @@ test('0.3.0-B (review Gen, mục 11 [nhỏ]): upload.finish kiểm sha256 tuỳ 
     assert.ok(!ok.json.result.isError, JSON.stringify(ok.json.result));
   } finally { await b.clean(); }
 });
+
+test('0.3.0-B.2 (nợ review B): kit_claim trần 4 ô sống/agent (GS_KIT_MAX_CLAIMS) — lần 5 conflict kèm danh sách ô đang giữ', async (t) => {
+  const b = await bootTmp();
+  try {
+    b.app.ctx.write(CLI, 'kit.sync', {});
+    const muse = await museToken(b.app.ctx);
+    const slots = ['prop.tech.05', 'prop.tech.06', 'prop.tech.07', 'prop.tech.08'];
+    for (const s of slots) {
+      const r = await mcpCall(b.base, muse.token, 'kit_claim', { kit_slot: s });
+      assert.ok(!r.json.result.isError, JSON.stringify(r.json.result));
+    }
+    // re-claim ô đã giữ (gia hạn) — KHÔNG tính thêm, không chạm trần
+    const renew = await mcpCall(b.base, muse.token, 'kit_claim', { kit_slot: slots[0] });
+    assert.ok(!renew.json.result.isError, 'gia hạn ô đang giữ không bị chặn bởi trần');
+
+    const r5 = await mcpCall(b.base, muse.token, 'kit_claim', { kit_slot: 'prop.tech.09' });
+    assert.ok(r5.json.result.isError, 'ô thứ 5 (MỚI) phải bị chặn — đã giữ đủ trần');
+    const errData = r5.json.result.structuredContent.error;
+    assert.equal(errData.code, 'conflict');
+    assert.equal(errData.detail.max_claims, 4);
+    assert.equal(errData.detail.claims.length, 4);
+    assert.ok(errData.detail.claims.some((c) => c.kit_slot === slots[0]));
+
+    // report_blocked nhả bớt 1 ô ⇒ nhận ô mới được
+    await mcpCall(b.base, muse.token, 'kit_report_blocked', { kit_slot: slots[1], reason: 'Nhả bớt để thử trần.' });
+    const r6 = await mcpCall(b.base, muse.token, 'kit_claim', { kit_slot: 'prop.tech.09' });
+    assert.ok(!r6.json.result.isError, JSON.stringify(r6.json.result));
+  } finally { await b.clean(); }
+});
+
+test('0.3.0-B.2 (nợ review B): job nền nhả claim hết hạn + dọn phiên tải >24h toàn workspace, ghi audit kit.claim_expired/upload.pruned', async (t) => {
+  const b = await bootTmp();
+  try {
+    b.app.ctx.write(CLI, 'kit.sync', {});
+    const museA = await museToken(b.app.ctx);
+    const museB = await museToken(b.app.ctx);
+    await mcpCall(b.base, museA.token, 'kit_claim', { kit_slot: 'prop.tech.10' });
+    const past = new Date(Date.now() - 3600e3).toISOString();
+    b.app.ctx.db.run("UPDATE kit_slots SET claim_expires_at=? WHERE code='prop.tech.10'", past);
+
+    const start = await mcpCall(b.base, museB.token, 'kit_upload_chunk', { action: 'start', kit_slot: 'audio.sfx.whoosh.05', declared_mime: 'audio/wav' });
+    const session = start.json.result.structuredContent.session;
+    await mcpCall(b.base, museB.token, 'kit_upload_chunk', { action: 'chunk', session, index: 0, data_base64: Buffer.from('rac-qua-han').toString('base64') });
+    const tmpPath = b.app.ctx.db.get('SELECT tmp_path FROM upload_sessions WHERE id=?', session).tmp_path;
+    const old = new Date(Date.now() - 25 * 3600e3).toISOString();
+    b.app.ctx.db.run('UPDATE upload_sessions SET created_at=? WHERE id=?', old, session);
+
+    const SYS = { type: 'system', id: 'scheduler', entry: 'system' };
+    const claims = b.app.ctx.write(SYS, 'kit.claim_expired', {});
+    assert.ok(claims.expired >= 1 && claims.slots.includes('prop.tech.10'), JSON.stringify(claims));
+    const slotRow = b.app.ctx.db.get('SELECT claimed_by, claim_expires_at FROM kit_slots WHERE code=?', 'prop.tech.10');
+    assert.equal(slotRow.claimed_by, null);
+    assert.equal(slotRow.claim_expires_at, null);
+    const auditClaim = b.app.ctx.db.get("SELECT * FROM audit_log WHERE action='kit.claim_expired' ORDER BY ts DESC LIMIT 1");
+    assert.ok(auditClaim, 'audit kit.claim_expired');
+
+    const uploads = b.app.ctx.write(SYS, 'upload.pruned', {});
+    assert.ok(uploads.pruned >= 1 && uploads.sessions.includes(session), JSON.stringify(uploads));
+    assert.equal(b.app.ctx.db.get('SELECT state FROM upload_sessions WHERE id=?', session).state, 'aborted');
+    assert.equal(require('node:fs').existsSync(tmpPath), false, 'tệp tạm bị unlink khi job nền dọn');
+    const auditUpload = b.app.ctx.db.get("SELECT * FROM audit_log WHERE action='upload.pruned' ORDER BY ts DESC LIMIT 1");
+    assert.ok(auditUpload, 'audit upload.pruned');
+
+    // toàn workspace: claim của agent khác (museA) cũng được job nền dọn dù job được "gọi" không gắn với agent cụ thể
+    const claimB = await mcpCall(b.base, museA.token, 'kit_claim', { kit_slot: 'prop.tech.10' });
+    assert.ok(!claimB.json.result.isError, 'ô đã nhả ⇒ claim lại được');
+  } finally { await b.clean(); }
+});

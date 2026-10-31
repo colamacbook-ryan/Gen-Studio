@@ -10,6 +10,7 @@ const { kit } = require('./_kit.js');
 const pipeline = require('../pipeline.js');
 const queueMod = require('../queue.js');
 const { toDbResults } = require('../checks/to-db.js');
+const { KIT_MAX_CLAIMS } = require('../ops/kit.js');
 
 const PAGE_MAX = 200;
 const page = (a) => Math.max(1, parseInt(a.page, 10) || 1);
@@ -61,7 +62,12 @@ function tools(ctx) {
       schema: { kit_slot: S }, required: ['kit_slot'], handler: (a, c) => {
         const slot = db.get('SELECT * FROM kit_slots WHERE workspace_id=? AND code=?', db.ws, a.kit_slot);
         if (!slot) throw fail('not_found', `Không tìm thấy ô "${a.kit_slot}".`);
+        const now = db.now();
         const out = { kit_slot: slot.code, group_code: slot.group_code, title_vi: slot.title_vi, title_en: slot.title_en, spec: slot.spec ? JSON.parse(slot.spec) : null };
+        // nợ review B.2: claim_expires_at (chỉ khi CHÍNH agent này đang giữ, còn sống) + claims_left (trần KIT_MAX_CLAIMS, kit.claim).
+        if (slot.claimed_by === c.agent.id && slot.claim_expires_at && slot.claim_expires_at > now) out.claim_expires_at = slot.claim_expires_at;
+        const mine = db.get('SELECT COUNT(*) AS n FROM kit_slots WHERE workspace_id=? AND claimed_by=? AND claim_expires_at>?', db.ws, c.agent.id, now).n;
+        out.claims_left = Math.max(0, KIT_MAX_CLAIMS - mine);
         // tham chiếu tốt nhất hiện có: asset đã chứng nhận cho CHÍNH ô này (nếu có)
         const cert = db.get('SELECT asset_id FROM kit_certs WHERE kit_slot=? ORDER BY at DESC LIMIT 1', slot.code);
         if (cert) { const as = db.get('SELECT * FROM assets WHERE id=?', cert.asset_id); if (as) out.reference_asset = { display_id: as.display_id, url: '/media/' + as.display_id, mime: as.mime }; }
