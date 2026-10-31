@@ -180,10 +180,19 @@ if [ "$WORKSHOP" = 1 ]; then
   sudo -u "$DEVUSER" -H git config --global --get-all safe.directory 2>/dev/null | grep -qx "$DEVHOME/genlabs/Gen-Studio" \
     || sudo -u "$DEVUSER" -H git config --global --add safe.directory "$DEVHOME/genlabs/Gen-Studio"
   # dev stack cổng 7491: chỉ cài lần đầu (chưa có .env) — không đụng nếu đã có, Claude Code có thể đang sửa dở
-  # .env dev đã có nhưng thiếu GS_UID/GS_GID (lỗi lần cài 31/10: container chạy uid 1000 ≠ user dev ⇒ EACCES /data) ⇒ vá rồi bật lại
-  if [ -f "$DEVHOME/genlabs/Gen-Studio/.env" ] && ! grep -q '^GS_UID=' "$DEVHOME/genlabs/Gen-Studio/.env"; then
-    { echo "GS_UID=$(id -u "$DEVUSER")"; echo "GS_GID=$(id -g "$DEVUSER")"; } >> "$DEVHOME/genlabs/Gen-Studio/.env"
-    (cd "$DEVHOME/genlabs/Gen-Studio" && sudo -u "$DEVUSER" -H env GS_VERSION=dev docker compose up -d studio >/dev/null 2>&1) || echo "⚠ dev stack chưa lên — kiểm tay: cd ~/genlabs/Gen-Studio && docker compose logs studio"
+  # .env dev thiếu GS_UID/GID, hoặc còn mang uid/gid user cũ (di chuyển từ genstudio) ⇒ lệch với $DEVUSER ⇒ EACCES /data ⇒ vá rồi bật lại
+  DEV_UID="$(id -u "$DEVUSER")"; DEV_GID="$(id -g "$DEVUSER")"
+  if [ -f "$DEVHOME/genlabs/Gen-Studio/.env" ]; then
+    CUR_UID="$(sed -n 's/^GS_UID=//p' "$DEVHOME/genlabs/Gen-Studio/.env" | head -1)"
+    if [ "$CUR_UID" != "$DEV_UID" ]; then
+      if grep -q '^GS_UID=' "$DEVHOME/genlabs/Gen-Studio/.env"; then
+        sed -i "s|^GS_UID=.*|GS_UID=$DEV_UID|; s|^GS_GID=.*|GS_GID=$DEV_GID|" "$DEVHOME/genlabs/Gen-Studio/.env"
+      else
+        { echo "GS_UID=$DEV_UID"; echo "GS_GID=$DEV_GID"; } >> "$DEVHOME/genlabs/Gen-Studio/.env"
+      fi
+      chown "$DEVUSER:$DEVUSER" "$DEVHOME/genlabs/Gen-Studio/.env"
+      (cd "$DEVHOME/genlabs/Gen-Studio" && sudo -u "$DEVUSER" -H docker compose up -d studio >/dev/null 2>&1) || echo "⚠ dev stack chưa lên — kiểm tay: sudo -u $DEVUSER -H bash -c 'cd ~/genlabs/Gen-Studio && docker compose logs studio'"
+    fi
   fi
   if [ -d "$DEVHOME/genlabs/Gen-Studio" ] && [ ! -f "$DEVHOME/genlabs/Gen-Studio/.env" ]; then
     # .env dev tối thiểu TRƯỚC khi install.sh chạy: COMPOSE_PROJECT_NAME riêng — /opt/gen-studio (prod) và
