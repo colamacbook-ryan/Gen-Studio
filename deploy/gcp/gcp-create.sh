@@ -96,14 +96,16 @@ else
 fi
 if [ "$UPTIME_OK" = 1 ]; then
   ACCOUNT="$(gcloud config get-value account 2>/dev/null)"
-  CHANNEL="$(gcloud alpha monitoring channels list --project "$PROJECT" --filter="labels.email_address=$ACCOUNT" --format='value(name)' 2>/dev/null | head -1)"
+  # giá trị filter có "." (địa chỉ mail) ⇒ PHẢI quote bên trong filter, không thì gcloud báo "ambiguous use of ... on the
+  # right-hand side" và dưới pipefail làm cả script thoát ngang (phát hiện lúc deploy lại sau review — không nằm trong 10 mục review).
+  CHANNEL="$(gcloud alpha monitoring channels list --project "$PROJECT" --filter="labels.email_address=\"$ACCOUNT\"" --format='value(name)' 2>/dev/null | head -1 || true)"
   if [ -z "$CHANNEL" ]; then
     CHANNEL="$(gcloud alpha monitoring channels create --project "$PROJECT" --display-name "gs-alert-email" \
       --type=email --channel-labels=email_address="$ACCOUNT" --format='value(name)' 2>/dev/null)" || UPTIME_OK=0
   fi
   echo "  ✓ uptime check gs-uptime: https://$UPTIME_HOST/.well-known/oauth-authorization-server (5 phút/lần)"
   if [ -n "$CHANNEL" ]; then
-    VSTATUS="$(gcloud beta monitoring channels describe "$CHANNEL" --project "$PROJECT" --format='value(verificationStatus)' 2>/dev/null)"
+    VSTATUS="$(gcloud beta monitoring channels describe "$CHANNEL" --project "$PROJECT" --format='value(verificationStatus)' 2>/dev/null || true)"
     if [ -n "$VSTATUS" ] && [ "$VSTATUS" != "VERIFIED" ]; then
       echo "  ⚠ kênh email $ACCOUNT chưa xác minh (verificationStatus=$VSTATUS) — vào console.cloud.google.com/monitoring/alerting/notifications, bấm xác minh email (xem docs/OPS.md)"
     fi
@@ -111,7 +113,7 @@ if [ "$UPTIME_OK" = 1 ]; then
     # (tức TOÀN BỘ lần kiểm trong cửa sổ đều fail). Dùng REDUCE_COUNT_FALSE + "< 1" (bản cũ, SAI) sẽ bắn khi đang khoẻ
     # và im khi chết — ngược hoàn toàn. duration=300s: đợi 1 chu kỳ kiểm (5') mới báo, tránh báo giả vì 1 lần trễ mạng.
     # Policy cũ (nếu còn, có thể mang cấu hình sai) bị xoá rồi tạo lại — tránh 2 policy trùng tên chồng nhau.
-    OLD="$(gcloud alpha monitoring policies list --project "$PROJECT" --filter='displayName="gs-uptime-down"' --format='value(name)' 2>/dev/null)"
+    OLD="$(gcloud alpha monitoring policies list --project "$PROJECT" --filter='displayName="gs-uptime-down"' --format='value(name)' 2>/dev/null || true)"
     [ -n "$OLD" ] && echo "$OLD" | while read -r p; do [ -n "$p" ] && gcloud alpha monitoring policies delete "$p" --project "$PROJECT" --quiet >/dev/null 2>&1; done
     gcloud alpha monitoring policies create --project "$PROJECT" \
       --display-name "gs-uptime-down" --notification-channels="$CHANNEL" \
