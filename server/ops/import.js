@@ -12,6 +12,18 @@ function register(op, ctx) {
   const { db, ws, err, byRef, need } = ctx;
   if (!db) return; // test dựng ctx rỗng để kiểm nạp module
 
+  // "Chống đụng ô" (cổng C.2, Gen mục 4 + mục 5): ô đang bị MỘT AGENT MCP giữ sống (kit_slots.claimed_by,
+  // kit.claim/SPEC-GK-0.1) ⇒ nhập kho (cron Drive/CLI, không có danh tính agent) phải CHỜ — dùng chung cho
+  // CẢ `submission.import` (tạo lần nộp) lẫn `asset.meta` (gắn kit_slot) — trước đây chỉ chặn ở submission.import,
+  // asset.meta vẫn gắn ô đang claim lọt qua (review opus PR #38 mục 5). `kit.claimLive` — một định nghĩa, dùng
+  // chung với server/ops/kit.js (mục 8).
+  const assertSlotNotClaimed = (code) => {
+    const slot = db.get('SELECT claimed_by, claim_expires_at FROM kit_slots WHERE workspace_id=? AND code=?', ws(), code);
+    if (slot && kit.claimLive(slot, db.now())) {
+      throw err('conflict', `Ô "${code}" đang được agent "${slot.claimed_by}" giữ tới ${slot.claim_expires_at} — nhập kho phải chờ hết hạn giữ (chống đụng ô).`, { kit_slot: code, claimed_by: slot.claimed_by, claim_expires_at: slot.claim_expires_at });
+    }
+  };
+
   // ---- asset.attest_import — nhập kho ghi asset_rights (DB-GK-0.1 §8; cortex CNS-M1-18: nhập kho không ghi
   // asset_rights ⇒ điều 2 "quyền hiệu lực" của STANDARD §5 không bao giờ thoả, % đầy đủ đứng ở 0 vĩnh viễn).
   // Idempotent theo asset: hàng mới nhất đã 'attest' ⇒ bỏ qua, không ghi chồng (asset_rights chỉ thêm — 0003).
@@ -43,7 +55,10 @@ function register(op, ctx) {
         const slot = db.get('SELECT * FROM kit_slots WHERE workspace_id=? AND code=?', ws(), p.kit_slot);
         if (!slot) throw err('not_found', `Không tìm thấy ô "${p.kit_slot}".`, { kit_slot: p.kit_slot });
         if (slot.retired_in) throw err('invalid', `Ô "${p.kit_slot}" đã retired (${slot.retired_in}).`, { kit_slot: p.kit_slot });
-        if (asset.kit_slot !== slot.code) patch.kit_slot = slot.code;
+        // review opus PR #38 mục 5 [major]: GẮN kit_slot (đổi khác giá trị cũ) cũng phải chống đụng ô như
+        // submission.import — trước đây chỉ submission.import chặn, asset.meta vẫn gắn được vào ô đang claim.
+        // Không chặn khi idempotent (gán lại đúng ô đã có — không đổi gì, không tranh chấp thêm gì cả).
+        if (asset.kit_slot !== slot.code) { assertSlotNotClaimed(slot.code); patch.kit_slot = slot.code; }
         derivedSubject = kit.deriveSubject(slot.code);
       }
     }
@@ -76,15 +91,7 @@ function register(op, ctx) {
       throw err('invalid', 'quality_claimed phải là A/B.', { quality_claimed: p.quality_claimed });
     }
     const kitSlot = p.kit_slot || null;
-    // bổ sung cổng C.2 (Gen, mục 4 — "chống đụng ô"): ô đang bị MỘT AGENT MCP giữ sống (kit_slots.claimed_by,
-    // kit.claim/SPEC-GK-0.1) ⇒ nhập kho (cron Drive/CLI, không có danh tính agent) phải CHỜ, không tạo thêm
-    // lần nộp chen vào giữa — tránh đụng độ với bài đang làm dở qua MCP.
-    if (kitSlot) {
-      const slot = db.get('SELECT claimed_by, claim_expires_at FROM kit_slots WHERE workspace_id=? AND code=?', ws(), kitSlot);
-      if (slot && slot.claimed_by && slot.claim_expires_at && slot.claim_expires_at > db.now()) {
-        throw err('conflict', `Ô "${kitSlot}" đang được agent "${slot.claimed_by}" giữ tới ${slot.claim_expires_at} — nhập kho phải chờ hết hạn giữ (chống đụng ô).`, { kit_slot: kitSlot, claimed_by: slot.claimed_by, claim_expires_at: slot.claim_expires_at });
-      }
-    }
+    if (kitSlot) assertSlotNotClaimed(kitSlot);
     const dup = db.get('SELECT * FROM asset_submissions WHERE workspace_id=? AND asset_id=? AND kit_slot IS ?', ws(), asset.id, kitSlot);
     if (dup) return { result: { ...dup, deduped: true }, entity: ['asset_submission', dup.display_id], before: null, after: { deduped: true } };
     const row = db.insertRow('asset_submissions', {
