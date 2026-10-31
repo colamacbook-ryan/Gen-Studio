@@ -113,8 +113,8 @@ function tools(ctx) {
         return { text: `Nộp ${sub.display_id} cho ô ${a.kit_slot}: ${verdict}${state === 'rework' ? ' (trả về làm lại)' : state === 'blocked_for_ryan' ? ' (lần 3 — chờ Ryan)' : ''}.`,
           data: { submission: sub.display_id, asset: asset.display_id, verdict, state, checks: checkList, rework: reworkInfo } };
       } },
-    { name: 'kit_upload_chunk', scope: 'assets.submit', description: 'Tải nội dung lớn (tới 50 MB) theo chunk ≤1 MB cho kit_submit. action=start (mở phiên, trả session) | chunk (index từ 0, data_base64 ≤1 MB) | finish (đóng phiên, dùng session này làm upload_session của kit_submit).',
-      schema: { action: S, session: S, kit_slot: S, declared_mime: S, index: N, data_base64: S }, required: ['action'], handler: (a, c) => {
+    { name: 'kit_upload_chunk', scope: 'assets.submit', description: 'Tải nội dung lớn (tới 50 MB) theo chunk ≤1 MB cho kit_submit. action=start (mở phiên, trả session) | chunk (index từ 0, data_base64 ≤1 MB) | finish (đóng phiên, dùng session này làm upload_session của kit_submit; sha256 tuỳ chọn để Gen-Studio tự kiểm tệp ghép đúng — lệch thì phiên bị huỷ, mở phiên mới).',
+      schema: { action: S, session: S, kit_slot: S, declared_mime: S, index: N, data_base64: S, sha256: S }, required: ['action'], handler: (a, c) => {
         if (a.action === 'start') {
           if (!a.kit_slot) throw fail('invalid', 'Cần kit_slot để mở phiên tải.');
           const r = write(actorOf(c), 'upload.start', { kit_slot: a.kit_slot, declared_mime: a.declared_mime || null });
@@ -127,7 +127,11 @@ function tools(ctx) {
         }
         if (a.action === 'finish') {
           if (!a.session) throw fail('invalid', 'Cần session.');
-          const r = write(actorOf(c), 'upload.finish', { session: a.session });
+          const r = write(actorOf(c), 'upload.finish', { session: a.session, sha256: a.sha256 || null });
+          if (r.sha_mismatch) {
+            write(actorOf(c), 'upload.abort', { session: a.session });   // transaction riêng, commit độc lập — xem ghi chú ở upload.finish
+            throw fail('invalid', `sha256 không khớp (khai ${r.expected}, thực ${r.actual}) — phiên đã huỷ, mở phiên mới (upload.start) và tải lại.`, { session: a.session, expected: r.expected, actual: r.actual });
+          }
           return { text: `Phiên ${r.session} xong, ${r.bytes} byte — dùng upload_session="${r.session}" khi gọi kit_submit.`, data: { session: r.session, bytes: r.bytes, kit_slot: r.kit_slot } };
         }
         throw fail('invalid', 'action phải là start | chunk | finish.', { action: a.action });

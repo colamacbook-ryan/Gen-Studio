@@ -251,3 +251,32 @@ test('0.3.0-B (review Gen, mục 5 [nên]): upload.start giới hạn ≤3 phiê
     assert.equal(require('node:fs').existsSync(tmpPathRow.tmp_path), false, 'tệp tạm bị unlink khi dọn');
   } finally { await b.clean(); }
 });
+
+test('0.3.0-B (review Gen, mục 11 [nhỏ]): upload.finish kiểm sha256 tuỳ chọn; lệch ⇒ invalid + huỷ phiên (unlink)', async (t) => {
+  const b = await bootTmp();
+  try {
+    b.app.ctx.write(CLI, 'kit.sync', {});
+    const muse = await museToken(b.app.ctx);
+    const start = await mcpCall(b.base, muse.token, 'kit_upload_chunk', { action: 'start', kit_slot: 'audio.sfx.whoosh.04', declared_mime: 'audio/wav' });
+    const session = start.json.result.structuredContent.session;
+    await mcpCall(b.base, muse.token, 'kit_upload_chunk', { action: 'chunk', session, index: 0, data_base64: Buffer.from('noi-dung-that').toString('base64') });
+
+    const bad = await mcpCall(b.base, muse.token, 'kit_upload_chunk', { action: 'finish', session, sha256: '0'.repeat(64) });
+    assert.ok(bad.json.result.isError, 'sha256 sai bị từ chối');
+    assert.equal(bad.json.result.structuredContent.error.code, 'invalid');
+    assert.equal(b.app.ctx.db.get('SELECT state FROM upload_sessions WHERE id=?', session).state, 'aborted', 'phiên bị huỷ khi sha256 lệch');
+
+    // phiên đã huỷ, không dùng lại được
+    const again = await mcpCall(b.base, muse.token, 'kit_upload_chunk', { action: 'finish', session });
+    assert.ok(again.json.result.isError);
+
+    // đúng sha256 ⇒ qua bình thường (phiên mới)
+    const start2 = await mcpCall(b.base, muse.token, 'kit_upload_chunk', { action: 'start', kit_slot: 'audio.sfx.whoosh.04', declared_mime: 'audio/wav' });
+    const session2 = start2.json.result.structuredContent.session;
+    const content = Buffer.from('noi-dung-that');
+    await mcpCall(b.base, muse.token, 'kit_upload_chunk', { action: 'chunk', session: session2, index: 0, data_base64: content.toString('base64') });
+    const okSha = require('node:crypto').createHash('sha256').update(content).digest('hex');
+    const ok = await mcpCall(b.base, muse.token, 'kit_upload_chunk', { action: 'finish', session: session2, sha256: okSha });
+    assert.ok(!ok.json.result.isError, JSON.stringify(ok.json.result));
+  } finally { await b.clean(); }
+});

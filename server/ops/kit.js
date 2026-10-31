@@ -397,9 +397,29 @@ function register(op, ctx) {
     const row = needSession(c.p.session, c.a.id);
     if (row.state !== 'open') throw err('conflict', `Phiên tải đã "${row.state}".`, { session: row.id });
     if (!row.received_bytes) throw err('invalid', 'Phiên chưa nhận chunk nào.', { session: row.id });
+    // review Gen (0.3.0-B, mục 11 [nhỏ]): sha256 tuỳ chọn — Muse tự tính trước khi gửi chunk, kiểm lại ở đây để bắt
+    // sớm lỗi ghép (mất/lặp chunk...) thay vì để submission.submit lặng lẽ lưu tệp hỏng. Lệch ⇒ KHÔNG throw ở đây
+    // (throw sẽ rollback cả transaction, xoá luôn việc đánh dấu "aborted" — unlink fs không tự rollback theo, để lại
+    // trạng thái vênh: tệp mất mà DB vẫn 'open'). Trả `sha_mismatch` cho tool gọi `upload.abort` RIÊNG (transaction
+    // khác, commit độc lập) rồi tool mới throw ra ngoài.
+    if (nonEmptyStr(c.p.sha256)) {
+      const actual = crypto.createHash('sha256').update(fs.readFileSync(row.tmp_path)).digest('hex');
+      const want = c.p.sha256.trim().toLowerCase();
+      if (actual !== want) {
+        return { result: { session: row.id, sha_mismatch: true, expected: want, actual }, entity: ['upload_session', row.id], before: null, after: { sha_mismatch: true } };
+      }
+    }
     db.run("UPDATE upload_sessions SET state='done', updated_at=? WHERE id=?", db.now(), row.id);
     return { result: { session: row.id, kit_slot: row.kit_slot, bytes: row.received_bytes, tmp_path: row.tmp_path, declared_mime: row.declared_mime },
       entity: ['upload_session', row.id], before: { state: 'open' }, after: { state: 'done' } };
+  });
+  // ---- upload.abort — huỷ phiên tải (unlink + state='aborted'); dùng khi sha256 ở upload.finish lệch ----
+  op('upload.abort', 'assetsSubmit', (c) => {
+    const row = needSession(c.p.session, c.a.id);
+    if (row.state !== 'open') throw err('conflict', `Phiên tải đã "${row.state}".`, { session: row.id });
+    try { fs.unlinkSync(row.tmp_path); } catch { /* đã mất tệp — vẫn đánh dấu aborted */ }
+    db.run("UPDATE upload_sessions SET state='aborted', updated_at=? WHERE id=?", db.now(), row.id);
+    return { result: { session: row.id }, entity: ['upload_session', row.id], before: { state: 'open' }, after: { state: 'aborted' } };
   });
 
   // ---- submission.submit — Muse nộp nội dung (kit_submit): magic bytes mở rộng Bộ Neo, lưu media, tạo asset + asset_submission ----
