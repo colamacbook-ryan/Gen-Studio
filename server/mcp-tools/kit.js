@@ -18,17 +18,21 @@ const pageSize = (a) => Math.min(PAGE_MAX, Math.max(1, parseInt(a.page_size, 10)
 function tools(ctx) {
   const { db, write, S, N, fail, actorOf } = kit(ctx);
 
-  const slotStatus = (row, nowIso) => {
-    const certified = !!db.get('SELECT 1 AS x FROM kit_certs WHERE kit_slot=? LIMIT 1', row.code);
-    if (certified) return 'certified';
-    const claimed = row.claimed_by && row.claim_expires_at && row.claim_expires_at > nowIso;
-    if (claimed) return 'claimed';
-    const submitted = !!db.get("SELECT 1 AS x FROM asset_submissions WHERE kit_slot=? AND state='submitted' LIMIT 1", row.code);
-    if (submitted) return 'submitted';
+  // review Gen (0.3.0-B, mục 12 [nhỏ]): trước đây 3 query/ô × 457 ô (kit_certs + 2× asset_submissions) — nay 3 query
+  // TỔNG (gộp theo kit_slot) rồi map trong bộ nhớ, bất kể danh mục bao nhiêu ô.
+  const statusSets = () => {
+    const certified = new Set(db.all('SELECT DISTINCT kit_slot FROM kit_certs').map((r) => r.kit_slot));
+    const submitted = new Set(db.all("SELECT DISTINCT kit_slot FROM asset_submissions WHERE state='submitted'").map((r) => r.kit_slot));
     // 'blocked' (PR #33 review #5 — lần 3 liên tiếp, chờ Ryan áp dụng đề xuất) hiển thị gộp vào "rework" cho Muse:
     // dù sao cũng không claim/nộp lại được cho tới khi Ryan quyết — chi tiết xem kit_get_input.rework.
-    const rework = !!db.get("SELECT 1 AS x FROM asset_submissions WHERE kit_slot=? AND state IN ('rework','blocked') LIMIT 1", row.code);
-    if (rework) return 'rework';
+    const rework = new Set(db.all("SELECT DISTINCT kit_slot FROM asset_submissions WHERE state IN ('rework','blocked')").map((r) => r.kit_slot));
+    return { certified, submitted, rework };
+  };
+  const slotStatus = (row, nowIso, sets) => {
+    if (sets.certified.has(row.code)) return 'certified';
+    if (row.claimed_by && row.claim_expires_at && row.claim_expires_at > nowIso) return 'claimed';
+    if (sets.submitted.has(row.code)) return 'submitted';
+    if (sets.rework.has(row.code)) return 'rework';
     return 'free';
   };
 
@@ -38,8 +42,9 @@ function tools(ctx) {
     { name: 'kit_list', scope: 'assets.submit', description: 'Danh sách ô Bộ Neo theo trạng thái (free|claimed|submitted|rework|certified) và/hoặc nhóm (group_code NB-01..NB-10, dùng tạm thay "phiếu" — chưa có asset_requests). Phân trang.',
       schema: { state: S, group: S, page: N, page_size: N }, required: [], handler: (a) => {
         const now = db.now();
+        const sets = statusSets();
         let rows = db.all('SELECT * FROM kit_slots WHERE workspace_id=? AND retired_in IS NULL ORDER BY code', db.ws);
-        rows = rows.map((r) => ({ code: r.code, group_code: r.group_code, title_vi: r.title_vi, title_en: r.title_en, status: slotStatus(r, now) }));
+        rows = rows.map((r) => ({ code: r.code, group_code: r.group_code, title_vi: r.title_vi, title_en: r.title_en, status: slotStatus(r, now, sets) }));
         if (a.group) rows = rows.filter((r) => r.group_code === a.group);
         if (a.state) rows = rows.filter((r) => r.status === a.state);
         const pg = page(a), sz = pageSize(a), total = rows.length;
