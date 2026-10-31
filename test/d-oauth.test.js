@@ -182,6 +182,16 @@ test('oauth: PKCE sai, redirect_uri lạ, code dùng lại (thu hồi cái đã 
     const ap6 = await t.call('POST', '/api/auth-requests/' + id6 + '/approve', {});
     assert.equal(ap6.status, 400, JSON.stringify(ap6.json));
     assert.match(ap6.json.error.text_human, /phạm vi hợp lệ/);
+    // bổ sung cổng M1 (cortex, mục c, INT-GK-03): assets.submit/assets.review phải xin RIÊNG, không gộp với core —
+    // chặn ngay ở auth.request (xin), không đợi tới auth.approve mới báo lỗi.
+    const c7 = await register(t.base);
+    const a7 = await authorize(t.base, c7, 'http://127.0.0.1:53682/callback', { challenge: pkce().challenge, scope: 'read assets.submit' });
+    assert.equal(a7.status, 302);
+    assert.match(a7.location, /error=invalid_scope/, a7.location);
+    const c8 = await register(t.base);
+    const a8 = await authorize(t.base, c8, 'http://127.0.0.1:53682/callback', { challenge: pkce().challenge, scope: 'assets.review' });
+    assert.equal(a8.status, 302);
+    assert.doesNotMatch(a8.location, /error=/, a8.location);
   } finally { await t.clean(); }
 });
 

@@ -40,7 +40,8 @@ const cleanName = (s, d) => { const v = String(s == null ? '' : s).replace(/[\u0
 // — dù vậy auth.approve (ownerUi) vẫn chỉ cấp được scope trong SCOPES (3 cái lõi); scope Gen Kit chỉ cấp qua CLI
 // token tay (server/ops/kit.js around('agent.create')), KHÔNG qua ghép OAuth/thiết bị — nhận diện ở đây chỉ để không
 // gắn nhầm "rác" và không rơi vào nhánh rỗng bên dưới khi client CHỦ Ý xin đúng các scope này.
-const KNOWN_SCOPES = [...SCOPES, 'assets.submit', 'assets.review'];
+const KIT_SCOPES_OAUTH = ['assets.submit', 'assets.review'];
+const KNOWN_SCOPES = [...SCOPES, ...KIT_SCOPES_OAUTH];
 // scope "read compose" | mảng → {scopes, ignored}; scope lạ bị bỏ (và ghi vào nhật ký).
 // KHÔNG gửi gì (v rỗng/undefined) → đủ ba (chủ xưởng sẽ hạ khi duyệt, thiết kế cũ). CÓ gửi nhưng không khớp token hợp
 // lệ nào (toàn rác, hoặc chỉ asset.*/ô mà không có core) → invalid — KHÔNG âm thầm nâng lên trọn bộ (review Gen: đây
@@ -54,6 +55,13 @@ function parseScopes(v) {
     // detail.oauth='invalid_scope': để oauth.js (authorize GET, trước khi oerr() được khai ở dưới) nhận ra và
     // redirect về client với lỗi OAuth chuẩn thay vì rơi vào throw e (500) — xem catch ở oauth.js authorize().
     throw err('invalid', 'Phạm vi yêu cầu không hợp lệ (không khớp read, compose, run).', { requested: a, oauth: 'invalid_scope' });
+  }
+  // bổ sung cổng M1 (cortex, mục c, INT-GK-03): assets.submit/assets.review phải là scope RIÊNG, không trộn với
+  // read/compose/run trong CÙNG một yêu cầu — một client/agent chỉ là "Muse nộp hàng" HOẶC "agent soạn bài thường",
+  // không gộp hai vai trong một token để tránh chồng quyền. (auth.approve vẫn chặn cấp assets.* qua đường này —
+  // đây chặn SỚM hơn, ngay lúc xin, cho thông điệp lỗi rõ ràng.)
+  if (scopes.some((x) => SCOPES.includes(x)) && scopes.some((x) => KIT_SCOPES_OAUTH.includes(x))) {
+    throw err('invalid', 'assets.submit/assets.review phải xin RIÊNG, không gộp với read/compose/run trong cùng một yêu cầu.', { requested: scopes, oauth: 'invalid_scope' });
   }
   return { scopes, ignored };
 }
