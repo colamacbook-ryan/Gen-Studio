@@ -53,7 +53,7 @@ test('0005: cột aspect, hàng cũ NULL, trigger bất biến dựng lại (c�
       INSERT INTO lesson_versions(id,workspace_id,lesson_id,version,created_at,updated_at) VALUES('lv','w','ls',1,${T},${T});`);
     raw.close();
     const db = dbm.open(dir, { masterKey: key });
-    assert.deepEqual(db.all('SELECT version FROM schema_migrations ORDER BY version').map((r) => r.version), [1, 2, 3, 4, 5]);
+    assert.deepEqual(db.all('SELECT version FROM schema_migrations ORDER BY version').map((r) => r.version), [1, 2, 3, 4, 5, 6, 7]);
     assert.ok(db.all('PRAGMA table_info(lesson_versions)').some((c) => c.name === 'aspect'));
     assert.ok(db.all('PRAGMA table_info(work_orders)').some((c) => c.name === 'aspect'));
     assert.equal(db.get("SELECT aspect FROM lesson_versions WHERE id='lv'").aspect, null, 'hàng 0.1.x: NULL (= 16:9)');
@@ -66,7 +66,7 @@ test('0005: cột aspect, hàng cũ NULL, trigger bất biến dựng lại (c�
     assert.equal(dbm.migrate(db).length, 0, 'chạy lại migrator: không còn gì để áp');
     db.close();
     const db2 = dbm.open(dir, { masterKey: key });   // mở lại: vẫn êm
-    assert.equal(db2.all('SELECT version FROM schema_migrations').length, 5);
+    assert.equal(db2.all('SELECT version FROM schema_migrations').length, 7);
     db2.close();
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
