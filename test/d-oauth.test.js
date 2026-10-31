@@ -71,13 +71,13 @@ test('oauth: metadata (PRM cả hai đường, AS đủ trường) + /mcp 401 tr
     for (const p of ['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp']) {
       const pr = await request(t.base, 'GET', p);
       assert.equal(pr.status, 200); assert.equal(pr.json.resource, t.base + '/mcp'); assert.deepEqual(pr.json.authorization_servers, [t.base]);
-      assert.deepEqual(pr.json.scopes_supported, ['read', 'compose', 'run']); assert.deepEqual(pr.json.bearer_methods_supported, ['header']);
+      assert.deepEqual(pr.json.scopes_supported, ['read', 'compose', 'run', 'assets.submit', 'assets.review']); assert.deepEqual(pr.json.bearer_methods_supported, ['header']);
     }
     for (const p of ['/.well-known/oauth-authorization-server', '/.well-known/openid-configuration']) {
       const as = (await request(t.base, 'GET', p)).json;
       assert.equal(as.issuer, t.base);
       assert.deepEqual(as.code_challenge_methods_supported, ['S256']); assert.deepEqual(as.token_endpoint_auth_methods_supported, ['none']); assert.deepEqual(as.response_types_supported, ['code']);
-      assert.deepEqual(as.scopes_supported, ['read', 'compose', 'run']); assert.ok(as.grant_types_supported.includes(DEV) && as.grant_types_supported.includes('refresh_token'));
+      assert.deepEqual(as.scopes_supported, ['read', 'compose', 'run', 'assets.submit', 'assets.review']); assert.ok(as.grant_types_supported.includes(DEV) && as.grant_types_supported.includes('refresh_token'));
       for (const k of ['authorization_endpoint', 'token_endpoint', 'registration_endpoint', 'device_authorization_endpoint']) assert.ok(as[k].startsWith(t.base + '/oauth/'), k);
     }
     const un = await request(t.base, 'POST', '/mcp', { body: { jsonrpc: '2.0', id: 1, method: 'ping' } });
@@ -163,6 +163,42 @@ test('oauth: PKCE sai, redirect_uri lạ, code dùng lại (thu hồi cái đã 
     assert.equal(a4.status, 302);
     const aud = dbOf(t).get("SELECT after FROM audit_log WHERE action='auth.request' ORDER BY rowid DESC").after;
     assert.deepEqual(JSON.parse(aud).ignored_scopes, ['offline_access', 'bogus']);
+    // review Gen (0.3.0-B, mục 8 [nên]): scope CÓ GỬI nhưng lọc sạch (toàn rác, hoặc CHỈ assets.submit/assets.review —
+    // nhận diện được nhưng auth.approve không cấp qua đường này) ⇒ invalid_scope, KHÔNG âm thầm nâng lên đủ ba (cũ:
+    // nâng quyền ngầm). "Không gửi gì" (scope:null, ca g3 ở trên) vẫn giữ hành vi cũ (đủ ba, chủ xưởng hạ khi duyệt).
+    const c5 = await register(t.base);
+    const a5 = await authorize(t.base, c5, 'http://127.0.0.1:53682/callback', { challenge: pkce().challenge, scope: 'bogus-only' });
+    assert.equal(a5.status, 302);
+    assert.match(a5.location, /error=invalid_scope/, a5.location);
+    // assets.submit/assets.review nay ĐƯỢC parseScopes nhận diện (không còn rơi vào rỗng/ignored) — auth.request qua
+    // được bình thường; re-review #36 mục 3: auth.approve (ownerUi) nay CŨNG cấp được ĐÚNG MỘT scope Gen Kit (không
+    // còn giới hạn chỉ 3 scope lõi) — scopes_supported ở .well-known khai assets.submit/assets.review thì auth.approve
+    // phải thật sự cấp được, không chỉ quảng cáo suông.
+    const c6 = await register(t.base);
+    const a6 = await authorize(t.base, c6, 'http://127.0.0.1:53682/callback', { challenge: pkce().challenge, scope: 'assets.submit' });
+    assert.equal(a6.status, 302);
+    assert.doesNotMatch(a6.location, /error=/, a6.location);
+    const id6 = reqIdOf(a6.location);
+    assert.deepEqual(dbOf(t).json(dbOf(t).get('SELECT * FROM auth_requests WHERE display_id=?', id6)).scopes_requested, ['assets.submit']);
+    const ap6 = await t.call('POST', '/api/auth-requests/' + id6 + '/approve', {});
+    assert.equal(ap6.status, 200, JSON.stringify(ap6.json));
+    assert.deepEqual(ap6.json.agent.scopes, ['assets.submit']);
+    // không được gộp thêm scope lõi khi cấp qua đường này dù owner tự ý truyền (đã xin assets.submit riêng)
+    const c6b = await register(t.base);
+    const a6b = await authorize(t.base, c6b, 'http://127.0.0.1:53682/callback', { challenge: pkce().challenge, scope: 'assets.review' });
+    const id6b = reqIdOf(a6b.location);
+    const bad6b = await t.call('POST', '/api/auth-requests/' + id6b + '/approve', { scopes: ['assets.review', 'read'] });
+    assert.equal(bad6b.status, 400, JSON.stringify(bad6b.json));
+    // bổ sung cổng M1 (cortex, mục c, INT-GK-03): assets.submit/assets.review phải xin RIÊNG, không gộp với core —
+    // chặn ngay ở auth.request (xin), không đợi tới auth.approve mới báo lỗi.
+    const c7 = await register(t.base);
+    const a7 = await authorize(t.base, c7, 'http://127.0.0.1:53682/callback', { challenge: pkce().challenge, scope: 'read assets.submit' });
+    assert.equal(a7.status, 302);
+    assert.match(a7.location, /error=invalid_scope/, a7.location);
+    const c8 = await register(t.base);
+    const a8 = await authorize(t.base, c8, 'http://127.0.0.1:53682/callback', { challenge: pkce().challenge, scope: 'assets.review' });
+    assert.equal(a8.status, 302);
+    assert.doesNotMatch(a8.location, /error=/, a8.location);
   } finally { await t.clean(); }
 });
 
@@ -823,7 +859,7 @@ test('migration 0002: tiền kiểm oauth_grants rỗng; nâng DB tạo từ 000
     assert.equal(db.get("SELECT COUNT(*) AS n FROM audit_log WHERE id='au'").n, 1);
     db.run("INSERT INTO audit_log(id,workspace_id,display_id,ts,actor,entry,action) VALUES('au2','w','AU-0002','2026-01-01','client:x','oauth','x')");
     assert.throws(() => db.run("UPDATE audit_log SET action='y'"), /chỉ thêm/); assert.throws(() => db.run('DELETE FROM audit_log'), /chỉ thêm/);
-    assert.equal(db.get('SELECT COUNT(*) AS n FROM schema_migrations').n, 7);   // 0001 + 0002 + 0003 (v0.2.0) + 0004 (gói V: cast_members.origin) + 0005 (F7: aspect) + 0006/0007 (0.3.0-A: Gen Kit)
+    assert.equal(db.get('SELECT COUNT(*) AS n FROM schema_migrations').n, 10);   // 0001 + 0002 + 0003 (v0.2.0) + 0004 (gói V: cast_members.origin) + 0005 (F7: aspect) + 0006/0007 (0.3.0-A: Gen Kit) + 0008/0009/0010 (0.3.0-B: MCP nộp hàng + sửa review)
     assert.equal(dbm.migrate(db).length, 0, 'chạy lại không làm gì');
     db.close();
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }

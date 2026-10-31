@@ -81,19 +81,38 @@ function cancelByRender(db, renderId) {
 const { execFile } = require('node:child_process');
 const path = require('node:path');
 const CHECK_CLI = path.join(__dirname, '..', 'cli', 'check-kit.js');
+// review Gen (0.3.0-B, mục 6 [nên]): execFile trước đây không timeout (tiến trình treo chiếm luôn worker) và không
+// giới hạn song song (N kit_submit cùng lúc ⇒ N tiến trình ffmpeg/node tranh CPU). timeout 120 s + SIGKILL (tuỳ
+// chọn sẵn của node:child_process); semaphore nội bộ giới hạn tối đa 2 tiến trình kiểm chạy đồng thời, phần còn lại
+// xếp hàng trong bộ nhớ tiến trình (không cần bảng DB riêng — số lượng nhỏ, không bền là chấp nhận được ở gói B).
+const CHECK_TIMEOUT_MS = 120e3;
+const MAX_CONCURRENT_CHECKS = 2;
+let activeChecks = 0;
+const checkWaitQueue = [];
+function acquireCheckSlot() {
+  if (activeChecks < MAX_CONCURRENT_CHECKS) { activeChecks++; return Promise.resolve(); }
+  return new Promise((resolve) => checkWaitQueue.push(resolve));
+}
+function releaseCheckSlot() {
+  activeChecks--;
+  const next = checkWaitQueue.shift();
+  if (next) { activeChecks++; next(); }
+}
 
-function runAssetCheck(ctx, { file, slot, referenceFile, declaredMime, ffmpegPath, groundY } = {}) {
+async function runAssetCheck(ctx, { file, slot, referenceFile, declaredMime, ffmpegPath, groundY } = {}) {
   if (!file || !slot) return Promise.reject(new Error("runAssetCheck: thiếu 'file' hoặc 'slot'."));
   const args = [CHECK_CLI, file, '--slot', slot, '--json'];
   if (referenceFile) args.push('--ref', referenceFile);
   if (declaredMime) args.push('--mime', declaredMime);
   if (ffmpegPath) args.push('--ffmpeg', ffmpegPath);
   if (groundY != null) args.push('--ground-y', String(groundY));
+  await acquireCheckSlot();
   return new Promise((resolve, reject) => {
-    execFile(process.execPath, args, { maxBuffer: 1 << 24 }, (err, stdout, stderr) => {
+    execFile(process.execPath, args, { maxBuffer: 1 << 24, timeout: CHECK_TIMEOUT_MS, killSignal: 'SIGKILL' }, (err, stdout, stderr) => {
+      releaseCheckSlot();
       // cli/check-kit.js thoát mã 1 khi verdict='rework' (có chủ ý) — vẫn có JSON hợp lệ trên stdout; chỉ
-      // coi là lỗi thật khi không có stdout để đọc (crash/exception trước khi in).
-      if (err && !stdout) return reject(new Error('runAssetCheck: ' + String(stderr || err.message).trim().slice(0, 500)));
+      // coi là lỗi thật khi không có stdout để đọc (crash/exception trước khi in, hoặc bị SIGKILL vì quá 120 s).
+      if (err && !stdout) return reject(new Error('runAssetCheck: ' + (err.killed ? 'quá 120 s, đã huỷ (SIGKILL)' : String(stderr || err.message).trim().slice(0, 500))));
       let result;
       try { result = JSON.parse(stdout); } catch (e) { return reject(new Error('runAssetCheck: không đọc được JSON từ cli/check-kit.js: ' + e.message)); }
       if (ctx && ctx.events && ctx.events.log) ctx.events.log('asset.check', slot, result.verdict);

@@ -17,7 +17,9 @@ function requiredCriteria(slotCode) {
     if (cls.sub === 'expr') {
       m.push('CH-05');                            // vai chạm mép (chỉ biểu cảm)
       mh.push('CH-04');                           // M* — khoá khung biểu cảm (chưa có máy dò mốc mặt)
-      if (/^0[1-6]$/.test(cls.n)) m.push('CH-06'); // khẩu hình .expr.01–06: chỉ khác miệng
+      // TODO(gói E sau): CH-06 (khẩu hình .expr.01–06, chỉ khác miệng) chưa có máy đo (server/checks/ không phủ) —
+      // tạm chuyển sang mh (Ryan tick) cho tới khi có máy đo; review Gen 0.3.0-B mục 4.
+      if (/^0[1-6]$/.test(cls.n)) mh.push('CH-06');
     } else if (cls.sub === 'pose') {
       m.push('CH-07');                            // chân chạm đường đất (chỉ tư thế)
       mh.push('CH-08');                           // M* — cùng tỉ lệ (pose, id)
@@ -43,11 +45,13 @@ function requiredCriteria(slotCode) {
     if (cls.isSfx) m.push('AU-04');
     mh.push('AU-05', 'AU-06', 'AU-07');
   } else if (cls.group === 'motion') {
-    m.push('MO-01', 'MO-02');
-    mh.push('MO-03', 'MO-04');
+    // TODO(gói E sau): MO-02 chưa có máy đo — tạm chuyển sang mh (Ryan tick); review Gen 0.3.0-B mục 4.
+    m.push('MO-01');
+    mh.push('MO-02', 'MO-03', 'MO-04');
   } else if (cls.group === 'font') {
-    m.push('FO-01', 'FO-02', 'FO-03');
-    mh.push('FO-04');
+    // TODO(gói E sau): FO-02 (cmap), FO-03 (giấy phép) chưa có máy đo — tạm chuyển sang mh (Ryan tick); review Gen 0.3.0-B mục 4.
+    m.push('FO-01');
+    mh.push('FO-02', 'FO-03', 'FO-04');
   }
   return { m, mh, group: cls.group };
 }

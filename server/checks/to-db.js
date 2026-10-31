@@ -12,10 +12,11 @@ function severityOf(level) {
   return 'H';
 }
 
-// pass: true đạt / false trượt / null chưa đo được (M chưa phủ, hoặc số đo chỉ tham khảo) — DB không có mức
-// "pending" nên null ánh xạ 'warn' (không chặn ngầm như 'ok', không coi là trượt hẳn như 'fail' — xem gói E finish()).
+// pass: true đạt / false trượt / null chưa đo được (M chưa phủ, hoặc số đo chỉ tham khảo) — asset_checks.level có mức
+// 'pending' riêng (0.3.0-B, migrations/0006) cho trường hợp null: không chặn ngầm như 'ok', không coi là trượt hẳn như
+// 'fail', và được LOẠI khi tính checks_level (server/ops/kit.js recomputeChecksLevel) — khác 'warn' (có tính vào).
 function levelOf(pass) {
-  return pass === true ? 'ok' : pass === false ? 'fail' : 'warn';
+  return pass === true ? 'ok' : pass === false ? 'fail' : 'pending';
 }
 
 // toDbResults(runResult) → [{criterion, severity, level, measured, detail}] cho results của submission.record_checks.
