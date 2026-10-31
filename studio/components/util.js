@@ -2,7 +2,8 @@
 // Hàm thuần (không DOM) dùng chung: route, timecode, escape, tách thuật ngữ, chuẩn hoá lỗi.
 
 export const ROUTES = ['overview', 'review', 'lessons', 'pipeline', 'work-orders', 'agents', 'providers',
-  'channels', 'curriculum', 'assets', 'cast', 'audit', 'setup', 'login', 'authorize', 'pair'];
+  'channels', 'curriculum', 'assets', 'cast', 'audit', 'setup', 'login', 'authorize', 'pair',
+  'kho', 'kho-queue', 'kho-slot', 'kho-tokens', 'kho-audit', 'kho-settings'];
 // Tên cũ/tên API → tên route: href viết kiểu khoá API (#/work_orders?q=…) vẫn mở đúng lưới (Tổng quan v2 dùng href của /api/overview)
 export const ROUTE_ALIASES = { work_orders: 'work-orders', workorders: 'work-orders' };
 

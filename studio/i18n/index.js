@@ -11,11 +11,12 @@ import * as lessons from './lessons.js';
 import * as lists from './lists.js';
 import * as voice from './voice.js';
 import * as aspect from './aspect.js';
+import * as kit from './kit.js';
 
 export const MODULES = { core, ov, brand, cast, review, lessons, lists, voice };
-// Chuỗi của thành phần dùng chung (UI-0 aspect — SPEC-0.2.0-F7 §10.5). Tách khỏi MODULES (bản đồ gói UI của SPEC-0.2.0 §13.2, test h-studio khoá danh sách đó);
-// cùng luật: {vi,en} cùng bộ khoá, không trùng khoá với MODULES — test e-ui-aspect kiểm.
-export const SHARED = { aspect };
+// Chuỗi của thành phần dùng chung (UI-0 aspect — SPEC-0.2.0-F7 §10.5; kit — gói D 0.3.0 UI Kho). Tách khỏi MODULES
+// (bản đồ gói UI của SPEC-0.2.0 §13.2, test h-studio khoá danh sách đó); cùng luật: {vi,en} cùng bộ khoá, không trùng khoá với MODULES.
+export const SHARED = { aspect, kit };
 export const VI = Object.assign({}, ...[...Object.values(MODULES), ...Object.values(SHARED)].map((m) => m.vi));
 export const EN = Object.assign({}, ...[...Object.values(MODULES), ...Object.values(SHARED)].map((m) => m.en));
 

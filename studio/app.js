@@ -54,6 +54,12 @@ async function loadView(route) {
     case 'assets': return lists.assets;
     case 'cast': return (await import('./views/cast.js')).mount;   // stub P0b; UI-L1 thay bằng màn Nhân vật thật
     case 'audit': return lists.audit;
+    case 'kho': return (await import('./views/kho-overview.js')).mount;
+    case 'kho-queue': return (await import('./views/kho-queue.js')).mount;
+    case 'kho-slot': return (await import('./views/kho-slot.js')).mount;
+    case 'kho-tokens': return (await import('./views/kho-tokens.js')).mount;
+    case 'kho-audit': return (await import('./views/kho-audit.js')).mount;
+    case 'kho-settings': return (await import('./views/kho-settings.js')).mount;
     case 'setup': return (await import('./views/setup.js')).mount;
     case 'login': return (await import('./views/login.js')).mount;
     case 'authorize': return (await import('./views/authorize.js')).mount;

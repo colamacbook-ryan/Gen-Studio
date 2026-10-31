@@ -1,0 +1,44 @@
+/* © 2026 Gen Labs — All rights reserved.
+   Gói D (0.3.0) — UI Kho: A1 Tổng quan (lưới 457 ô) · A2 Hàng chờ duyệt (Inspector mở rộng) · A3 Chi tiết ô.
+   Token của styles.css; không màu hex mới ngoài token. */
+
+/* ---- A1 Tổng quan ---- */
+.kho-summary{display:flex;align-items:baseline;gap:12px;margin-bottom:16px}
+.kho-summary-pct{display:flex;align-items:baseline;gap:6px}
+.kho-summary-pct strong{font-size:28px;font-family:var(--serif)}
+.kho-groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin:12px 0}
+.kho-group-card{border:1px solid var(--b1);border-radius:6px;padding:8px;background:var(--surface)}
+.kho-group-head{display:flex;justify-content:space-between;align-items:baseline}
+.kho-group-bar{height:4px;background:var(--sunken);border-radius:2px;margin:6px 0;overflow:hidden}
+.kho-group-bar i{display:block;height:100%;background:var(--ok)}
+.kho-legend{display:flex;flex-wrap:wrap;gap:12px;margin:8px 0 16px;font-size:12px;color:var(--tx2)}
+.kho-leg-item{display:inline-flex;align-items:center;gap:6px}
+.kho-dot{width:10px;height:10px;border-radius:2px;display:inline-block}
+.kho-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(14px,1fr));gap:2px;margin-bottom:16px}
+.kho-cell{position:relative;aspect-ratio:1;border-radius:2px;display:block}
+.kho-cell:focus-visible{outline:2px solid var(--ember);outline-offset:1px}
+.kho-claim-dot{position:absolute;top:1px;right:1px;width:4px;height:4px;border-radius:50%;background:var(--tx)}
+.st-empty,.kho-dot.st-empty{background:var(--sunken);border:1px solid var(--b1)}
+.st-submitted,.kho-dot.st-submitted{background:var(--info)}
+.st-rework,.kho-dot.st-rework{background:var(--warn)}
+.st-blocked,.kho-dot.st-blocked{background:var(--danger)}
+.st-approved,.kho-dot.st-approved{background:color-mix(in srgb,var(--ok) 55%,var(--info))}
+.st-certified,.kho-dot.st-certified{background:var(--ok)}
+.kho-claims ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:13px}
+
+/* ---- A2 Hàng chờ duyệt — Inspector ---- */
+.kq-inspector{display:flex;flex-direction:column;gap:12px}
+.insp-head2{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kq-file audio,.kq-file video{width:100%}
+.kq-actions{display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--b1);padding-top:12px}
+.certify-box{border:1px solid var(--b1);border-radius:6px;padding:10px;background:var(--surface)}
+.certify-box .check{display:flex;margin:4px 0}
+.simple-table{width:100%;border-collapse:collapse;font-size:12px}
+.simple-table th{text-align:left;color:var(--tx3);font-weight:500;padding:4px 6px;border-bottom:1px solid var(--b1)}
+.simple-table td{padding:4px 6px;border-bottom:1px solid var(--b1);vertical-align:top}
+.checks-table td .btn.small{height:22px;padding:0 8px;font-size:11px}
+
+/* ---- A3 Chi tiết ô ---- */
+.slot-head{margin-bottom:12px}
+.slot-criteria{margin-bottom:16px}
+.slot-history,.slot-certs{margin-bottom:16px}
