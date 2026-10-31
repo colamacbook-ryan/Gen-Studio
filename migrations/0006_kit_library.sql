@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS asset_checks (
   criterion TEXT NOT NULL,                      -- mã STANDARD-KIT-v1 (CH-01…FO-04) hoặc GEN-FMT/GEN-SPEC
   severity TEXT CHECK (severity IS NULL OR severity IN ('M','M*','H')),  -- mức bắt buộc của tiêu chí (server/kit-criteria.js); NULL = chưa biết (hàng cũ/ghi tay)
   kit_ver TEXT NOT NULL DEFAULT 'KIT-v1',
-  level TEXT NOT NULL CHECK (level IN ('ok','warn','fail','waived','pending')),   -- 'pending': tiêu chí M chưa có máy đo (server/checks/to-db.js pass=null) — không chặn, không coi là đạt
+  level TEXT NOT NULL CHECK (level IN ('ok','warn','fail','waived')),
   measured TEXT, detail TEXT,
   checker TEXT NOT NULL CHECK (checker IN ('system','gen','owner')),
   checker_ref TEXT,

@@ -18,7 +18,8 @@ const cols = (db, t) => db.all(`PRAGMA table_info(${t})`).map(c => c.name);
 
 // mọi thứ 0003 phải để lại, dù DB mới hay nâng cấp
 function assertV020Schema(db) {
-  assert.deepEqual(db.all('SELECT version FROM schema_migrations ORDER BY version').map(r => r.version), [1, 2, 3, 4, 5, 6, 7, 8]);  for (const c of ['kind', 'variant', 'thumbnail', 'screens', 'host', 'music']) assert.ok(cols(db, 'lesson_versions').includes(c), 'lesson_versions.' + c);
+  assert.deepEqual(db.all('SELECT version FROM schema_migrations ORDER BY version').map(r => r.version), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    for (const c of ['kind', 'variant', 'thumbnail', 'screens', 'host', 'music']) assert.ok(cols(db, 'lesson_versions').includes(c), 'lesson_versions.' + c);
   for (const c of ['thumbnail_pick', 'thumbnail_picked_by', 'thumbnail_picked_at', 'exported_at', 'published_at', 'published_by', 'published_source', 'awaiting_review_at']) assert.ok(cols(db, 'renders').includes(c), 'renders.' + c);
   for (const c of ['status', 'approved_version', 'approved_by', 'approved_at']) assert.ok(cols(db, 'cast_members').includes(c), 'cast_members.' + c);
   assert.deepEqual(cols(db, 'asset_rights'), ['id', 'asset_id', 'workspace_id', 'action', 'basis', 'pii_redacted', 'note', 'by', 'at']);
@@ -159,7 +160,8 @@ test('0003 nâng cấp DB 0001+0002 có dữ liệu: giữ hàng, backfill await
 test('0006/0007 trên DB mới: đủ bảng/cột/trigger/index; chạy lại không làm gì', () => {
   const t = tmpDb();
   try {
-    assert.deepEqual(t.db.all('SELECT version FROM schema_migrations ORDER BY version').map(r => r.version), [1, 2, 3, 4, 5, 6, 7, 8]);    for (const c of ['source_kind', 'redistribution', 'quality', 'commercial_ok', 'subject', 'kit_slot', 'public_ok']) assert.ok(cols(t.db, 'assets').includes(c), 'assets.' + c);
+    assert.deepEqual(t.db.all('SELECT version FROM schema_migrations ORDER BY version').map(r => r.version), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    for (const c of ['source_kind', 'redistribution', 'quality', 'commercial_ok', 'subject', 'kit_slot', 'public_ok']) assert.ok(cols(t.db, 'assets').includes(c), 'assets.' + c);
     for (const tb of ['kit_slots', 'asset_submissions', 'asset_checks', 'kit_certs', 'asset_fetch_log']) assert.ok(names(t.db, 'table').includes(tb), tb);
     const trg = names(t.db, 'trigger');
     for (const x of ['tr_assets_immutable', 'tr_assets_ryan_lock', 'tr_kit_slots_immutable', 'tr_kit_slots_nodelete',
@@ -221,7 +223,8 @@ test('0006 nâng cấp DB 0005 có dữ liệu: giữ asset cũ, backfill source
     raw.close();
 
     const db = dbm.open(dir, { masterKey: key });
-    assert.deepEqual(db.all('SELECT version FROM schema_migrations ORDER BY version').map(r => r.version), [1, 2, 3, 4, 5, 6, 7, 8]);    assert.ok(fs.readdirSync(path.join(dir, 'backups')).some(f => /^pre-migrate-\d+\.db$/.test(f)));
+    assert.deepEqual(db.all('SELECT version FROM schema_migrations ORDER BY version').map(r => r.version), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    assert.ok(fs.readdirSync(path.join(dir, 'backups')).some(f => /^pre-migrate-\d+\.db$/.test(f)));
     assert.equal(db.get('SELECT COUNT(*) n FROM assets').n, 2, 'hàng cũ còn nguyên');
     const byId = Object.fromEntries(db.all('SELECT id, source_kind, public_ok FROM assets').map(r => [r.id, r]));
     assert.equal(byId.as1.source_kind, 'external', 'upload → external (mặc định, owner sửa sau)');
@@ -230,6 +233,48 @@ test('0006 nâng cấp DB 0005 có dữ liệu: giữ asset cũ, backfill source
     assert.throws(() => db.run("UPDATE assets SET kind='image' WHERE id='as1'"), /bất biến/, 'trigger bất biến cũ còn hiệu lực');
     assert.equal(db.all('PRAGMA foreign_key_check').length, 0);
     assert.equal(dbm.migrate(db).length, 0);
+    db.close();
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---- Gói 0.3.0-B — 0009_kit_checks_pending.sql (review Gen PR #36 mục 1: KHÔNG sửa 0006 đã chạy ở prod) ----
+test("0009 nâng cấp DB đã chạy 0006/0007/0008 (CHECK level cũ, không 'pending'): giữ hàng cũ, dựng lại CHECK có 'pending', trigger/index còn nguyên", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-mig9-')), key = crypto.randomBytes(32).toString('hex');
+  try {
+    const raw = new DatabaseSync(path.join(dir, 'studio.db'));
+    raw.exec('PRAGMA foreign_keys=ON');
+    for (const f of ['0001_init.sql', '0002_agent_auth.sql', '0003_v020.sql', '0004_cast_origin.sql', '0005_aspect.sql', '0006_kit_library.sql', '0007_kit_fetch_log.sql', '0008_kit_mcp.sql']) {
+      const sql = fs.readFileSync(path.join(MIG, f), 'utf8');
+      const fkOff = /^--\s*fk-off\s*$/m.test(sql.split('\n', 3).join('\n'));
+      if (fkOff) raw.exec('PRAGMA foreign_keys=OFF');
+      raw.exec(sql);
+      if (fkOff) raw.exec('PRAGMA foreign_keys=ON');
+    }
+    raw.exec('CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)');
+    raw.exec("INSERT INTO schema_migrations VALUES(1,'2026-01-01'),(2,'2026-01-01'),(3,'2026-01-01'),(4,'2026-01-01'),(5,'2026-01-01'),(6,'2026-01-01'),(7,'2026-01-01'),(8,'2026-01-01')");
+    const T = "'2026-01-03T00:00:00.000Z'";
+    raw.exec(`
+      INSERT INTO workspaces(id,name,locale,timezone,created_at,updated_at) VALUES('w','W','vi','UTC',${T},${T});
+      INSERT INTO assets(id,workspace_id,display_id,kind,sha256,path,bytes,source,created_at,updated_at) VALUES('as1','w','AS-0001','svg','abc','p',1,'upload',${T},${T});
+      INSERT INTO asset_checks(id,workspace_id,run_id,asset_id,criterion,kit_ver,level,checker,created_at) VALUES('ck1','w','r1','as1','CH-01','KIT-v1','ok','system',${T});`);
+    raw.close();
+
+    const db = dbm.open(dir, { masterKey: key });
+    assert.deepEqual(db.all('SELECT version FROM schema_migrations ORDER BY version').map(r => r.version), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    assert.equal(db.get('SELECT COUNT(*) n FROM asset_checks').n, 1, 'hàng cũ còn nguyên qua rebuild');
+    assert.equal(db.get("SELECT level FROM asset_checks WHERE id='ck1'").level, 'ok');
+    // CHECK mới nhận 'pending' (trước 0009 sẽ bị CHECK chặn)
+    db.run("INSERT INTO asset_checks(id,workspace_id,run_id,asset_id,criterion,kit_ver,level,checker,created_at) VALUES('ck2','w','r2','as1','CH-04','KIT-v1','pending','system','2026-01-03T00:00:00.000Z')");
+    assert.equal(db.get("SELECT level FROM asset_checks WHERE id='ck2'").level, 'pending');
+    assert.throws(() => db.run("INSERT INTO asset_checks(id,workspace_id,run_id,asset_id,criterion,kit_ver,level,checker,created_at) VALUES('ckx','w','r3','as1','CH-05','KIT-v1','bogus','system','2026-01-03T00:00:00.000Z')"), /CHECK/, 'level ngoài tập vẫn bị chặn');
+    // trigger chỉ-thêm còn nguyên
+    assert.throws(() => db.run("UPDATE asset_checks SET level='fail' WHERE id='ck1'"), /chỉ thêm/);
+    assert.throws(() => db.run("DELETE FROM asset_checks WHERE id='ck1'"), /chỉ thêm/);
+    // index còn nguyên
+    assert.ok(names(db, 'index').includes('ix_checks_sub'));
+    assert.ok(names(db, 'index').includes('ix_checks_asset'));
+    assert.equal(db.all('PRAGMA foreign_key_check').length, 0);
+    assert.equal(dbm.migrate(db).length, 0, 'chạy lại migrator: không còn gì để áp');
     db.close();
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
