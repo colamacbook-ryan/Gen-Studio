@@ -36,11 +36,26 @@ const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
 const rnd = (prefix, n = 32) => prefix + crypto.randomBytes(n).toString('base64url');
 const sha256 = (s) => secrets.hashToken(s);
 const cleanName = (s, d) => { const v = String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s*\(tự khai\)\s*$/i, '').trim().slice(0, 80); return v || d; };
-// scope "read compose" | mảng → {scopes, ignored}; scope lạ bị bỏ (và ghi vào nhật ký); rỗng → đủ ba (chủ xưởng sẽ hạ nếu muốn)
+// 0.3.0-B (review Gen mục 8 [nên]): parseScopes cũng NHẬN DIỆN assets.submit/assets.review (không coi là rác/ignored)
+// — dù vậy auth.approve (ownerUi) vẫn chỉ cấp được scope trong SCOPES (3 cái lõi); scope Gen Kit chỉ cấp qua CLI
+// token tay (server/ops/kit.js around('agent.create')), KHÔNG qua ghép OAuth/thiết bị — nhận diện ở đây chỉ để không
+// gắn nhầm "rác" và không rơi vào nhánh rỗng bên dưới khi client CHỦ Ý xin đúng các scope này.
+const KNOWN_SCOPES = [...SCOPES, 'assets.submit', 'assets.review'];
+// scope "read compose" | mảng → {scopes, ignored}; scope lạ bị bỏ (và ghi vào nhật ký).
+// KHÔNG gửi gì (v rỗng/undefined) → đủ ba (chủ xưởng sẽ hạ khi duyệt, thiết kế cũ). CÓ gửi nhưng không khớp token hợp
+// lệ nào (toàn rác, hoặc chỉ asset.*/ô mà không có core) → invalid — KHÔNG âm thầm nâng lên trọn bộ (review Gen: đây
+// từng là nâng quyền ngầm khi scope xin bị lọc sạch).
 function parseScopes(v) {
   const a = Array.isArray(v) ? v : String(v == null ? '' : v).split(/[\s,]+/).filter(Boolean);
-  const scopes = [...new Set(a.map(String).filter((x) => SCOPES.includes(x)))];
-  return { scopes: scopes.length ? scopes : SCOPES.slice(), ignored: [...new Set(a.map(String).filter((x) => !SCOPES.includes(x)))] };
+  const scopes = [...new Set(a.map(String).filter((x) => KNOWN_SCOPES.includes(x)))];
+  const ignored = [...new Set(a.map(String).filter((x) => !KNOWN_SCOPES.includes(x)))];
+  if (!scopes.length) {
+    if (!a.length) return { scopes: SCOPES.slice(), ignored };
+    // detail.oauth='invalid_scope': để oauth.js (authorize GET, trước khi oerr() được khai ở dưới) nhận ra và
+    // redirect về client với lỗi OAuth chuẩn thay vì rơi vào throw e (500) — xem catch ở oauth.js authorize().
+    throw err('invalid', 'Phạm vi yêu cầu không hợp lệ (không khớp read, compose, run).', { requested: a, oauth: 'invalid_scope' });
+  }
+  return { scopes, ignored };
 }
 // redirect_uri hợp lệ khi đăng ký: https, hoặc http loopback (RFC 8252); không fragment/userinfo
 function redirectUriOk(u) {

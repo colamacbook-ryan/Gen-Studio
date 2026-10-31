@@ -163,6 +163,25 @@ test('oauth: PKCE sai, redirect_uri lạ, code dùng lại (thu hồi cái đã 
     assert.equal(a4.status, 302);
     const aud = dbOf(t).get("SELECT after FROM audit_log WHERE action='auth.request' ORDER BY rowid DESC").after;
     assert.deepEqual(JSON.parse(aud).ignored_scopes, ['offline_access', 'bogus']);
+    // review Gen (0.3.0-B, mục 8 [nên]): scope CÓ GỬI nhưng lọc sạch (toàn rác, hoặc CHỈ assets.submit/assets.review —
+    // nhận diện được nhưng auth.approve không cấp qua đường này) ⇒ invalid_scope, KHÔNG âm thầm nâng lên đủ ba (cũ:
+    // nâng quyền ngầm). "Không gửi gì" (scope:null, ca g3 ở trên) vẫn giữ hành vi cũ (đủ ba, chủ xưởng hạ khi duyệt).
+    const c5 = await register(t.base);
+    const a5 = await authorize(t.base, c5, 'http://127.0.0.1:53682/callback', { challenge: pkce().challenge, scope: 'bogus-only' });
+    assert.equal(a5.status, 302);
+    assert.match(a5.location, /error=invalid_scope/, a5.location);
+    // assets.submit/assets.review nay ĐƯỢC parseScopes nhận diện (không còn rơi vào rỗng/ignored) — auth.request qua
+    // được bình thường; nhưng auth.approve (ownerUi) vẫn CHỈ cấp được scope lõi (SCOPES=read/compose/run), scope Gen
+    // Kit chỉ cấp qua CLI token tay — nên xin CHỈ assets.submit vẫn không bao giờ lấy được agent qua đường ghép này.
+    const c6 = await register(t.base);
+    const a6 = await authorize(t.base, c6, 'http://127.0.0.1:53682/callback', { challenge: pkce().challenge, scope: 'assets.submit' });
+    assert.equal(a6.status, 302);
+    assert.doesNotMatch(a6.location, /error=/, a6.location);
+    const id6 = reqIdOf(a6.location);
+    assert.deepEqual(dbOf(t).json(dbOf(t).get('SELECT * FROM auth_requests WHERE display_id=?', id6)).scopes_requested, ['assets.submit']);
+    const ap6 = await t.call('POST', '/api/auth-requests/' + id6 + '/approve', {});
+    assert.equal(ap6.status, 400, JSON.stringify(ap6.json));
+    assert.match(ap6.json.error.text_human, /phạm vi hợp lệ/);
   } finally { await t.clean(); }
 });
 
