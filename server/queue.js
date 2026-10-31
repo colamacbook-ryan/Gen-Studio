@@ -73,4 +73,20 @@ function cancelByRender(db, renderId) {
           WHERE render_id=? AND state IN ('queued','running','waiting_quota')`, db.now(), db.now(), renderId);
 }
 
-module.exports = { enqueue, lease, heartbeat, done, fail, waitQuota, cancelByRender };
+// Job 'asset.check' (gói E, 0.3.0 — máy kiểm thường trực): CHỈ chạy máy kiểm (server/checks/) + phát sự kiện,
+// KHÔNG ghi DB (asset_checks/runs nối ở gói A sau, migration 0006+). Payload: {file, slot, referenceFile?, declaredMime?}.
+// Gọi trực tiếp (không qua enqueue/lease bảng runs) vì chưa có cột asset_check trong 'kind' của runs ở nhánh này.
+async function runAssetCheck(ctx, { file, slot, referenceFile, declaredMime, ffmpegPath } = {}) {
+  if (!file || !slot) throw new Error("runAssetCheck: thiếu 'file' hoặc 'slot'.");
+  const checks = require('./checks/index.js');
+  const opts = {};
+  if (referenceFile) opts.referenceFile = referenceFile;
+  if (declaredMime) opts.declaredMime = declaredMime;
+  if (ffmpegPath) opts.ffmpegPath = ffmpegPath;
+  const result = await checks.runChecks(file, slot, opts);
+  if (ctx && ctx.events && ctx.bus) ctx.events.log('asset.check', slot, result.verdict);
+  if (ctx && ctx.bus) ctx.bus.emit('change', { entity: 'asset_check', id: slot, verdict: result.verdict });
+  return result;
+}
+
+module.exports = { enqueue, lease, heartbeat, done, fail, waitQuota, cancelByRender, runAssetCheck };
