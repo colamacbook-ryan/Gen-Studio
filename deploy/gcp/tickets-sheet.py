@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -22,6 +23,8 @@ SA_FILE = os.environ.get("GS_TICKETS_SA_FILE", "/opt/gs-deploy/drive-sa.json")
 SHEET_ID = os.environ.get("GS_TICKETS_SHEET_ID", "16riWP4rvrsb4jrD0XSwN-krTedYu4H7LapljFxI0--E")
 LIBRARY_DIR = Path(os.environ.get("GS_LIBRARY_DIR", "/opt/gen-studio/library"))
 DATA_INBOX_DIR = Path(os.environ.get("GS_DATA_INBOX_DIR", "/opt/gen-studio/data/inbox/drive"))
+# 0.3.0-C.2: data/kit-status.json do `genstudio import` ghi ra (v_kit_coverage, MỘT công thức «ô đạt» — DB-GK-0.1 §13).
+KIT_STATUS_FILE = Path(os.environ.get("GS_KIT_STATUS", "/opt/gen-studio/data/kit-status.json"))
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 SHEET_TITLE = "Gen-Studio — Phiếu Muse"
@@ -43,9 +46,28 @@ STATUS_COLOR = {
 }
 IMG_EXT = (".png", ".jpg", ".jpeg", ".webp")
 
-# 9 ô MR-063 mà Ryan dặn không tạo lại (xem docs/handoff) — cố định theo brief 01/11/2026.
-MR063_BO = {"nhi-08", "nhi-16", "nhi-17", "nhi-20", "nhi-22", "nhi-23", "nhi-33", "nhi-34", "nhi-37"}
+# 9 ô MR-063 mà Ryan dặn không tạo lại (xem docs/handoff) — cố định theo brief 01/11/2026. Mã ô ĐẦY ĐỦ
+# (nhi.expr.NN — cùng quy ước với docs/MUSE-CONNECT.md/kit-map.js từ bổ sung cổng C.2 mục 1, không còn "nhi-08").
+MR063_BO = {"nhi.expr.08", "nhi.expr.16", "nhi.expr.17", "nhi.expr.20", "nhi.expr.22", "nhi.expr.23", "nhi.expr.33", "nhi.expr.34", "nhi.expr.37"}
 GHI_CHU_BO = "CO dặn không tạo lại"
+
+
+# ---------- quy đổi mã rút gọn trong phiếu .md -> mã ô đầy đủ Bộ Neo ----------
+# C.2 (Gen, bổ sung cổng, mục 1): HAI quy ước tên file từng loại trừ nhau (docs dặn Muse nộp `<mã ô>.<ext>` như
+# `nhi.expr.08.png`; phiếu MR-063/065/066.md tự viết mã RÚT GỌN `nhi-08` trong markdown; tickets-sheet.py trước
+# đây lấy thẳng mã rút gọn làm cột "Mã ô" trên Sheet ⇒ KHÔNG BAO GIỜ khớp file đặt tên theo chuẩn). CHỐT: cột
+# "Mã ô" trên Sheet = mã ô ĐẦY ĐỦ (để HuongDan + docs cùng nói một quy ước); hàm này quy đổi mã rút gọn → đầy đủ.
+def to_slot_code(ticket_id: str, raw_code: str) -> str | None:
+    if ticket_id == "MR-064":  # fx-01-sweat-drop... -> fx.manpu.01 (thứ tự trong MR-064.md khớp STANDARD-KIT-v1 §4.3)
+        m = re.match(r"^fx-(\d{2})-", raw_code)
+        return f"fx.manpu.{m.group(1)}" if m else None
+    m = re.match(r"^([a-z]+)-(\d{2})$", raw_code)
+    if not m:
+        return None
+    subject, n = m.group(1), m.group(2)
+    if n == "00":
+        return None  # ảnh gốc tham chiếu (MR-063 bước 1), không phải một ô
+    return f"{subject}.expr.{n}"
 
 # Phiếu nào ứng với nhân vật nào — chỉ 4 phiếu trong phạm vi brief 01/11/2026.
 TICKET_CHAR = {"MR-063": "Nhi", "MR-064": "Chung", "MR-065": "Vy", "MR-066": "Ryan"}
@@ -97,8 +119,11 @@ def parse_character_ticket(ticket_id: str, body: str) -> list[dict]:
     out = []
     for r in rows:
         prompt = prompt_tpl.replace("<tên biểu cảm>", r["desc"]) if prompt_tpl else r["desc"]
+        # `nhi-00` (ảnh gốc tham chiếu, MR-063 bước 1) KHÔNG phải một ô Bộ Neo (to_slot_code trả None) — vẫn giữ
+        # dòng trên Sheet để Muse theo dõi tiến độ, chỉ không quy đổi được sang mã ô đầy đủ (không khớp kit-status.json).
+        code = to_slot_code(ticket_id, r["ma_o"]) or r["ma_o"]
         out.append({
-            "ma_o": r["ma_o"],
+            "ma_o": code, "legacy_ma_o": r["ma_o"],
             "ten_vi": r["nhom"],
             "ten_en": r["desc"],
             "prompt": prompt,
@@ -124,8 +149,9 @@ def parse_overlay_ticket(ticket_id: str, body: str) -> list[dict]:
             code, desc_vi = m.group(1), m.group(2).strip()
             en = code.split("-", 2)[-1].replace("-", " ")
             prompt = prompt_tpl.replace("<tên ký hiệu>", f"{en} ({desc_vi})") if prompt_tpl else desc_vi
+            slot_code = to_slot_code(ticket_id, code) or code
             out.append({
-                "ma_o": code, "ten_vi": desc_vi, "ten_en": en, "prompt": prompt,
+                "ma_o": slot_code, "legacy_ma_o": code, "ten_vi": desc_vi, "ten_en": en, "prompt": prompt,
                 "chuan": "1024×1024, nền phẳng #00B140",
             })
     return out
@@ -194,10 +220,16 @@ def link_for(path: Path) -> str:
         return str(path)
 
 
-def match_ma_o(ma_o: str, submitted: dict[str, Path]) -> Path | None:
+def match_ma_o(ma_o: str, submitted: dict[str, Path], legacy_ma_o: str | None = None) -> Path | None:
+    # C.2 (mục 1): khớp tên file CHUẨN (stem == mã ô đầy đủ, vd `nhi.expr.08`) TRƯỚC; `legacy_ma_o` (mã rút gọn
+    # `nhi-08`) chỉ dự phòng cho hàng đã nộp trước khi chốt quy ước — không phải quy ước mới.
     for stem, path in submitted.items():
         if stem == ma_o or stem.startswith(ma_o + "-"):
             return path
+    if legacy_ma_o:
+        for stem, path in submitted.items():
+            if stem == legacy_ma_o or stem.startswith(legacy_ma_o + "-"):
+                return path
     return None
 
 
@@ -320,7 +352,7 @@ def seed(svc):
             if ticket_id == "MR-063" and item["ma_o"] in MR063_BO:
                 status, nguoi_lam, link, ghi_chu = "Bỏ", "", "", GHI_CHU_BO
             else:
-                f = match_ma_o(item["ma_o"], submitted)
+                f = match_ma_o(item["ma_o"], submitted, item.get("legacy_ma_o"))
                 if f:
                     status, nguoi_lam, link, ghi_chu = "Chờ kiểm", "Muse", link_for(f), ""
                 else:
@@ -343,41 +375,91 @@ def seed(svc):
     print(f"✓ seed xong — {len(new_rows)} dòng mới")
 
 
+# 0.3.0-C.2: đọc data/kit-status.json (env GS_KIT_STATUS, mặc định /opt/gen-studio/data/kit-status.json) —
+# MỘT công thức «ô đạt» (DB-GK-0.1 §13, v_kit_coverage), do `genstudio import` ghi. File thiếu/hỏng ⇒ {} êm,
+# không crash (tương thích ngược — sync vẫn chạy phần đối chiếu file Drive như trước).
+def load_kit_status() -> dict:
+    if not KIT_STATUS_FILE.is_file():
+        return {}
+    try:
+        data = json.loads(KIT_STATUS_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return data.get("slots") or {}
+
+
+KIT_VERDICT_TO_STATUS = {"đạt": "Đạt", "cờ lỗi": "Làm lại"}
+
+
+# Chờ kiểm -> Đạt/Làm lại theo kit-status.json; KHÔNG đụng dòng khác (đặc biệt KHÔNG hạ dòng Đạt Ryan đã đặt —
+# chỉ xét dòng đang "Chờ kiểm"). `ma_o` trên Sheet giờ LÀ mã ô đầy đủ (mục 1) nên tra thẳng, không cần quy đổi.
+def kit_status_updates(rows: list[list[str]]) -> list[tuple[int, list[str]]]:
+    slots = load_kit_status()
+    if not slots:
+        return []
+    out = []
+    for idx, row in enumerate(rows):
+        row = row + [""] * (len(HEADER) - len(row))
+        ma_o, status = row[2], row[7]
+        if status != "Chờ kiểm":
+            continue
+        info = slots.get(ma_o)
+        if not info:
+            continue
+        new_status = KIT_VERDICT_TO_STATUS.get(info.get("state"))
+        if not new_status:
+            continue
+        row[7] = new_status
+        row[10] = f"Kiểm máy (kit-status.json): {info.get('state')}"
+        row[11] = now_iso()
+        out.append((idx, row))
+    return out
+
+
 def sync(svc):
     rows = read_phieu_rows(svc)
     tickets = load_tickets()
     submitted_cache = {tid: find_submitted(tid) for tid in tickets}
+    legacy_lookup = {tid: {it["ma_o"]: it.get("legacy_ma_o") for it in items} for tid, items in tickets.items()}
 
-    updates = []
+    updates: dict[int, list[str]] = {}
     for idx, row in enumerate(rows):
         row = row + [""] * (len(HEADER) - len(row))
         ticket_id, ma_o, status = row[0], row[2], row[7]
         if status not in ("Mới", "Đang làm"):
             continue
         sub = submitted_cache.get(ticket_id, {})
-        f = match_ma_o(ma_o, sub)
+        legacy = legacy_lookup.get(ticket_id, {}).get(ma_o)
+        f = match_ma_o(ma_o, sub, legacy)
         if not f:
             continue
         row[7], row[9], row[11] = "Chờ kiểm", link_for(f), now_iso()
-        sheet_row = idx + 2
-        updates.append({"range": f"{TAB_PHIEU}!A{sheet_row}:L{sheet_row}", "values": [row]})
+        rows[idx] = row
+        updates[idx] = row
+
+    # C.2 (Gen, bổ sung cổng mục 1): Chờ kiểm -> Đạt/Làm lại theo kit-status.json — chạy SAU bước trên để thấy
+    # đúng dòng vừa chuyển "Chờ kiểm" cùng lượt sync này.
+    kit_updates = kit_status_updates(rows)
+    for idx, row in kit_updates:
+        rows[idx] = row
+        updates[idx] = row
 
     if updates:
         svc.spreadsheets().values().batchUpdate(
             spreadsheetId=SHEET_ID,
-            body={"valueInputOption": "RAW", "data": updates}).execute()
+            body={"valueInputOption": "RAW", "data": [
+                {"range": f"{TAB_PHIEU}!A{idx + 2}:L{idx + 2}", "values": [row]} for idx, row in updates.items()
+            ]}).execute()
 
-    rows_after = [u["values"][0] for u in updates]
-    all_rows = rows[:]
-    for u, r in zip(updates, rows_after):
-        all_rows[int(u["range"].split("!A")[1].split(":")[0]) - 2] = r
     counts = {s: 0 for s in STATUSES}
-    for row in all_rows:
-        if len(row) > 7 and row[7] in counts:
+    for row in rows:
+        row = row + [""] * (len(HEADER) - len(row))
+        if row[7] in counts:
             counts[row[7]] += 1
-    print(f"✓ sync xong — chuyển {len(updates)} ô sang Chờ kiểm · "
+    print(f"✓ sync xong — cập nhật {len(updates)} dòng (file Drive: {len(updates) - len(kit_updates)}, "
+          f"kit-status.json: {len(kit_updates)}) · "
           f"Mới {counts['Mới']} / Đang làm {counts['Đang làm']} / "
-          f"Chờ kiểm {counts['Chờ kiểm']} / Đạt {counts['Đạt']}")
+          f"Chờ kiểm {counts['Chờ kiểm']} / Đạt {counts['Đạt']} / Làm lại {counts['Làm lại']}")
 
 
 def status(svc):

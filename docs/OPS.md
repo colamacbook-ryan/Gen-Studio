@@ -77,6 +77,7 @@ SSH: `timeout 60 gcloud compute ssh gen-studio --zone us-west1-b --project gen-s
 | `restore-test.sh` | 20:30 UTC Chủ nhật (cron) | `/var/log/gs-backup.log` |
 | `gs-health.timer` | mỗi 15 phút | `/var/log/gs-health.log` |
 | `gs-drive-sync.timer` | mỗi 5 phút | `/var/log/gs-drive-sync.log` |
+| `gs-import.timer` | mỗi 10 phút | `/var/log/gs-import.log` |
 | `gs-tickets-sync.timer` | mỗi 10 phút | `/var/log/gs-tickets.log` |
 | Cảnh báo hỏng (mọi việc trên) | theo sự kiện | `/var/log/gs-alert.log` + cờ `/var/lib/gs-ops/ALERT` nếu chưa cấu hình Telegram |
 | Xem tất cả timer | — | `systemctl list-timers \| grep gs-` |
@@ -97,6 +98,13 @@ SSH: `timeout 60 gcloud compute ssh gen-studio --zone us-west1-b --project gen-s
 - Bản sao lưu chụp trước khi `update` đặt tên `pre-update-<lúc>.tar.gz` (khác mẫu `gen-studio-*.tar.gz`) ⇒ **không** bị prune nội bộ (giữ
   2 bản mới nhất) của `backup-offsite.sh` xoá theo — vẫn còn đó để `genstudio restore` nếu `rollback` mã xong mà dữ liệu cũng cần lùi. Các
   bản này không tự dọn — dọn tay định kỳ (`rm data/backups/pre-update-*.tar.gz` các bản cũ) nếu đĩa căng.
+- **`gs-import.timer`** (0.3.0-C.2, `deploy/gcp/import-setup.sh`): chạy `genstudio import --source $GS_DRIVE_DEST --allow-errors`
+  dưới `User=genstudio`, khoá `flock -n /run/gs-import.lock` (lượt sau chồng lên lượt đang chạy thì bỏ qua êm, không xếp hàng) —
+  đóng khoảng trống trước đây (cortex CNS-M1-10): hàng Drive kéo về qua `gs-drive-sync.timer` KHÔNG tự vào DB Gen Kit tới khi
+  timer này bật. Cài: `sudo bash /opt/gs-deploy/import-setup.sh` (sau `drive-setup.sh`; chạy lại an toàn). Kiểm tay:
+  `sudo -u genstudio /opt/gen-studio/cli/genstudio import --source /opt/gen-studio/data/inbox/drive --allow-errors`.
+  `gs-tickets-sync.timer` đọc `data/kit-status.json` do lệnh này ghi ra (env `GS_KIT_STATUS`, mặc định đúng đường dẫn đó) để
+  cập nhật cột Trạng thái trên Sheet Muse (Chờ kiểm → Đạt/Làm lại) — không cần nối tay.
 
 ## 9. Đường hầm MCP shell cấp cứu
 - Chỉ `127.0.0.1:7777` trên VM, dùng khi Claude Code hết quota. Token: `sudo cat /opt/gs-deploy/shell-token`.
