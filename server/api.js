@@ -206,6 +206,13 @@ function create(ctx) {
     return { user: { id: u.display_id, username: u.username, display_name: u.display_name, role: u.role, lang: u.locale }, csrf, workspace: w };
   }
   add('GET', '/api/me', { sess: true }, async c => meBody(c.sess.user, c.sess.csrf));
+  // Đổi mật khẩu của chính người dùng đang đăng nhập (brief Gen 31/10/2026) — op user.change_password (server/ops/account.js) kiểm mật khẩu hiện tại + mật khẩu mới.
+  const pwLimiter = auth.limiter();
+  add('POST', '/api/me/password', { sess: true, ui: true, strictOrigin: true }, async c => {
+    if (pwLimiter.hit('pw:' + c.sess.tokenHash, 8, 300e3)) throw fail('rate_limited', 'Đổi mật khẩu sai quá nhiều lần. Thử lại sau vài phút.');
+    write(actorOf(c), 'user.change_password', Object.assign({}, c.body, { keep_token_hash: c.sess.tokenHash }));
+    return { ok: true };
+  });
 
   // ---- lưới (tổng quan: server/routes/overview.js) ----
   add('GET', '/api/grid/:name', { sess: true }, async c => grids.runGrid(db, c.params.name, { q: c.url.searchParams.get('q'), sort: c.url.searchParams.get('sort'), limit: c.url.searchParams.get('limit') }));
