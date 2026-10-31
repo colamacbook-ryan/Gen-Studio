@@ -50,16 +50,50 @@ case "$cmd" in
     if [ -s data/run/admin-key ] && ! printf '%s' "$st" | grep -q '"owner":true'; then url="$url/#/setup?k=$(cat data/run/admin-key)"; fi
     echo "$url"; (command -v xdg-open >/dev/null && xdg-open "$url") || (command -v open >/dev/null && open "$url") || true ;;
   update)
-    if [ -d .git ]; then git pull --ff-only; else echo "Bản cài từ Release: chạy lại install.sh (giữ nguyên data/ và .env)"; exit 0; fi
+    [ -d .git ] || { echo "Bản cài từ Release: chạy lại install.sh (giữ nguyên data/ và .env)"; exit 0; }
+    # đường lùi: sao lưu dữ liệu + đánh dấu commit hiện tại (trước khi kéo mã mới) rồi mới cập nhật.
+    # Thất bại ở bất kỳ bước nào (build/up/smoke) ⇒ tự quay lại commit cũ (tag pre-update-*).
+    tag="pre-update-$(date +%Y%m%d-%H%M%S)"
+    echo "› Sao lưu dữ liệu trước khi cập nhật…"
+    bf="$(do_backup)"; echo "  ✓ $bf"
+    git tag "$tag" HEAD >/dev/null 2>&1 || true
+    echo "› Đánh dấu mã hiện tại: $tag"
+    echo "› Kéo mã mới…"
+    if ! git pull --ff-only; then
+      echo "✗ git pull thất bại — chưa đổi gì, không cần rollback" >&2; exit 1
+    fi
+    ensure_pairing_secret
+    fail=0
+    dc build || fail=1
+    [ "$fail" = 0 ] && { dc up -d || fail=1; }
+    if [ "$fail" = 0 ]; then
+      ok=0
+      for _ in $(seq 1 30); do curl -fsS -o /dev/null --max-time 2 "http://127.0.0.1:$PORT/api/health" && { ok=1; break; }; sleep 2; done
+      [ "$ok" = 1 ] || fail=1
+    fi
+    if [ "$fail" = 0 ] && [ -x deploy/gcp/smoke.sh ]; then
+      deploy/gcp/smoke.sh || fail=1
+    fi
+    if [ "$fail" = 1 ]; then
+      echo "✗ Cập nhật không đạt (build/up/health/smoke) — tự rollback về $tag" >&2
+      exec "$SELF" rollback "$tag"
+    fi
+    echo "✓ Đã cập nhật — mã cũ đánh dấu $tag (rollback: genstudio rollback $tag)" ;;
+  rollback)
+    [ -d .git ] || { echo "✗ Bản cài từ Release không có git — khôi phục bằng install.sh bản cũ + genstudio restore <file>" >&2; exit 1; }
+    tag="${1:-}"
+    [ -n "$tag" ] || tag="$(git tag --list 'pre-update-*' --sort=-creatordate | head -1)"
+    [ -n "$tag" ] || { echo "✗ Không có tag pre-update-* nào để rollback — chỉ định tay: genstudio rollback <tag|commit>" >&2; exit 1; }
+    git rev-parse --verify "$tag" >/dev/null 2>&1 || { echo "✗ Không thấy tag/commit $tag" >&2; exit 1; }
+    echo "› Rollback mã về $tag…"
+    git checkout "$tag" -- . 2>/dev/null || git checkout "$tag"
     ensure_pairing_secret; dc build; dc up -d
-    echo "✓ Đã cập nhật" ;;
+    ok=0
+    for _ in $(seq 1 30); do curl -fsS -o /dev/null --max-time 2 "http://127.0.0.1:$PORT/api/health" && { ok=1; break; }; sleep 2; done
+    if [ "$ok" = 1 ]; then echo "✓ Đã rollback về $tag — khoẻ"; else echo "⚠ Đã rollback về $tag nhưng /api/health chưa trả lời — kiểm tay: genstudio logs" >&2; exit 1; fi
+    echo "! Dữ liệu (data/) KHÔNG tự rollback — nếu cần, dùng bản sao lưu đã tạo trước cập nhật: genstudio restore <file trong data/backups/>" ;;
   backup)
-    mkdir -p data/backups; f="data/backups/gen-studio-$(date +%Y%m%d-%H%M%S).tar.gz"
-    # DB SQLite: dừng studio ngắn để chép nhất quán
-    was=0; dc ps --status running --services 2>/dev/null | grep -qx studio && was=1
-    [ "$was" = 1 ] && dc stop studio >/dev/null
-    tar -czf "$f" --exclude=data/backups --exclude=data/run --exclude=data/.env data
-    [ "$was" = 1 ] && dc up -d studio >/dev/null
+    f="$(do_backup)"
     echo "✓ $f"
     echo "! Bản sao lưu KHÔNG chứa GS_MASTER_KEY (nằm ở data/.env). Hãy cất khoá chủ riêng (trình quản lý mật khẩu); mất khoá thì các khoá nhà cung cấp đã lưu không giải mã được." ;;
   restore)
