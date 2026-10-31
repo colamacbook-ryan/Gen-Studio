@@ -2,13 +2,13 @@
 # Cài rclone + bật đồng bộ định kỳ Google Drive → máy chủ Gen-Studio. © 2026 Gen Labs — All rights reserved.
 # Chạy trên VM:  sudo bash /opt/gs-deploy/drive-setup.sh      (chạy lại an toàn)
 # Cần trước: /opt/gs-deploy/drive-sa.json (khoá tài khoản dịch vụ Google, 600, chủ genstudio) đã có sẵn trên VM,
-# và Ryan đã chia sẻ thư mục Drive "Gen-Studio-Inbox" (Viewer) cho gs-drive@gen-studio-ryan.iam.gserviceaccount.com.
+# và Ryan đã chia sẻ thư mục Drive "Muse Workspace" (Viewer) cho gs-drive@gen-studio-ryan.iam.gserviceaccount.com.
 set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "✗ Chạy bằng sudo" >&2; exit 1; }
 D=/opt/gs-deploy
 U=genstudio
 DEST="${GS_DRIVE_DEST:-/opt/gen-studio/data/inbox/drive}"
-FOLDER="${GS_DRIVE_FOLDER:-Gen-Studio-Inbox}"
+FOLDER="${GS_DRIVE_FOLDER:-Muse Workspace}"
 LOG=/var/log/gs-drive-sync.log
 
 command -v rclone >/dev/null 2>&1 || { echo "› Cài rclone"; curl -fsSL https://rclone.org/install.sh | bash >/dev/null; }
@@ -26,8 +26,8 @@ After=network-online.target
 [Service]
 Type=oneshot
 User=$U
-Environment=GS_DRIVE_DEST=$DEST
-Environment=GS_DRIVE_FOLDER=$FOLDER
+Environment="GS_DRIVE_DEST=$DEST"
+Environment="GS_DRIVE_FOLDER=$FOLDER"
 ExecStart=$D/drive-sync.sh
 EOF
 
