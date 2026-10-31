@@ -37,6 +37,54 @@
   `test/l-import.test.js` (6 ca: fixture 5 file — 4 tạo asset kể cả không-ánh-xạ/1 trùng hash, `checks_level` có giá trị,
   `errors` rỗng, `kit-status.json`; nhánh `catalog.json`; `kit-map` fx/00-base/MR-045/053; snapshot ≥15 ô trên `library/` thật;
   `--source` không có `meta.json` tự dựng danh sách file, bỏ qua máy kiểm).
+- **Gói C.2 — Coverage + asset_rights + nợ nhập kho + 4 lỗ hổng cortex/review M2:**
+  - **Migration `0011_kit_coverage.sql`:** view `v_kit_coverage` (DB-GK-0.1 §13, STANDARD-KIT-v1 §5, cortex CNS-M1-09) — **MỘT**
+    công thức «ô đạt»/«trạng thái ô» (`đạt`/`cần kiểm lại`/`cờ lỗi`/`chờ duyệt`/`đang làm`/`thiếu`); `cli/import-kit.js` xuất
+    `data/kit-status.json` thẳng từ view này, không tự tính lại (trước đây ưu tiên lần nộp `approved` bất kỳ — không khớp định
+    nghĩa STANDARD). Quyết định tự chọn: gói A/C không có `assets.superseded_by`/`family_id`/`version` nên điều 1 chỉ còn
+    "gắn ô, hạng A" (bỏ phần "hiện hành"); `đang làm` không tính được (chưa có `asset_requests`) — luôn rơi `thiếu`; `kit_major`
+    hiện hành hardcode = 1. Thêm cột `asset_submissions.quality_claimed` (hạng Muse tự khai, tách khỏi `assets.quality`).
+    SQLite không thấy correlation CÁCH HAI CẤP trong `ORDER BY` của subquery (đo được, ghi chú trong migration) — tránh bằng
+    tra lại qua cấp liền kề.
+  - **Nhập kho ghi `asset_rights`** (cortex CNS-M1-18): op mới `asset.attest_import` (`ownerOrCli`, idempotent theo asset,
+    `by`=owner duy nhất của workspace) — `cli/import-kit.js` gọi cho MỌI asset nhập (nhánh Muse: `basis='licensed'`, note
+    "Meta-Muse-Output · <MR> · chờ điều khoản Meta"; nhánh catalog: `basis` theo `source_kind` — `own_product` cho in-house,
+    `licensed` cho muse/external, note = license + nguồn).
+  - **Không tự gán `assets.quality='A'`** (cortex CNS-M1-07): nhập kho (nhánh Muse) để `quality` NULL, hạng Muse tự khai vào
+    `asset_submissions.quality_claimed`; Ryan đặt `assets.quality` khi duyệt/chứng nhận (`asset.meta`/`kit.certify`). Nhánh
+    catalog.json (dữ liệu đã vetted sẵn trong repo, không phải tự khai của agent) giữ nguyên.
+  - **Nợ review C:** SVG bên thứ ba bị `svgOk` (lõi `write.js`) từ chối ⇒ `report.skipped` (không phải lỗi, exit 0), tách khỏi
+    `report.errors` · `submission.set_state` chỉ cho `submitted → *` trên lần nộp do import tạo (`agent_id IS NULL`) — lần nộp
+    qua MCP (`agent_id` khác NULL) hoặc đã rời `submitted` bị từ chối `forbidden`/`conflict` · magic bytes cho audio/video
+    (tái dùng `server/checks/magic.js` của gói E — `.wav/.mp3/.ogg/.mp4/.webm`) TRƯỚC `asset.put` (lõi `write.js` chỉ kiểm nội
+    dung thật của svg/image — audio/video trước đây đi thẳng, không bọc gì, bài học L-101) · `--dry-run` không còn đọc hết nội
+    dung file (chỉ cần tên để ánh xạ ô) · `--only`/`--source` thiếu giá trị ⇒ in usage, thoát mã 2 (khác mã 1 = lỗi chạy thật).
+  - **Gen (phản biện M2 opus, 4 lỗ hổng, gộp vào nhánh):**
+    1. **Một quy ước tên file:** docs/MUSE-CONNECT.md dặn Muse nộp `<mã ô>.<ext>` (`nhi.expr.08.png`) nhưng `kit-map.js` chỉ
+       nhận `nhi-NN-slug.png` và `tickets-sheet.py` so `stem == mã ô` với cột "Mã ô" trên Sheet đang là mã RÚT GỌN (`nhi-08`,
+       từ markdown phiếu MR-063/065/066) ⇒ không bao giờ khớp. CHỐT: `kit-map.js` nhận CẢ HAI dạng (chuẩn `<mã ô>.<ext>` ưu
+       tiên, dạng cũ giữ tương thích); `tickets-sheet.py` quy đổi mã rút gọn → mã ô đầy đủ (`to_slot_code`) ngay lúc đọc phiếu
+       — cột "Mã ô" trên Sheet từ nay là mã ô đầy đủ, `match_ma_o` thử mã đầy đủ trước rồi mới tới mã rút gọn (dự phòng hàng
+       đã nộp trước đó).
+    2. **Tự động nhập hàng Drive:** `deploy/gcp/import-setup.sh` (mới) — systemd timer `gs-import` mỗi 10 phút chạy
+       `genstudio import --source /opt/gen-studio/data/inbox/drive --allow-errors` (`User=genstudio`, khoá `flock -n`, log
+       `/var/log/gs-import.log` 600); gắn vào `gcp-create.sh`/`startup.sh` (danh sách file copy lên VM) + `docs/OPS.md` §8.
+       **Chưa bật thật trên VM — chỉ bật sau khi PR này merge** (theo lệnh Gen).
+    3. **`--source` (Drive) phải chạy máy kiểm:** bỏ điều kiện `if (!meta.synthesized)` quanh `runChecks` — trước đây thư
+       mục không có `meta.json` (hàng Drive) bỏ qua hẳn máy kiểm (cortex CNS-M1-10: "chưa kiểm"/"kiểm đạt" trông giống nhau);
+       nay luôn chạy, vẫn không gán `quality='A'` (mục trên).
+    4. **Chống đụng ô:** `submission.import` từ chối (`conflict`) khi ô đang bị MỘT AGENT MCP giữ claim còn sống
+       (`kit_slots.claimed_by`/`claim_expires_at`, `kit.claim`) — nhập kho (cron Drive/CLI, không có danh tính agent) phải chờ
+       hết hạn giữ, không chen vào giữa bài đang làm dở qua MCP. **Quyết định tự chọn (lệch với gợi ý Gen):** KHÔNG thêm UNIQUE
+       index "1 asset hiện hành/ô" trên `assets.kit_slot` — thiết kế hiện có CỐ Ý cho nhiều asset cùng gắn một ô (vd
+       `nhi.id.01` nhận cả 3 phương án `nhi-3d-variant-{a,b,c}`, Ryan chọn khi certify, `server/kit-map.js` OVERRIDES ghi rõ;
+       `test/l-import.test.js` có ca xác nhận 2 asset/ô) — UNIQUE cứng sẽ phá đúng thiết kế đó. Nửa an toàn (chặn claim sống)
+       đã đủ chặn đúng kịch bản đụng độ Gen mô tả (cron Drive ghi đè bài agent MCP đang làm dở); báo lại quyết định này cho Gen
+       khi gộp PR.
+  - Test: `test/l-import.test.js` (+7 ca: `v_kit_coverage` "đạt" đủ 5 điều, `asset.attest_import` idempotent, SVG bị từ chối
+    → `report.skipped`, magic bytes audio/video sai → lỗi trước `asset.put`, chống đụng ô, `submission.set_state` giới hạn,
+    kit-map hai quy ước tên file) · `test/h-migration.test.js`/`test/d-oauth.test.js`/`test/g-aspect-data.test.js` đếm 11
+    migration.
 
 ## Chưa phát hành · khối cho clip giải thích dài
 - Đổi mật khẩu đăng nhập: `POST /api/me/password` (phiên UI + CSRF, cấm trùng mật khẩu cũ, huỷ các phiên khác), nút trong sidebar (hộp người dùng).

@@ -31,7 +31,9 @@ Chạy ngoài container (dev/test tay): `DATA_DIR=<thư mục scratch> node cli/
 worktree); `server/config.js` đọc biến `DATA_DIR` (không phải `GENSTUDIO_DATA_DIR`).
 
 Mã thoát: `0` khi không có lỗi (hoặc có `--allow-errors`); `1` khi `report.errors` không rỗng (file hỏng, ghi
-DB lỗi, SVG bên thứ ba bị từ chối…) — để script/CI gọi lệnh biết mà dừng lại thay vì âm thầm bỏ qua.
+DB lỗi, magic bytes audio/video sai…) — để script/CI gọi lệnh biết mà dừng lại thay vì âm thầm bỏ qua; `2` khi
+cờ `--only`/`--source` thiếu giá trị (lỗi cách dùng, in usage, không chạm DB). SVG bên thứ ba bị `svgOk` từ
+chối **không** phải lỗi (nguồn ngoài, không sửa được) — vào `report.skipped`, không tính vào exit code.
 
 ## Ánh xạ file → mã ô · File → slot mapping (`server/kit-map.js`)
 
@@ -43,16 +45,19 @@ Theo thứ tự:
    MR-052 (Ryan · toàn thân 3D → `ryan.id.01`), MR-053 (Ryan · bảng xoay → `ryan.id.02..05`) — mọi phiếu "bảng
    xoay" đều có file sheet tổng hợp `*-turnaround-sheet-3840x2160.png` cố ý **không** gắn ô (chỉ là ảnh preview
    4-góc-trong-một, không phải một ô riêng).
-2. **`<subject>-00-base.ext`** (MR-063 bước 1): ảnh gốc dùng để sửa-ra các biểu cảm bằng image-to-image, cố ý
+2. **Tên file CHUẨN = đúng mã ô** (`docs/MUSE-CONNECT.md`, vd `nhi.expr.08.png`, `fx.manpu.03.png`,
+   `audio.sfx.pop.03.wav`) — MỘT quy ước cho hàng Muse nộp mới, khớp trực tiếp nếu mã đó có trong
+   `seed/kit-slots.json`.
+3. **`<subject>-00-base.ext`** (MR-063 bước 1): ảnh gốc dùng để sửa-ra các biểu cảm bằng image-to-image, cố ý
    **không** gắn ô (mã ô bắt đầu từ `01`, không có `.00`).
-3. **Mẫu tên số** `<subject>-<NN>-<slug>.<png|jpg|jpeg|webp>` ⇒ `fx-NN-*` thử `fx.manpu.<NN>`; còn lại thử
-   `<subject>.expr.<NN>` rồi `<subject>.pose.<NN>` (ví dụ `nhi-21-sulking.png` ⇒ `nhi.expr.21`). Đây là mẫu tên
-   khuyến nghị cho lô Muse **sau này** nộp thẳng theo ô (xem `library/requests/MR-063-nhi-bieu-cam-v2.md` —
-   ticket đang `todo` dùng đúng mẫu này, vd `nhi-00-base.png`, `nhi-07-laughing.png`) **và** cho hàng về từ
-   Drive trên VPS (`/opt/gen-studio/data/inbox/drive/03_Hoan-thanh/<MR>/nhi-NN-slug.png` v.v. — dùng
-   `--source` để trỏ thẳng vào thư mục đó).
+4. **Mẫu tên số CŨ** `<subject>-<NN>-<slug>.<png|jpg|jpeg|webp>` ⇒ `fx-NN-*` thử `fx.manpu.<NN>`; còn lại thử
+   `<subject>.expr.<NN>` rồi `<subject>.pose.<NN>` (ví dụ `nhi-21-sulking.png` ⇒ `nhi.expr.21`) — GIỮ TƯƠNG
+   THÍCH cho hàng đã nộp trước khi chốt quy ước §2 (xem `library/requests/MR-063-nhi-bieu-cam-v2.md`, vẫn dùng
+   mẫu cũ) **và** hàng về từ Drive trên VPS đã nộp theo mẫu cũ
+   (`/opt/gen-studio/data/inbox/drive/03_Hoan-thanh/<MR>/nhi-NN-slug.png` — dùng `--source` để trỏ thẳng vào
+   thư mục đó; hàng Drive nộp đúng quy ước mới ở mục §2 cũng khớp được).
 
-Không khớp cả ba ⇒ **không ánh xạ được** — vẫn `asset.put` (tạo asset trong kho) **nhưng không tạo lần nộp**
+Không khớp cả bốn ⇒ **không ánh xạ được** — vẫn `asset.put` (tạo asset trong kho) **nhưng không tạo lần nộp**
 (không có `kit_slot` để gắn vào, Gen/Ryan gắn tay sau qua `asset.meta`/`slot.assign`), báo rõ lý do trong báo
 cáo cuối lệnh (không đoán mò). Lưu ý: `MR-048/050/054` (bộ 12 biểu cảm cũ, tên `nhi-expr-NN-slug.png`) **cố ý**
 không tự ánh xạ theo số thứ tự dù tên gần giống mẫu trên — nội dung/thứ tự của bộ cũ KHÔNG khớp bảng 40 biểu
@@ -64,8 +69,9 @@ theo số sẽ SAI; cần người xem lại nội dung rồi thêm override tay
 
 Thư mục `--source` (vd Drive) có thể chưa có `meta.json` theo lược đồ `library/inbox/meta.schema.json`. Khi
 thiếu, `cli/import-kit.js` tự dựng danh sách file từ phần mở rộng nhận diện được (`png/jpg/jpeg/webp/gif/svg/
-wav/mp3/mp4`, vai trò mặc định `main`, chất lượng mặc định `A`) — **không chạy máy kiểm gói E** cho các file
-này (thiếu `self_check`/role đáng tin để biết file nào là bản chính) và ghi nhận `quality='A'` không qua kiểm.
+wav/mp3/ogg/mp4/webm`, vai trò mặc định `main`, chất lượng khai mặc định `A` — chỉ vào `quality_claimed`, xem
+dưới). Gói C.2 (Gen, bổ sung cổng — sửa cortex CNS-M1-10): máy kiểm gói E **vẫn chạy** cho nhóm file này như
+mọi nhánh khác (trước đây bỏ qua hẳn, khiến "chưa kiểm" và "kiểm đạt" trông giống nhau trên màn hàng chờ).
 
 ## Quyết định đã duyệt · Decisions already made
 
@@ -99,26 +105,48 @@ certify được** (`kit.certify` sẽ chặn cho tới khi làm lại hoặc Ry
 
 ## `data/kit-status.json`
 
-Sau khi ghi thật (không `--dry-run`), lệnh xuất `data/kit-status.json`:
+Sau khi ghi thật (không `--dry-run`), lệnh xuất `data/kit-status.json` — **MỘT công thức duy nhất**, đọc thẳng
+từ view `v_kit_coverage` (migrations/0011, DB-GK-0.1 §13, STANDARD-KIT-v1 §5), không tự tính lại:
 
 ```json
 {
   "generated_at": "2026-10-31T12:00:00.000Z",
   "slots": {
-    "nhi.id.01": { "asset_id": "AS-0003", "state": "approved", "checks_level": "fail" },
+    "nhi.id.01": { "asset_id": "AS-0003", "state": "thiếu", "checks_level": "fail" },
     "nhi.id.02": null
   }
 }
 ```
 
-`slots[code]` là `null` khi ô chưa có hàng, hoặc `{asset_id, state, checks_level}` của lần nộp **ưu tiên
-`approved` gần nhất**, lọc đúng `workspace_id` (nếu không có lần nộp nào `approved`, lấy asset mới nhất gắn ô
-đó). `checks_level` nay phản ánh đúng kết quả máy kiểm cuối cùng (`ok`/`warn`/`fail`) vì kiểm được ghi khi
-submission còn `submitted` (xem mục "Quyết định đã duyệt").
+`slots[code]` là `null` khi ô chưa có asset nào, hoặc `{asset_id, state, checks_level}` — `state` ∈ `đạt` /
+`cần kiểm lại` / `cờ lỗi` / `chờ duyệt` / `đang làm` / `thiếu` (bảng ưu tiên STANDARD-KIT-v1 §5); `asset_id` là
+asset **tham khảo** (ưu tiên asset đã chứng nhận nếu có, không thì asset mới nhất gắn ô — Ryan/Gen có đường
+vào xếp hạng/chứng nhận, **không** quyết định `state`). **Nhập kho "approved" KHÔNG tự ra `state: "đạt"`** —
+`assets.quality` vẫn `NULL` sau nhập (xem mục dưới), điều 1 của STANDARD §5 chưa thoả cho tới khi Ryan xếp
+hạng + `kit.certify`; đây là hành vi ĐÚNG theo định nghĩa, không phải thiếu sót.
 
-**TODO (chưa làm ở gói C):** file này **chưa nối** với script sổ phiếu `deploy/gcp/tickets-sheet.py` trên VM
-— script đó hiện đọc nguồn khác. Việc đọc `data/kit-status.json` để đồng bộ Google Sheet để lại cho gói F/Sheet
-(không gọi Google Sheet API ở gói này).
+`deploy/gcp/tickets-sheet.py sync` đọc file này qua env `GS_KIT_STATUS` (mặc định
+`/opt/gen-studio/data/kit-status.json`) để chuyển dòng "Chờ kiểm" trên Sheet Muse sang "Đạt"/"Làm lại" theo
+`state` — **không hạ** dòng đã "Đạt" (Ryan đặt tay); file thiếu/hỏng thì bỏ qua êm, phần đối chiếu file Drive
+cũ của `sync` vẫn chạy bình thường. Tự động hoá phần nhập kho: `deploy/gcp/import-setup.sh` (`gs-import.timer`,
+10 phút/lần) — xem `docs/OPS.md` §8.
+
+## Hạng Muse tự khai · `quality_claimed`
+
+**Không tự gán `assets.quality='A'`** từ khai báo của Muse (`meta.json.quality`, cortex CNS-M1-07) — nhánh
+nhập hàng Muse (inbox) để `assets.quality` **NULL** sau nhập, lưu hạng tự khai vào
+`asset_submissions.quality_claimed` (`A`/`B`). Ryan xếp hạng thật (`assets.quality`) khi duyệt qua
+`asset.meta`/chứng nhận ô (`kit.certify`). Nhánh `catalog.json` (dữ liệu đã kiểm sẵn trong repo, không phải tự
+khai của agent) giữ nguyên — `quality` lấy thẳng từ cột `quality` của mục catalog.
+
+## Quyền dùng · `asset_rights`
+
+Mọi asset nhập kho đều được ghi một hàng `asset_rights` (op mới `asset.attest_import`, idempotent theo asset —
+cortex CNS-M1-18: thiếu bước này thì điều 2 "quyền hiệu lực" của STANDARD §5 không bao giờ thoả, % đầy đủ đứng
+ở 0 vĩnh viễn và `rights.js` chặn render `rights_missing`). Nhánh Muse (inbox): `basis='licensed'`, ghi chú
+`Meta-Muse-Output · <mã phiếu> · chờ điều khoản Meta`. Nhánh catalog: `basis='own_product'` cho
+`source_kind='in-house'` (Gen-Labs-proprietary/Veo-Output/Google-Gemini-Output), `basis='licensed'` cho
+`muse`/`external` (license ngoài), ghi chú = license + nguồn.
 
 ## Giới hạn đã biết · Known limitations (gói C, 0.3.0)
 
@@ -127,7 +155,11 @@ submission còn `submitted` (xem mục "Quyết định đã duyệt").
   `audio`); `icon-set`/`font`/`lottie`/`motion-template` (tập nhiều tệp hoặc `kind` chưa có trong gói C) bị
   bỏ qua, báo trong "File không ánh xạ được".
 - SVG của bên thứ ba không qua được allowlist `svgOk` (`server/write.js`, chặn `<use>`/`<style>`/thực thể…)
-  bị từ chối — ghi vào mục "Lỗi" của báo cáo (exit 1 trừ khi `--allow-errors`), không làm hỏng cả lượt nhập.
+  bị từ chối — ghi vào `report.skipped` (KHÔNG phải lỗi, không tính vào exit code), không làm hỏng cả lượt nhập.
+- Audio/video khai sai nội dung (vd PNG đổi đuôi `.wav`) bị chặn bằng magic bytes TRƯỚC `asset.put` — vào
+  `report.errors` (exit 1 trừ khi `--allow-errors`), không tạo asset giả danh.
 - Ánh xạ file → ô chỉ theo **tên file**, không đọc nội dung ảnh — vì vậy cố ý hẹp (xem mục MR-048/050/054 ở
   trên) thay vì đoán sai.
-- `--source` chưa có `meta.json` ⇒ không chạy máy kiểm gói E cho nhóm file đó (xem mục riêng ở trên).
+- "Chống đụng ô" chỉ chặn khi ô đang có claim MCP **còn sống** (`kit.claim`); KHÔNG có UNIQUE ở DB ngăn nhiều
+  asset cùng gắn một ô — đây là thiết kế cố ý (nhiều phương án cùng một ô, Ryan chọn khi certify, xem
+  `server/kit-map.js` OVERRIDES).
