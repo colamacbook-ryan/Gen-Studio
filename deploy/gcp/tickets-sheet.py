@@ -335,10 +335,26 @@ def read_phieu_rows(svc) -> list[list[str]]:
     return res.get("values", [])
 
 
+# review opus PR #38 mục 4 [major]: Sheet THẬT đã có dòng mã RÚT GỌN (nhi-08, seed trước khi chốt mục 1) — nếu
+# existing_keys chỉ so khớp mã ĐẦY ĐỦ, seed() tưởng những ô đó "chưa có" và append ~205 dòng trùng. Chấp nhận
+# CẢ HAI dạng: với mỗi dòng đã có trên Sheet, thêm cả mã gốc lẫn mã đầy đủ quy đổi được vào tập khoá.
+def existing_key_set(existing_rows: list[list[str]]) -> set[tuple[str, str]]:
+    keys = set()
+    for r in existing_rows:
+        if len(r) <= 2 or not r[0] or not r[2]:
+            continue
+        ticket_id, ma_o = r[0], r[2]
+        keys.add((ticket_id, ma_o))
+        full = to_slot_code(ticket_id, ma_o)
+        if full:
+            keys.add((ticket_id, full))
+    return keys
+
+
 def seed(svc):
     tickets = load_tickets()
     existing = read_phieu_rows(svc)
-    existing_keys = {(r[0], r[2]) for r in existing if len(r) > 2}
+    existing_keys = existing_key_set(existing)
 
     new_rows = []
     counts = {}
@@ -346,8 +362,8 @@ def seed(svc):
         submitted = find_submitted(ticket_id)
         n_new = 0
         for item in items:
-            key = (ticket_id, item["ma_o"])
-            if key in existing_keys:
+            # khớp theo CẢ mã đầy đủ lẫn mã rút gọn (dòng cũ trên Sheet có thể ở dạng nào cũng được coi là đã có).
+            if (ticket_id, item["ma_o"]) in existing_keys or (item.get("legacy_ma_o") and (ticket_id, item["legacy_ma_o"]) in existing_keys):
                 continue
             if ticket_id == "MR-063" and item["ma_o"] in MR063_BO:
                 status, nguoi_lam, link, ghi_chu = "Bỏ", "", "", GHI_CHU_BO
@@ -462,6 +478,40 @@ def sync(svc):
           f"Chờ kiểm {counts['Chờ kiểm']} / Đạt {counts['Đạt']} / Làm lại {counts['Làm lại']}")
 
 
+# review opus PR #38 mục 4 [major]: một lần — ghi lại cột C (Mã ô) của các dòng ĐÃ SEED trước khi chốt quy ước
+# mục 1, từ mã RÚT GỌN (nhi-08) sang mã ô ĐẦY ĐỦ (nhi.expr.08), để khớp đúng một quy ước với file Muse nộp theo
+# docs/MUSE-CONNECT.md và với kit-status.json (gs-import). Không đụng dòng đã là mã đầy đủ (có dấu chấm) hoặc
+# không quy đổi được (vd `nhi-00` — ảnh gốc tham chiếu, không phải một ô). Chạy TAY MỘT LẦN:
+#   /opt/gs-deploy/venv/bin/python /opt/gs-deploy/tickets-sheet.py migrate-codes
+def migrate_codes(svc):
+    rows = read_phieu_rows(svc)
+    updates = []
+    n_full, n_unmappable = 0, 0
+    for idx, row in enumerate(rows):
+        row = row + [""] * (len(HEADER) - len(row))
+        ticket_id, ma_o = row[0], row[2]
+        if not ticket_id or not ma_o:
+            continue
+        if "." in ma_o:
+            n_full += 1
+            continue
+        full = to_slot_code(ticket_id, ma_o)
+        if not full:
+            n_unmappable += 1
+            continue
+        updates.append((idx, full))
+
+    if updates:
+        svc.spreadsheets().values().batchUpdate(
+            spreadsheetId=SHEET_ID,
+            body={"valueInputOption": "RAW", "data": [
+                {"range": f"{TAB_PHIEU}!C{idx + 2}", "values": [[full]]} for idx, full in updates
+            ]}).execute()
+
+    print(f"✓ migrate-codes xong — đổi {len(updates)} dòng sang mã ô đầy đủ "
+          f"(đã đầy đủ sẵn: {n_full}, không quy đổi được/giữ nguyên: {n_unmappable})")
+
+
 def status(svc):
     rows = read_phieu_rows(svc)
     by_ticket: dict[str, dict[str, int]] = {}
@@ -482,10 +532,10 @@ def status(svc):
 
 def main():
     ap = argparse.ArgumentParser(description="Quản lý phiếu Muse trên Google Sheet")
-    ap.add_argument("action", choices=["init", "seed", "sync", "status"])
+    ap.add_argument("action", choices=["init", "seed", "sync", "status", "migrate-codes"])
     args = ap.parse_args()
     svc = sheets_client()
-    {"init": init_sheet, "seed": seed, "sync": sync, "status": status}[args.action](svc)
+    {"init": init_sheet, "seed": seed, "sync": sync, "status": status, "migrate-codes": migrate_codes}[args.action](svc)
 
 
 if __name__ == "__main__":
