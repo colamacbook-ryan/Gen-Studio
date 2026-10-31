@@ -16,7 +16,7 @@ command -v docker >/dev/null 2>&1 || { curl -fsSL https://get.docker.com | sh; s
 # bộ script triển khai do gcp-create.sh đính vào metadata VM (khoá gs-file-<tên>) → /opt/gs-deploy
 MD=http://metadata.google.internal/computeMetadata/v1/instance/attributes
 mkdir -p /opt/gs-deploy
-for k in setup-vm.sh backup-offsite.sh restore-test.sh Caddyfile.tpl; do
+for k in setup-vm.sh backup-offsite.sh restore-test.sh Caddyfile.tpl tailscale.sh; do
   curl -fsS -H 'Metadata-Flavor: Google' "$MD/gs-file-${k//./-}" -o "/opt/gs-deploy/$k" || echo "! thiếu metadata gs-file-${k//./-}"
 done
 chmod 755 /opt/gs-deploy/*.sh 2>/dev/null || true
