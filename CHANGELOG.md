@@ -9,7 +9,27 @@
 - Test: `test/h-migration.test.js` (0006/0007 trên DB mới + nâng cấp từ 0005; CHECK `ck_public_ok` cả hai chiều; `redistribution` ngoài tập bị từ chối) · `test/i-kit-ops.test.js` (mỗi op 1–2 ca; `submission.auto_rework` lần 3 chuyển "chờ Ryan").
 - **Sửa sau review (Opus, PR #33):** `kit.certify` chặn theo danh sách tiêu chí M **bắt buộc theo nhóm ô** (`server/kit-criteria.js`, nguồn STANDARD-KIT-v1 §3–4; trước đây chỉ chặn khi có hàng `fail` nên asset chưa kiểm gì vẫn lọt) + đòi `h_ticks` phủ đủ mã M*/H của nhóm (DB-GK-0.1 §9, trước đây không bắt buộc) · adapter `server/checks/to-db.js` nối kết quả gói E (`{code, level:'M'|'M*'|'H', pass}`) sang hình dạng DB (`{criterion, severity, level:'ok'|'fail'|'warn'}`) · `asset_checks` thêm cột `severity` (M/M*/H, sửa thẳng trong 0006 — chưa phát hành) · `submission.auto_rework` lần 3 bền (`asset_submissions.state='blocked'`) và idempotent (gọi lại trả đúng đề xuất cũ, không tạo `SG-` thứ hai); đăng ký `ext.suggestionApply('submission_verdict', …)` để Ryan Áp dụng đề xuất thật sự đổi `asset_submissions` · dedupe `submission.record_checks` không còn so theo `level` (cùng `run_id`+tiêu chí khác `level` ⇒ conflict, không âm thầm ghi hàng mâu thuẫn) · mọi `ORDER BY created_at` kèm `, id` · `kit_slots.subject_rev` seed `nhi@r1`/`vy@r1`/`ryan@r1` cho 3 nhóm nhân vật, `kit.sync` đồng bộ · `agent.create` (around) không còn tự thêm scope `read` khi chỉ xin scope Gen Kit.
 - **Gói E — máy kiểm thường trực** (`server/checks/`): mỗi tiêu chí M của STANDARD-KIT-v1.md một hàm thuần (`check(filePath, slotSpec) → {code, level, pass, measured, note_vi, note_en}`); `runChecks(filePath, slotCode, opts)` chọn bộ theo mã ô và trả `{verdict: pass|rework|review, checks, summary_vi, summary_en}`. Phủ: CH-01/PR-01/FX-01 (kích thước + chống đệm), CH-02 (màu nền 4 góc), CH-03/PR-02/FX-02 (lẫn màu nền), CH-05 (vai chạm mép), CH-07 (chân chạm đất), CH-04 (tạm mức H — chưa có dò mốc mặt, so chồng mờ với `.expr.00` tham khảo), SC-01/SC-02 (bối cảnh), AU-01…04 (định dạng/đỉnh/LUFS/lặng đầu qua `media/mix.js` ebur128), UI-01 (SVG qua `svgOk`), MO-01 (Lottie, chặn expression + URL ngoài); magic bytes mở rộng (`server/checks/magic.js`): wav/mp3/ogg/mp4/webm/woff2/ttf/otf/json. CLI `cli/check-kit.js` (`genstudio check <file> --slot <mã ô>`), job `queue.runAssetCheck` (chưa ghi DB — gói A nối `asset_checks` sau). Chưa phủ: CH-06/CH-08 (cần toạ độ miệng/`.id.01` tham chiếu, chưa có trong spec máy kiểm), FO-02…04 (cmap/giấy phép font — ngoài phạm vi liệt kê của gói E), mọi tiêu chí mức H (cần mắt/tai Ryan). Test: `test/j-checks.test.js` (PNG/WAV dựng bằng ffmpeg lavfi, không mạng).
-
+- **Gói C — nhập kho hàng hiện có vào 457 ô:** `genstudio import [--dry-run] [--only MR-xxx] [--source <dir>] [--allow-errors]`
+  (`cli/import-kit.js`) quét `library/catalog.json` (272 mục cũ) + `library/inbox/MR-xxx-*/` (37 lô Muse đã nộp, hoặc `--source
+  <dir>` chứa trực tiếp các `MR-xxx-*/` — vd hàng Drive trên VPS), ánh xạ file → mã ô (`server/kit-map.js`: override tay cho
+  MR-044/045/046/047/052/053 + mẫu tên `<subject>-NN-slug.ext` cho lô sau này/Drive, vd `nhi-21-sulking.png` → `nhi.expr.21`,
+  `fx-NN-*` → `fx.manpu.NN`; `<subject>-00-base.ext` cố ý không gắn ô), ghi qua `write()`: `asset.put` **LUÔN** (kể cả file
+  không ánh xạ được ô — vẫn vào kho để gắn tay sau, review PR #35 mục 2) · `asset.meta`/`submission.import`/`submission.set_state`
+  (ba op mới, `server/ops/import.js`, quyền `ownerOrCli` như `kit.sync`) · `submission.record_checks` qua adapter
+  `server/checks/to-db.js` (gói E) — ghi kiểm **khi submission còn `submitted`**, rồi mới `submission.set_state` nâng
+  `approved` (review mục 4, trước đây gắn kiểm vào `asset` nên `checks_level` luôn NULL). Quyết định đã duyệt
+  (HANDOFF-LOCAL.md §4 mục C, Ryan 31/10): MR-044/046/052 → `approved`; MR-047 → `submitted` + đề xuất `SG-` chờ Ryan; còn lại →
+  `submitted` (chờ kiểm); "approved" **không đồng nghĩa certify** — nếu máy kiểm còn tiêu chí M `fail`, `decision_reason` ghi
+  rõ + lệnh in một khối **CẢNH BÁO** liệt kê từng ô (review mục 5); `ryan.*`/`audio.voice.ryan` không bao giờ `public_ok=1`.
+  Có lỗi thật (SVG bên thứ ba bị allowlist chặn…) ⇒ thoát mã 1 trừ khi `--allow-errors` (review mục 3). `data/kit-status.json`
+  lọc đúng `workspace_id`, ưu tiên lần nộp `approved` gần nhất (review mục 6) — **chưa nối** với `deploy/gcp/tickets-sheet.py`
+  (để gói F/Sheet, đã sửa docs — review mục 7). Chạy thật `--dry-run` trên `library/` hiện có (sau thêm override MR-045/053):
+  15/457 ô có hàng (NB-01=5, NB-02=5, NB-03=5); 376 file khác "không ánh xạ được" nhưng **vẫn vào kho** làm asset (catalog cũ/
+  âm thanh không có cách suy ra mã ô từ tên file; 3 lô biểu cảm cũ MR-048/050/054 cố ý không tự map vì nội dung không khớp
+  bảng 40 biểu cảm chính thức; `<subject>-00-base.ext` của MR-063 cố ý không gắn ô — xem docs/IMPORT.md). Test:
+  `test/l-import.test.js` (6 ca: fixture 5 file — 4 tạo asset kể cả không-ánh-xạ/1 trùng hash, `checks_level` có giá trị,
+  `errors` rỗng, `kit-status.json`; nhánh `catalog.json`; `kit-map` fx/00-base/MR-045/053; snapshot ≥15 ô trên `library/` thật;
+  `--source` không có `meta.json` tự dựng danh sách file, bỏ qua máy kiểm).
 
 ## Chưa phát hành · khối cho clip giải thích dài
 - Đổi mật khẩu đăng nhập: `POST /api/me/password` (phiên UI + CSRF, cấm trùng mật khẩu cũ, huỷ các phiên khác), nút trong sidebar (hộp người dùng).

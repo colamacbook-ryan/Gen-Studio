@@ -54,6 +54,9 @@ genstudio <lệnh>
   lang [vi|en]           xem / đổi ngôn ngữ
   token create [tên] [--scopes read,compose,run]
                          nâng cao: cấp token tay cho agent ngoài (hiện một lần); CLI không duyệt được quyền agent
+  import [--dry-run] [--only MR-xxx] [--source <dir>] [--allow-errors]
+                         nhập kho hàng hiện có (library/catalog.json + library/inbox/, hoặc --source <dir> chứa
+                         trực tiếp các MR-xxx-*/ vd hàng Drive) vào 457 ô Bộ Neo; xem docs/IMPORT.md
   agent-login            đăng nhập Claude Code cho agent nội bộ (chính chủ, một lần, trên máy chủ)
   voice status|pull      giọng offline trên máy (không cần khoá): xem trạng thái · tải model (~1 GB) và bật dịch vụ
   check <file> --slot <mã ô> [--ref <file>] [--json]
@@ -187,6 +190,9 @@ case "$cmd" in
   check)
     # Máy kiểm độc lập (server/checks/) — không cần DB/container studio chạy, chỉ cần node + ffmpeg trên PATH.
     exec node "$HOME_DIR/cli/check-kit.js" "$@" ;;
+  import)
+    # Nhập kho hàng hiện có (server/kit-map.js + server/ops/import.js) — ghi thẳng vào DB_DIR=data (không cần studio chạy).
+    DATA_DIR="${DATA_DIR:-$HOME_DIR/data}" exec node "$HOME_DIR/cli/import-kit.js" "$@" ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;
 esac
