@@ -11,8 +11,13 @@
 // đề xuất SG- cho Ryan) · còn lại (có hàng, chưa Ryan quyết) → submitted (chờ kiểm). "approved" vẫn giữ nguyên
 // theo quyết định Ryan dù máy kiểm còn tiêu chí M fail — ghi rõ trong decision_reason + in CẢNH BÁO cuối lệnh
 // (review mục 5): kho CHƯA certify được cho tới khi làm lại/miễn tiêu chí.
-// Xuất `data/kit-status.json` (mã ô → {asset_id, state, checks_level}) — CHƯA nối với `deploy/gcp/tickets-sheet.py
-// sync` (TODO gói F/Sheet, xem docs/IMPORT.md).
+// Xuất `data/kit-status.json` (mã ô → {asset_id, state, checks_level}) — tính TỪ `v_kit_coverage` (migrations/0011,
+// MỘT công thức «ô đạt», cortex CNS-M1-09), đọc bởi `deploy/gcp/tickets-sheet.py sync` (gói F, xem docs/IMPORT.md).
+// Gói C.2 (nợ review C + cortex CNS-M1-07/18): KHÔNG tự gán `assets.quality='A'` từ khai báo của Muse (hạng tự
+// khai vào `asset_submissions.quality_claimed`, Ryan đặt `assets.quality` khi duyệt/chứng nhận) · ghi `asset_rights`
+// (asset.attest_import) cho mọi asset nhập kho · magic bytes cho audio/video (server/checks/magic.js) trước khi
+// tạo asset · SVG bên thứ ba bị `svgOk` từ chối ⇒ `report.skipped` (không phải lỗi) · `--dry-run` không đọc hết
+// file · `--only`/`--source` thiếu giá trị ⇒ usage, exit 2.
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
@@ -21,6 +26,7 @@ const dbm = require('../server/db.js');
 const eventsMod = require('../server/events.js');
 const { createWriter } = require('../server/write.js');
 const kitMap = require('../server/kit-map.js');
+const magicMod = require('../server/checks/magic.js');
 
 const ROOT = path.join(__dirname, '..');
 const LIB = path.join(ROOT, 'library');
@@ -37,7 +43,7 @@ const CLI_ACTOR = { type: 'cli', entry: 'cli' };     // ownerOrCli: kit.sync, as
 const SYS_ACTOR = { type: 'system', entry: 'cli' };  // composeOrSystem (asset.put) + review (submission.record_checks, submission.propose)
 
 const EXT_IMAGE = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
-const EXT_RECOGNIZED = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.wav', '.mp3', '.mp4']);
+const EXT_RECOGNIZED = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.wav', '.mp3', '.ogg', '.mp4', '.webm']);
 const MIME_OF_EXT = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.svg': 'image/svg+xml' };
 
 // type (catalog.schema.json) → kind (assets.kind). Loại không có kind phù hợp trong gói C (icon-set/font/lottie/
@@ -66,28 +72,50 @@ function subjectFromTags(tags) {
   return undefined;
 }
 
-// sniffKindMime(head12, ext) — chỉ cần vài byte đầu (đã đọc sẵn cùng lượt đọc file, không đọc lại — review mục 10).
+// sniffKindMime(ext) — kind/mime KỲ VỌNG theo đuôi file; với audio/video, nội dung thật được xác nhận riêng
+// bằng magic bytes (verifyAudioVideoMagic) TRƯỚC khi tạo asset — đuôi file không đáng tin (Muse có thể gõ sai).
 function sniffKindMime(ext) {
   if (ext === '.svg') return { kind: 'svg', mime: 'image/svg+xml' };
   if (EXT_IMAGE.has(ext)) return { kind: 'image', mime: MIME_OF_EXT[ext] };
-  if (ext === '.wav' || ext === '.mp3') return { kind: 'audio', mime: ext === '.wav' ? 'audio/wav' : 'audio/mpeg' };
-  if (ext === '.mp4') return { kind: 'video', mime: 'video/mp4' };
+  if (ext === '.wav' || ext === '.mp3' || ext === '.ogg') return { kind: 'audio', mime: { '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg' }[ext] };
+  if (ext === '.mp4' || ext === '.webm') return { kind: 'video', mime: ext === '.mp4' ? 'video/mp4' : 'video/webm' };
   return { kind: null, mime: null };
+}
+
+// Magic bytes cho audio/video (DB-GK-0.1 §7; cortex bổ sung cổng C.2 mục 3): `server/write.js` (asset.put lõi)
+// CHỈ kiểm nội dung thật của svg/image/cover/logo — audio/video đi thẳng, không bọc gì (bài học L-101: kiểm
+// magic bytes, không tự bọc). Tái dùng `server/checks/magic.js` (gói E) — MỘT nguồn sniff cho cả máy kiểm Bộ
+// Neo lẫn nhập kho. → null (khớp) hoặc chuỗi lý do lỗi.
+function verifyAudioVideoMagic(bytes, declaredMime) {
+  const sn = magicMod.sniff(bytes, declaredMime);
+  if (sn.ok) return null;
+  return `magic bytes không khớp (phát hiện ${sn.detected || 'không rõ'}${sn.declared ? ', khai ' + sn.declared : ''})`;
 }
 
 class Report {
   constructor() {
     this.bySlotGroup = {};       // group_code -> Set(code có hàng)
     this.unmapped = [];          // {source, file, reason}
+    this.skipped = [];           // {source, file, reason} — KHÔNG phải lỗi (vd SVG bên thứ ba bị svgOk từ chối)
     this.deduped = 0;
     this.createdAssets = 0;
     this.metaChanged = 0;
+    this.rightsAttested = 0;
     this.submissions = { created: 0, deduped: 0, approved: 0, review: 0, pending: 0 };
     this.checks = { run: 0, errors: 0 };
     this.approvedWithMFail = []; // [{mr, file, kit_slot, failed:[criterion]}] — "approved" nhưng còn tiêu chí M fail
     this.errors = [];
   }
 }
+
+// SVG bên thứ ba bị `write()` từ chối ở asset.put (svgOk — thành phần không được phép: script, animate, use,
+// style, thực thể…) — đây KHÔNG phải lỗi nhập kho (nguồn ngoài, không sửa được), ghi report.skipped kèm lý do,
+// không chặn exit code (review C.2 mục 3).
+function isSvgRejected(e) { return e && e.code === 'invalid' && /SVG chứa thành phần không được phép/.test(e.message || ''); }
+
+// basis attest (DB-GK-0.1 §8): Gen-Labs-proprietary/Veo-Output/Google-Gemini-Output → own_product; còn lại (Meta-Muse-Output
+// và mọi license ngoài) → licensed.
+function basisOfSourceKind(sourceKind) { return sourceKind === 'in-house' ? 'own_product' : 'licensed'; }
 
 function loadSlotGroups() {
   const data = JSON.parse(fs.readFileSync(path.join(ROOT, 'seed', 'kit-slots.json'), 'utf8'));
@@ -128,15 +156,21 @@ async function importInboxFolder(write, inboxRoot, dirName, slotsById, groups, r
   for (const f of meta.files || []) {
     const filePath = path.join(dir, f.name);
     const ext = path.extname(f.name).toLowerCase();
-    let bytes;
-    try { bytes = fs.readFileSync(filePath); } catch (e) { report.errors.push(`${dirName}/${f.name}: ${e.message}`); continue; }
     const { kind, mime } = sniffKindMime(ext);
     if (!kind) { report.unmapped.push({ source: `inbox/${dirName}`, file: f.name, reason: `kind không hỗ trợ (${ext})` }); continue; }
 
     const map = kitMap.mapFile({ mrId, filename: f.name });
     if (map.code) markHasAsset(groups, slotsById, map.code, report);
     else report.unmapped.push({ source: `inbox/${dirName}`, file: f.name, reason: map.reason });
-    if (dryRun) continue;
+    if (dryRun) continue; // --dry-run: chỉ cần tên file để ánh xạ — KHÔNG đọc nội dung (review C.2 mục 3).
+
+    let bytes;
+    try { bytes = fs.readFileSync(filePath); } catch (e) { report.errors.push(`${dirName}/${f.name}: ${e.message}`); continue; }
+
+    if (kind === 'audio' || kind === 'video') {
+      const reason = verifyAudioVideoMagic(bytes, mime);
+      if (reason) { report.errors.push(`${dirName}/${f.name}: ${reason}`); continue; }
+    }
 
     // review mục 2: LUÔN asset.put + asset.meta dù không ánh xạ được ô (chỉ bỏ submission.import nếu vậy) —
     // nhập kho vẫn phải thấy được file trong DB để Ryan/Gen gắn ô tay sau này, không mất hẳn.
@@ -145,12 +179,23 @@ async function importInboxFolder(write, inboxRoot, dirName, slotsById, groups, r
       asset = write(SYS_ACTOR, 'asset.put', { kind, bytes, mime, source: 'upload', meta: { import: { mr: mrId, file: f.name } } });
       if (asset.deduped) report.deduped++; else report.createdAssets++;
 
+      // C.2 (cortex CNS-M1-07): KHÔNG gán `quality` ở đây — hạng tự khai của Muse (meta.quality) chỉ vào
+      // `asset_submissions.quality_claimed` (dưới), Ryan đặt `assets.quality` khi duyệt/chứng nhận.
       const metaRes = write(CLI_ACTOR, 'asset.meta', {
         asset: asset.display_id, kit_slot: map.code || undefined,
-        source_kind: 'muse', redistribution: 'in-product-only', quality: meta.quality === 'B' ? 'B' : 'A', commercial_ok: 1,
+        source_kind: 'muse', redistribution: 'in-product-only', commercial_ok: 1,
       });
       if (metaRes.changed) report.metaChanged++;
-    } catch (e) { report.errors.push(`${dirName}/${f.name}: ${e.message}`); continue; }
+
+      // C.2 (cortex CNS-M1-18): nhập kho ghi asset_rights — Muse/Meta, chờ điều khoản Meta (DB-GK-0.1 §5/§8).
+      const attestRes = write(CLI_ACTOR, 'asset.attest_import', {
+        asset: asset.display_id, basis: 'licensed', note: `Meta-Muse-Output · ${mrId} · chờ điều khoản Meta`,
+      });
+      if (!attestRes.deduped) report.rightsAttested++;
+    } catch (e) {
+      if (isSvgRejected(e)) { report.skipped.push({ source: `inbox/${dirName}`, file: f.name, reason: e.message }); continue; }
+      report.errors.push(`${dirName}/${f.name}: ${e.message}`); continue;
+    }
 
     if (!map.code) continue; // không có ô ⇒ không có lần nộp/máy kiểm (chỉ asset ở trên)
 
@@ -158,23 +203,24 @@ async function importInboxFolder(write, inboxRoot, dirName, slotsById, groups, r
     try {
       // Luôn tạo ở 'submitted' trước (idempotent theo asset+ô) — record_checks chỉ ghi được khi còn 'submitted'
       // (review mục 4); "approved" (nếu quyết định vậy) áp SAU, bằng submission.set_state bên dưới.
-      sub = write(CLI_ACTOR, 'submission.import', { asset: asset.display_id, kit_slot: map.code, state: 'submitted' });
+      sub = write(CLI_ACTOR, 'submission.import', { asset: asset.display_id, kit_slot: map.code, state: 'submitted', quality_claimed: meta.quality === 'B' ? 'B' : 'A' });
     } catch (e) { report.errors.push(`${dirName}/${f.name}: ${e.message}`); continue; }
     if (sub.deduped) { report.submissions.deduped++; continue; }
     report.submissions.created++;
 
+    // C.2 (Gen, bổ sung mục 3): LUÔN chạy máy kiểm, kể cả thư mục tự dựng (--source chưa có meta.json) — trước
+    // đây bỏ qua máy kiểm cho nhánh Drive khiến "chưa kiểm"/"kiểm đạt" trông giống nhau (cortex CNS-M1-10).
+    // Không gán quality='A' dù qua máy kiểm (điều đó là của Ryan — xem ghi chú ở asset.meta trên).
     let mFails = [];
-    if (!meta.synthesized) { // thư mục tự dựng (--source chưa có meta.json) — bỏ qua máy kiểm, thiếu self_check/role đáng tin
-      try {
-        const checksMod = require('../server/checks/index.js');
-        const toDb = require('../server/checks/to-db.js');
-        const r = await checksMod.runChecks(filePath, map.code, {});
-        const results = toDb.toDbResults(r);
-        write(SYS_ACTOR, 'submission.record_checks', { submission: sub.display_id, run_id: `import-${mrId}-${f.name}`, results });
-        report.checks.run++;
-        mFails = results.filter((x) => x.severity === 'M' && x.level === 'fail').map((x) => x.criterion);
-      } catch (e) { report.checks.errors++; report.errors.push(`checks ${dirName}/${f.name}: ${e.message}`); }
-    }
+    try {
+      const checksMod = require('../server/checks/index.js');
+      const toDb = require('../server/checks/to-db.js');
+      const r = await checksMod.runChecks(filePath, map.code, {});
+      const results = toDb.toDbResults(r);
+      write(SYS_ACTOR, 'submission.record_checks', { submission: sub.display_id, run_id: `import-${mrId}-${f.name}`, results });
+      report.checks.run++;
+      mFails = results.filter((x) => x.severity === 'M' && x.level === 'fail').map((x) => x.criterion);
+    } catch (e) { report.checks.errors++; report.errors.push(`checks ${dirName}/${f.name}: ${e.message}`); }
 
     if (verdict === 'approved') {
       const reason = mFails.length
@@ -211,19 +257,36 @@ async function importCatalog(write, libDir, slotsById, groups, report, { dryRun 
     else report.unmapped.push({ source: 'catalog', file: e.id, reason: map.reason });
     if (dryRun) continue;
 
+    let bytes;
+    try { bytes = fs.readFileSync(filePath); } catch (e2) { report.errors.push(`catalog ${e.id}: ${e2.message}`); continue; }
+    const mimeOfExt = MIME_OF_EXT[ext] || null;
+    if (kind === 'audio' || kind === 'video') {
+      const reason = verifyAudioVideoMagic(bytes, mimeOfExt);
+      if (reason) { report.errors.push(`catalog ${e.id}: ${reason}`); continue; }
+    }
+
     try {
-      const bytes = fs.readFileSync(filePath);
-      const mime = MIME_OF_EXT[ext] || null;
-      const asset = write(SYS_ACTOR, 'asset.put', { kind, bytes, mime, source: 'upload', meta: { import: { catalog_id: e.id } } });
+      const asset = write(SYS_ACTOR, 'asset.put', { kind, bytes, mime: mimeOfExt, source: 'upload', meta: { import: { catalog_id: e.id } } });
       if (asset.deduped) report.deduped++; else report.createdAssets++;
 
+      const sourceKind = sourceKindOfLicense(e.license);
       const metaRes = write(CLI_ACTOR, 'asset.meta', {
         asset: asset.display_id, kit_slot: map.code || undefined,
-        source_kind: sourceKindOfLicense(e.license), redistribution: e.redistribution === 'free' ? 'ok' : e.redistribution,
+        source_kind: sourceKind, redistribution: e.redistribution === 'free' ? 'ok' : e.redistribution,
         quality: e.quality, commercial_ok: e.commercial_ok ? 1 : 0, subject: subjectFromTags(e.tags),
       });
       if (metaRes.changed) report.metaChanged++;
-    } catch (err) { report.errors.push(`catalog ${e.id}: ${err.message}`); }
+
+      // C.2 (cortex CNS-M1-18): catalog.json là dữ liệu đã duyệt sẵn (license/source_url có kiểm) — attest
+      // thẳng theo license đã khai (DB-GK-0.1 §8), khác nhánh Muse (meta.json tự khai, "chờ điều khoản Meta").
+      const attestRes = write(CLI_ACTOR, 'asset.attest_import', {
+        asset: asset.display_id, basis: basisOfSourceKind(sourceKind), note: `${e.license || '?'} · ${e.source_url || e.source || e.id}`,
+      });
+      if (!attestRes.deduped) report.rightsAttested++;
+    } catch (err) {
+      if (isSvgRejected(err)) { report.skipped.push({ source: 'catalog', file: e.id, reason: err.message }); continue; }
+      report.errors.push(`catalog ${e.id}: ${err.message}`);
+    }
   }
 }
 
@@ -245,18 +308,11 @@ async function runImport({ write, db, libDir = LIB, dryRun = false, only = null,
   if (!only && !source) await importCatalog(write, libDir, slotsById, groups, report, { dryRun });
 
   if (!dryRun && db) {
-    const ws = db.ws;
+    // C.2 (DB-GK-0.1 §13, cortex CNS-M1-09): MỘT công thức «ô đạt» — đọc thẳng `v_kit_coverage` (migrations/0011),
+    // không tự tính lại (trước đây ưu tiên lần nộp 'approved' bất kỳ, không phải định nghĩa ô đạt của STANDARD §5).
+    const rows = db.all('SELECT code, asset_id, checks_level, state FROM v_kit_coverage WHERE workspace_id=?', db.ws);
     const status = {};
-    for (const s of slotsRaw) {
-      // review mục 6: lọc đúng workspace_id; ưu tiên lần nộp 'approved' gần nhất trước (không chỉ "mới nhất bất kỳ").
-      const row = db.get(
-        `SELECT a.display_id AS asset_display_id, asub.state, asub.checks_level
-         FROM assets a LEFT JOIN asset_submissions asub ON asub.asset_id = a.id AND asub.kit_slot = a.kit_slot AND asub.workspace_id = a.workspace_id
-         WHERE a.workspace_id = ? AND a.kit_slot = ?
-         ORDER BY (asub.state = 'approved') DESC, a.created_at DESC, a.id DESC LIMIT 1`,
-        ws, s.code);
-      status[s.code] = row ? { asset_id: row.asset_display_id, state: row.state || null, checks_level: row.checks_level || null } : null;
-    }
+    for (const r of rows) status[r.code] = r.asset_id ? { asset_id: r.asset_id, state: r.state, checks_level: r.checks_level || null } : null;
     report.kitStatus = { generated_at: new Date().toISOString(), slots: status };
   }
   report.groups = groups;
@@ -274,10 +330,15 @@ function printReport(report, { dryRun } = {}) {
   console.log(`  TỔNG: ${totalHas}/${totalSlots} ô có hàng`);
   console.log(`Asset: ${report.createdAssets} mới, ${report.deduped} trùng bỏ qua (sha256).`);
   console.log(`Mô tả (asset.meta): ${report.metaChanged} thay đổi.`);
+  console.log(`Quyền dùng (asset_rights): ${report.rightsAttested} attest mới.`);
   console.log(`Lần nộp: ${report.submissions.created} mới (approved=${report.submissions.approved}, review=${report.submissions.review}, pending=${report.submissions.pending}), ${report.submissions.deduped} trùng bỏ qua.`);
   console.log(`Máy kiểm (gói E): ${report.checks.run} lần chạy, ${report.checks.errors} lỗi.`);
   console.log(`File không ánh xạ được: ${report.unmapped.length}`);
   for (const u of report.unmapped) console.log(`  - [${u.source}] ${u.file}: ${u.reason}`);
+  if (report.skipped.length) {
+    console.log(`Bỏ qua (không phải lỗi, vd SVG bên thứ ba bị svgOk từ chối): ${report.skipped.length}`);
+    for (const s of report.skipped) console.log(`  - [${s.source}] ${s.file}: ${s.reason}`);
+  }
   if (report.approvedWithMFail.length) {
     console.log(`\nCẢNH BÁO: ${report.approvedWithMFail.length} ô "approved" theo quyết định Ryan nhưng MÁY KIỂM còn tiêu chí M fail — KHO CHƯA CERTIFY ĐƯỢC cho tới khi làm lại/miễn tiêu chí:`);
     for (const w of report.approvedWithMFail) console.log(`  - ${w.mr}/${w.file} (${w.kit_slot}): ${w.failed.join(', ')}`);
@@ -289,10 +350,26 @@ async function main() {
   const argv = process.argv.slice(2);
   const dryRun = argv.includes('--dry-run');
   const allowErrors = argv.includes('--allow-errors');
+  // C.2 (review nợ, mục 3): cờ thiếu giá trị (cuối argv, hoặc giá trị kế tiếp lại là một cờ khác) ⇒ usage, exit 2
+  // (quy ước Unix: 2 = lỗi cách dùng, khác exit 1 = lỗi khi chạy thật).
+  const usage = (msg) => {
+    console.error(`✗ ${msg}`);
+    console.error('Dùng: genstudio import [--dry-run] [--only MR-xxx] [--source <dir>] [--allow-errors]');
+    process.exit(2);
+  };
   const onlyIdx = argv.indexOf('--only');
-  const only = onlyIdx >= 0 ? argv[onlyIdx + 1] : null;
+  let only = null;
+  if (onlyIdx >= 0) {
+    only = argv[onlyIdx + 1];
+    if (!only || only.startsWith('--')) usage('--only cần kèm giá trị (vd --only MR-044).');
+  }
   const sourceIdx = argv.indexOf('--source');
-  const source = sourceIdx >= 0 ? path.resolve(argv[sourceIdx + 1]) : null;
+  let source = null;
+  if (sourceIdx >= 0) {
+    const raw = argv[sourceIdx + 1];
+    if (!raw || raw.startsWith('--')) usage('--source cần kèm đường dẫn thư mục.');
+    source = path.resolve(raw);
+  }
 
   const config = configMod.load();
   const db = dbm.open(config.dataDir, { masterKey: config.masterKey });
@@ -303,7 +380,7 @@ async function main() {
     if (!dryRun && report.kitStatus) {
       const statusPath = path.join(config.dataDir, 'kit-status.json');
       fs.writeFileSync(statusPath, JSON.stringify(report.kitStatus, null, 2));
-      console.log(`Đã ghi ${statusPath} (chưa nối với deploy/gcp/tickets-sheet.py sync — xem docs/IMPORT.md).`);
+      console.log(`Đã ghi ${statusPath} (deploy/gcp/tickets-sheet.py sync đọc qua env GS_KIT_STATUS — xem docs/IMPORT.md).`);
     }
     // review mục 3: có lỗi thật (file hỏng, ghi DB lỗi…) ⇒ exit khác 0 để CI/script gọi biết mà dừng lại,
     // trừ khi --allow-errors (đã xem báo cáo, chấp nhận chạy tiếp, vd lỗi SVG bên thứ ba đã biết trước).
