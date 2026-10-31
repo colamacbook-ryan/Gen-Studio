@@ -2,8 +2,8 @@
 id: MR-059
 priority: P2a
 kind: audio
-status: todo
-assignee: ""
+status: review
+assignee: muse
 output: library/inbox/MR-059-am-chuyen-canh/
 ---
 # MR-059 · Bộ 8 âm chuyển cảnh (transition stings)
@@ -21,10 +21,10 @@ Set of 8 short transition stings for motion-graphics scene changes, same sonic p
 Nếu công cụ chỉ xuất video có tiếng: xuất video, Gen sẽ tách âm — ghi rõ trong meta.json.
 
 ## Tiêu chí đạt (tự kiểm trước khi nộp)
-- [ ] Có đủ 3 mức nhẹ/vừa/mạnh rõ ràng
-- [ ] Không rè, không clip, đuôi sạch
-- [ ] Cùng một chất âm
-- [ ] Không lời hát, không dùng giai điệu/bài hát có sẵn của người khác
+- [x] Có đủ 3 mức nhẹ/vừa/mạnh rõ ràng
+- [x] Không rè, không clip, đuôi sạch
+- [x] Cùng một chất âm
+- [x] Không lời hát, không dùng giai điệu/bài hát có sẵn của người khác
 
 ## Nộp
 Theo `library/MUSE.md` §4–§6. Đổi `status` thành `review`.

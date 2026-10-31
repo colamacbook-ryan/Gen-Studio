@@ -1,0 +1,67 @@
+{
+  "request": "MR-053",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "ryan-3d-turnaround-sheet-3840x2160.png",
+      "kind": "image",
+      "role": "preview",
+      "duration_s": null,
+      "width": 3840,
+      "height": 2160,
+      "notes": ""
+    },
+    {
+      "name": "ryan-3d-view-front.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1040,
+      "height": 2352,
+      "notes": ""
+    },
+    {
+      "name": "ryan-3d-view-three-quarter.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1040,
+      "height": 2352,
+      "notes": ""
+    },
+    {
+      "name": "ryan-3d-view-side.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1040,
+      "height": 2352,
+      "notes": ""
+    },
+    {
+      "name": "ryan-3d-view-back.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1040,
+      "height": 2352,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse Image",
+  "prompt_used": "Premium stylized 3D animation style like a modern animated feature film (soft clay-like shading, subsurface skin, smooth rounded forms, big expressive eyes, soft global illumination, warm cozy color palette, gentle depth of field), matching library/style/ref-3d-ryan-01.jpg. Turnaround sheet of the SAME man as in the reference avatar: young Vietnamese man, short spiky black hair, round friendly face, brown eyes, warm playful smile, wearing a plain grey crew-neck tee. He is the MAIN HOST of the channel: confident, warm, playful (signature wink). front, three-quarter, side, back views, identical proportions, neutral pose, plain light-grey background, no text.",
+  "attempts": 1,
+  "self_check": {
+    "dung_mau": true,
+    "khong_chu": true,
+    "khung_dau_cuoi_trung": true,
+    "nen_phang": true
+  },
+  "issues": [
+    "Grey tee variant used, as ticket allows when Ryan has not chosen an outfit from MR-052. 4 separate views generated individually from MR-052 grey tee, each 1040x2352, plain light-grey background, no text: front, three-quarter, side profile, back. All share the same face, spiky black hair, grey tee and proportions. The 3840x2160 sheet is a composite of exactly those 4 separate views placed side by side at full 2160 height (no new generation, no text). An earlier 1920x1280 generated sheet was removed as superseded by the 3840x2160 composite."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}

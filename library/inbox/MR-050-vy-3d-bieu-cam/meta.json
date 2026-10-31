@@ -1,0 +1,139 @@
+{
+  "request": "MR-050",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "vy-expr-01-neutral-smile.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "vy-expr-02-explaining.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "vy-expr-03-listening.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "vy-expr-04-thinking.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "vy-expr-05-surprised.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "vy-expr-06-shocked.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "vy-expr-07-laughing.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "vy-expr-08-embarrassed.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "vy-expr-09-celebrating.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "vy-expr-10-worried.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "vy-expr-11-talking-calmly.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "vy-expr-12-talking-excitedly.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "vy-expressions-sheet.png",
+      "kind": "image",
+      "role": "preview",
+      "duration_s": null,
+      "width": 3072,
+      "height": 4096,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse Image",
+  "prompt_used": "Premium stylized 3D animation style like a modern animated feature film, matching library/style/ref-3d-ryan-01.jpg. Expression sheet of the SAME approved character Vy, head-and-shoulders, 12 expressions: neutral smile, explaining, listening/nodding, thinking, pleasantly surprised, shocked, laughing, embarrassed, celebrating, worried, talking calmly, talking excitedly. Consistent identity and lighting, solid chroma green #00B140 background.",
+  "attempts": 1,
+  "self_check": {
+    "dung_mau": true,
+    "khong_chu": true,
+    "khung_dau_cuoi_trung": false,
+    "nen_phang": true
+  },
+  "issues": [
+    "Used MR-046 variant A, as ticket allows when Ryan has not chosen a design. Each expression generated individually head-and-shoulders from variant A. Original sizes 1600x1600 (01, 05) and 1200x1920 (others); each padded centered with its own sampled corner green to exactly 2048x2048, no resizing, no distortion, no cropping. Sheet is a 3x4 composite of the 12 square files, 3072x4096, no new generation. Green is flat but measures about (1-7,163-170,54-62) at corners, close to but not exactly #00B140 (0,177,64). All 12 expressions present, unlike MR-048/MR-054 where some could not be generated."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}

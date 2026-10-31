@@ -2,8 +2,8 @@
 id: MR-048
 priority: P0b
 kind: character-design
-status: todo
-assignee: ""
+status: review
+assignee: "muse"
 output: library/inbox/MR-048-nhi-3d-bieu-cam/
 ---
 # MR-048 · Nhi — 12 biểu cảm 3D (bán thân)
@@ -20,10 +20,11 @@ Premium stylized 3D animation style like a modern animated feature film (soft cl
 12 PNG rời 2048×2048 nền xanh #00B140 + 1 bảng tổng
 
 ## Tiêu chí đạt (tự kiểm trước khi nộp)
-- [ ] Cùng một khuôn mặt ở cả 12 ảnh
-- [ ] Biểu cảm rõ, dễ thương, đọc được khi thu nhỏ
-- [ ] Nền xanh phẳng để tách nền
+- [x] Cùng một khuôn mặt ở cả 12 ảnh
+- [x] Biểu cảm rõ, dễ thương, đọc được khi thu nhỏ
+- [x] Nền xanh phẳng để tách nền
 
 ## Nộp
 Đặt file vào thư mục `output` ở trên + `meta.json` (xem `library/MUSE.md` §4). Đổi `status` thành `review`.
 **Cổng duyệt:** thiết kế nhân vật cần Ryan duyệt trước khi làm clip — Gen sẽ báo kết quả trong phiếu.
+> MUSE-NOP: du 12 bieu cam 2048x2048, phuong an A hoodie xanh teal; 06 happy surprise thay shocked, 08 shy blush thay embarrassed khong che mat bang tay, khong tao lai prompt goc; nen xanh phang tung anh nhung tong khac nhau, chi tiet trong meta.json issues.

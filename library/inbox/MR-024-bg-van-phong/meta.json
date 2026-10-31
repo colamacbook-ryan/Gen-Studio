@@ -1,0 +1,31 @@
+{
+  "request": "MR-024",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "bg-van-phong.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1920,
+      "height": 1080,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse Image",
+  "prompt_used": "Premium stylized 3D animation style like a modern animated feature film (soft clay-like shading, smooth rounded forms, soft global illumination, warm cozy color palette, gentle depth of field), matching library/style/ref-3d-ryan-01.jpg. Environment only. Scene: bright modern open office with desks, laptops, plants, big windows. Empty of people, leave the lower-left and center areas uncluttered so characters can stand there, gentle depth, no text, no logos, no watermark.",
+  "attempts": 1,
+  "self_check": {
+    "dung_mau": true,
+    "khong_chu": true,
+    "khung_dau_cuoi_trung": false,
+    "nen_phang": true
+  },
+  "issues": [
+    "Style reference used as style only, no person in output. Generated 2048x1152 then resized to exactly 1920x1080 with Lanczos. A small white sparkle artifact on the desk leg at the lower right was painted over with the desk's own wood tone; a faint smudge may remain at that spot. No layer-separated version produced, as the generator returns a single flat image. No people, no text, no logos."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}

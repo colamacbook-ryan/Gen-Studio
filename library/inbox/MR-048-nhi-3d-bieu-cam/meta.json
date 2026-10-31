@@ -1,0 +1,141 @@
+{
+  "request": "MR-048",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "nhi-expr-01-neutral-smile.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "nhi-expr-02-explaining.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "nhi-expr-03-listening.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "nhi-expr-04-thinking.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "nhi-expr-05-surprised.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "nhi-expr-06-happy-surprise.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": "gentler happy-surprise alternative, not a retry of the original shocked prompt"
+    },
+    {
+      "name": "nhi-expr-07-laughing.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "nhi-expr-08-shy-blush.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": "shy blushing smile alternative, no hand covering the face, not a retry of the original embarrassed prompt"
+    },
+    {
+      "name": "nhi-expr-09-celebrating.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "nhi-expr-10-worried.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "nhi-expr-11-talking-calmly.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "nhi-expr-12-talking-excitedly.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    },
+    {
+      "name": "nhi-expressions-sheet.png",
+      "kind": "image",
+      "role": "preview",
+      "duration_s": null,
+      "width": 3072,
+      "height": 4096,
+      "notes": "3x4 composite of the 12 square files, 3072x4096, no new generation"
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse Image",
+  "prompt_used": "Premium stylized 3D animation style like a modern animated feature film, same girl as Nhi reference (library/characters/nhi/stills/nhi-neutral.png): young Vietnamese woman, round glasses, two hair buns, teal hoodie over white tee (variant A). Head-and-shoulders portraits, shoulders up, head centered, solid flat chroma green background. 12 expressions: neutral smile, explaining, listening, thinking, pleasantly surprised, delighted happy surprise, laughing, shy blushing smile, celebrating, worried, talking calmly, talking excitedly. Each file padded centered with its own sampled corner green to exactly 2048x2048, no distortion, no cropping.",
+  "attempts": 1,
+  "self_check": {
+    "cung_khuon_mat": true,
+    "bieu_cam_ro": true,
+    "nen_phang": true,
+    "khong_chu": true
+  },
+  "issues": [
+    "06 happy surprise and 08 shy blush are gentler alternatives to the original shocked and embarrassed expressions; the original prompts are not retried.",
+    "Green is flat within each image but varies across the set, about (0-57,152-190,52-85) at corners, close to but not exactly #00B140 (0,177,64).",
+    "Sheet is a composite of the 12 square files, not a new generation."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}

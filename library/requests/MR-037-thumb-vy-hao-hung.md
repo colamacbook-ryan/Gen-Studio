@@ -2,8 +2,8 @@
 id: MR-037
 priority: P3
 kind: character-still
-status: todo
-assignee: ""
+status: review
+assignee: "muse"
 output: library/inbox/MR-037-thumb-vy-hao-hung/
 ---
 # MR-037 · Ảnh bìa — vy hao-hung
@@ -20,9 +20,9 @@ Big close-up (head and shoulders) of the character from its approved 3D design (
 PNG 2048×2048, nền trong suốt (hoặc xanh #00B140)
 
 ## Tiêu chí đạt (tự kiểm trước khi nộp)
-- [ ] Đúng nhân vật
-- [ ] Biểu cảm thật mạnh, đọc rõ khi thu nhỏ 168px
-- [ ] Không chữ
+- [x] Đúng nhân vật
+- [x] Biểu cảm thật mạnh, đọc rõ khi thu nhỏ 168px
+- [x] Không chữ
 
 ## Nộp
 Đặt file vào thư mục `output` ở trên + `meta.json` (xem `library/MUSE.md` §4). Đổi `status` thành `review`.

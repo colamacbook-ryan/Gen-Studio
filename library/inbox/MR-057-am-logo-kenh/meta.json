@@ -1,0 +1,49 @@
+{
+  "request": "MR-057",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "am-logo-kenh-v1.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 2.6,
+      "width": null,
+      "height": null,
+      "notes": "phương án chính, motif C-E-G-C, marimba/pluck + pad + sparkle"
+    },
+    {
+      "name": "am-logo-kenh-v2.wav",
+      "kind": "audio",
+      "role": "variant",
+      "duration_s": 2.6,
+      "width": null,
+      "height": null,
+      "notes": "phương án 2, motif E-G-A-C"
+    },
+    {
+      "name": "am-logo-kenh-v3.wav",
+      "kind": "audio",
+      "role": "variant",
+      "duration_s": 2.6,
+      "width": null,
+      "height": null,
+      "notes": "phương án 3, motif G-C-E-G, trầm hơn"
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse (programmatic synthesis, numpy + ffmpeg)",
+  "prompt_used": "Short memorable audio logo / sonic brand for a warm, smart, playful Vietnamese AI-education channel hosted by a friendly 3D-animated host. 2-3 seconds, 3-5 note motif (marimba/pluck + soft synth pad + subtle sparkle), ends on a resolved bright chord, modern and premium, not cheesy, no vocals. Provide 3 variations. Synthesized programmatically with original motifs, not a generated video soundtrack and not copied from any existing song.",
+  "attempts": 1,
+  "self_check": {
+    "de_nho": true,
+    "sang_khong_sen": true,
+    "khong_loi": true,
+    "khong_giai_dieu_co_san": true
+  },
+  "issues": [
+    "Synthesized programmatically (sine/harmonic plucks + pad + echo) rather than a studio-recorded performance; timbre is clean but simpler than a full studio logo."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30T07:30:00Z"
+}

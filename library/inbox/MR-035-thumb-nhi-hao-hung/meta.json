@@ -1,0 +1,31 @@
+{
+  "request": "MR-035",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "thumb-nhi-hao-hung.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse Image",
+  "prompt_used": "Premium stylized 3D animation style like a modern animated feature film. Big close-up (head and shoulders) of the SAME character Nhi as in the reference: woman about 25, round glasses, dark hair with two neat buns, teal hoodie. Exaggerated YouTube-thumbnail expression: excited, sparkling eyes, pointing at the viewer. On-model, solid flat chroma green #00B140 background, crisp outline, no text.",
+  "attempts": 1,
+  "self_check": {
+    "khung_dau_cuoi_trung": false,
+    "dung_mau": true,
+    "nen_phang": true,
+    "khong_chu": true
+  },
+  "issues": [
+    "Used MR-044 variant A. Original 1600x1600 padded centered with its own green (3,165,62) to exactly 2048x2048, no distortion. Green close to but not exactly #00B140. Expression strong and readable at small size, pointing hand with 4 fingers visible plus thumb partially, no text."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}

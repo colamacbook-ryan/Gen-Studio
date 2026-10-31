@@ -1,0 +1,30 @@
+{
+  "request": "MR-042",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "nhac-hai.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 30.0,
+      "width": null,
+      "height": null,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse (programmatic synthesis, numpy + ffmpeg)",
+  "prompt_used": "Instrumental music only, no vocals: comedic, bouncy, quirky music for funny moments, 30 s. High quality mix, no clipping.",
+  "attempts": 1,
+  "self_check": {
+    "khong_loi": true,
+    "khong_meo_tieng": true,
+    "dung_tam_trang": true
+  },
+  "issues": [
+    "Comedic bouncy: staccato pluck melody with pitch jumps over C/G/F chords, soft kick/hat, 120 BPM, 15 bars = exactly 30 s, pattern repeats. Synthesised programmatically (numpy + ffmpeg), no sampled instruments, no vocals. Verified -16.01 LUFS, true peak -2.34 dBTP, 48 kHz 24-bit stereo."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}

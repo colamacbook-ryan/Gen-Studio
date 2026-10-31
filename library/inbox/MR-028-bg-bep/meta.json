@@ -1,0 +1,31 @@
+{
+  "request": "MR-028",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "bg-bep.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1920,
+      "height": 1080,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse Image",
+  "prompt_used": "Premium stylized 3D animation style like a modern animated feature film (soft clay-like shading, smooth rounded forms, soft global illumination, warm cozy color palette, gentle depth of field), matching library/style/ref-3d-ryan-01.jpg. Environment only. Scene: cozy kitchen with stove and a soup pot. Empty of people, leave the lower-left and center areas uncluttered so characters can stand there, gentle depth, no text, no logos, no watermark.",
+  "attempts": 1,
+  "self_check": {
+    "khung_dau_cuoi_trung": false,
+    "dung_mau": true,
+    "nen_phang": true,
+    "khong_chu": true
+  },
+  "issues": [
+    "Style reference used as style only, no person in output. Generated 2048x1152 then resized to exactly 1920x1080 with Lanczos. No people, no text, no logos. No layer-separated version produced, as the generator returns a single flat image."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}

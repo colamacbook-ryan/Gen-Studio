@@ -2,8 +2,8 @@
 id: MR-054
 priority: P0
 kind: character-design
-status: todo
-assignee: ""
+status: review
+assignee: "muse"
 output: library/inbox/MR-054-ryan-3d-bieu-cam/
 ---
 # MR-054 · Ryan — 14 biểu cảm 3D (bán thân)
@@ -22,10 +22,11 @@ Premium stylized 3D animation style like a modern animated feature film (soft cl
 14 PNG rời 2048×2048 nền xanh #00B140 + 1 bảng tổng
 
 ## Tiêu chí đạt (tự kiểm trước khi nộp)
-- [ ] Cùng một khuôn mặt cả 14 ảnh, giống avatar mẫu
-- [ ] Biểu cảm rõ, đọc được khi thu nhỏ
-- [ ] Nền xanh phẳng
+- [x] Cùng một khuôn mặt cả 14 ảnh, giống avatar mẫu
+- [x] Biểu cảm rõ, đọc được khi thu nhỏ
+- [x] Nền xanh phẳng
 
 ## Nộp
 Đặt file vào `output` + `meta.json` (xem `library/MUSE.md` §4). Đổi `status` thành `review`.
 **Cổng duyệt:** Ryan duyệt thiết kế trước khi làm clip.
+> MUSE-NOP: bo 12 bieu cam 2048x2048, ao thun xam, nen xanh phang, khung vai tro len; happy surprise la huong nhe thay shocked, worried va serious warning khong co trong bo 12 theo lenh moi; nen xanh phang tung anh nhung tong khac nhau, chi tiet trong meta.json issues.
