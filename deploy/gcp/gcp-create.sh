@@ -46,7 +46,10 @@ fi
 echo "› Service account chỉ dùng bucket sao lưu"
 gcloud iam service-accounts describe "$SA" --project "$PROJECT" >/dev/null 2>&1 \
   || gcloud iam service-accounts create gs-backup --project "$PROJECT" --display-name "Gen-Studio backup" >/dev/null
-gcloud storage buckets add-iam-policy-binding "$BUCKET" --member "serviceAccount:$SA" --role roles/storage.objectAdmin >/dev/null
+# chỉ tạo + đọc (khôi phục thử); không xoá/ghi đè — VM bị chiếm cũng không phá được bản sao lưu cũ. Xoá do lifecycle 30 ngày.
+for role in roles/storage.objectCreator roles/storage.objectViewer; do
+  gcloud storage buckets add-iam-policy-binding "$BUCKET" --member "serviceAccount:$SA" --role "$role" >/dev/null
+done
 
 echo "› Máy chủ $VM"
 if ! gcloud compute instances describe "$VM" --zone "$ZONE" --project "$PROJECT" >/dev/null 2>&1; then
