@@ -15,14 +15,19 @@ const NAV = [
     { path: 'curriculum', icon: 'book', label: 'nav.curriculum' },
     { path: 'work-orders', icon: 'list', label: 'nav.work_orders' },
     { path: 'lessons', icon: 'film', label: 'nav.lessons' },
-    { path: 'pipeline', icon: 'flow', label: 'nav.pipeline' }] },
-  { group: 'nav.g.library', items: [{ path: 'assets', icon: 'image', label: 'nav.assets' }, { path: 'cast', icon: 'grid', label: 'nav.cast' }] },
+    { path: 'pipeline', icon: 'flow', label: 'nav.pipeline' },
+    { path: 'kho-queue', icon: 'stamp', label: 'nav.kho_queue', badge: 'kho' }] },
+  { group: 'nav.g.library', items: [{ path: 'assets', icon: 'image', label: 'nav.assets' }, { path: 'cast', icon: 'grid', label: 'nav.cast' },
+    { path: 'kho', icon: 'grid', label: 'nav.kho' }] },
   { group: 'nav.g.connect', items: [
     { path: 'agents', icon: 'plug', label: 'nav.agents', badge: 'auth' },
+    { path: 'kho-tokens', icon: 'plug', label: 'nav.kho_tokens' },
     { path: 'providers', icon: 'key', label: 'nav.providers' }] },
   { group: 'nav.g.system', items: [
     { path: 'channels', icon: 'cog', label: 'nav.channels' },
-    { path: 'audit', icon: 'log', label: 'nav.audit' }] },
+    { path: 'audit', icon: 'log', label: 'nav.audit' },
+    { path: 'kho-audit', icon: 'log', label: 'nav.kho_audit' },
+    { path: 'kho-settings', icon: 'cog', label: 'nav.kho_settings' }] },
 ];
 
 export function pageHeader(title, desc, actions) {
@@ -85,6 +90,7 @@ export function buildShell(ctx) {
     const set = (b, n) => { b.textContent = String(n); b.hidden = n === 0; };
     try { const res = await get('/api/grid/review_queue'); set(badges.review, res && Array.isArray(res.rows) ? res.rows.length : 0); } catch { badges.review.hidden = true; }
     try { const res = await get('/api/auth-requests'); set(badges.auth, res && Array.isArray(res.requests) ? res.requests.length : 0); } catch { badges.auth.hidden = true; }   // agent chờ duyệt
+    try { const res = await get('/api/grid/kit_submissions?q=' + encodeURIComponent('state:submitted')); set(badges.kho, res && Array.isArray(res.rows) ? res.rows.length : 0); } catch { badges.kho.hidden = true; }   // A2 Hàng chờ duyệt
   }
   refreshBadges();
   const offs = [
