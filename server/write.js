@@ -564,7 +564,15 @@ function createWriter(db, opts = {}) {
   op('agent_token.revoke', 'ownerOrCli', (c) => {
     const ref = String(c.p.token || '').trim();
     if (!ref) throw err('invalid', 'Cần id hoặc tiền tố của token.', null);
-    const row = db.get('SELECT * FROM agent_tokens WHERE (id=? OR prefix=?) AND revoked_at IS NULL', ref, ref);
+    // review Gen (0.3.0-B, mục 9 [nhỏ]): trước đây khớp `id=? OR prefix=?` lấy 1 hàng TUỲ Ý (không ORDER BY) — nếu
+    // tiền tố trùng nhiều token (hiếm nhưng có thể), có thể thu hồi NHẦM token khác. Nay: ưu tiên khớp ĐÚNG id (duy
+    // nhất, là PK); không có thì khớp theo prefix — >1 hàng ⇒ "mơ hồ", từ chối thay vì đoán.
+    let row = db.get('SELECT * FROM agent_tokens WHERE id=? AND revoked_at IS NULL', ref);
+    if (!row) {
+      const byPrefix = db.all('SELECT * FROM agent_tokens WHERE prefix=? AND revoked_at IS NULL', ref);
+      if (byPrefix.length > 1) throw err('invalid', `Tiền tố "${ref}" khớp ${byPrefix.length} token còn hiệu lực — dùng id đầy đủ (\`token list\`) thay vì tiền tố.`, { prefix: ref, matches: byPrefix.length });
+      row = byPrefix[0];
+    }
     if (!row) throw err('not_found', 'Không tìm thấy token còn hiệu lực với id/tiền tố này.', { token: ref });
     db.run('UPDATE agent_tokens SET revoked_at=? WHERE id=?', db.now(), row.id);
     const ag = byRef('agents', row.agent_id);
