@@ -62,6 +62,23 @@ function register(op, ctx) {
     }, { prefix: 'SB' });
     return { result: { ...row, deduped: false }, entity: ['asset_submission', row.display_id], before: null, after: { state: row.state, deduped: false } };
   });
+
+  // ---- submission.set_state — nâng trạng thái một lần nộp import đã có (vd 'submitted' → 'approved' SAU khi
+  // đã ghi `submission.record_checks` ở trạng thái 'submitted' — record_checks chặn ghi khi không còn
+  // 'submitted', nên import phải ghi kiểm TRƯỚC rồi mới nâng, review PR #35 mục 4). Idempotent: state khớp
+  // sẵn ⇒ không đổi gì.
+  op('submission.set_state', 'ownerOrCli', (c) => {
+    const p = c.p;
+    const sub = need('asset_submissions', p.submission, 'lần nộp');
+    if (!['submitted', 'approved', 'rework', 'rejected', 'blocked'].includes(p.state)) {
+      throw err('invalid', 'state phải là submitted/approved/rework/rejected/blocked.', { state: p.state });
+    }
+    if (sub.state === p.state) return { result: { ...sub, changed: false }, entity: ['asset_submission', sub.display_id], before: null, after: { changed: false } };
+    db.update('asset_submissions', sub.id, {
+      state: p.state, decision_kind: p.decision_kind || null, decided_actor: p.decided_actor || null, decision_reason: p.decision_reason || null,
+    });
+    return { result: { ...byRef('asset_submissions', sub.id), changed: true }, entity: ['asset_submission', sub.display_id], before: { state: sub.state }, after: { state: p.state, changed: true } };
+  });
 }
 
 module.exports = { register };
