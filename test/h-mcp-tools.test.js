@@ -38,7 +38,8 @@ test('mcp-tools: mọi tool 0.1.1 còn nguyên tên; thêm render_still + propos
     assert.ok(mcp.tools.includes('render_still')); assert.ok(mcp.tools.includes('propose_brand_change'));   // gói B (0.2.0)
     for (const n of ['propose_thumbnail_text', 'preview_thumbnail']) assert.ok(mcp.tools.includes(n), 'gói T thêm ' + n);
     assert.ok(mcp.tools.includes('preview_tutorial_frame'), 'gói U: xem trước khung bài hướng dẫn');
-    assert.equal(mcp.tools.length, OLD_TOOLS.length + 5);   // + render_still (P0b), propose_brand_change (B), propose_thumbnail_text + preview_thumbnail (T), preview_tutorial_frame (U)
+    for (const n of ['kit_list', 'kit_claim', 'kit_get_input', 'kit_submit', 'kit_upload_chunk', 'kit_report_blocked', 'kit_review_list', 'kit_propose', 'kit_certify']) assert.ok(mcp.tools.includes(n), 'gói 0.3.0-B thêm ' + n);
+    assert.equal(mcp.tools.length, OLD_TOOLS.length + 5 + 9);   // + render_still (P0b), propose_brand_change (B), propose_thumbnail_text + preview_thumbnail (T), preview_tutorial_frame (U), 9 tool kit_* (0.3.0-B)
     assert.equal(mcp.tools.filter(n => /approve|reject|delete|^review|remove|attest|pick|publish/.test(n)).length, 0, 'lớp quyết định của owner (§10) không có tool');
   } finally { t.clean(); }
 });

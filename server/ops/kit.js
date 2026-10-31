@@ -1,15 +1,31 @@
 // © 2026 Gen Labs — All rights reserved.
 // Gói 0.3.0-A (DB-GK-0.1 §4.7/§4.8/§6/§13, STANDARD-KIT-v1 §5–§6): hợp đồng dữ liệu kho Gen Kit — phần ghi.
-// Phạm vi (thu hẹp theo brief gói A — xem ghi chú đầu migrations/0006_kit_library.sql): nạp danh mục 457 ô, gắn ô vào
-// tài sản, ghi kết quả kiểm máy + đếm lần trả về tự động (≤2, lần 3 chờ Ryan), đề xuất quyết định, miễn tiêu chí, chứng
-// nhận ô, dọn nhật ký lượt tải. KHÔNG có ở gói này: submission.approve/reject/reopen (chờ pipeline Muse đầy đủ — gói khác),
-// tool MCP muse.js/review.js, nhập catalog.
+// Phạm vi gói A (xem ghi chú đầu migrations/0006_kit_library.sql): nạp danh mục 457 ô, gắn ô vào tài sản, ghi kết quả
+// kiểm máy + đếm lần trả về tự động (≤2, lần 3 chờ Ryan), đề xuất quyết định, miễn tiêu chí, chứng nhận ô, dọn nhật ký
+// lượt tải. KHÔNG có ở gói A: submission.approve/reject/reopen (chờ pipeline Muse đầy đủ), tool MCP, nhập catalog.
+// Gói 0.3.0-B (SPEC-GK-0.1 Muse: list/claim/get_input/submit/upload_chunk/report_blocked; migrations/0008_kit_mcp.sql):
+// thêm `kit.claim`/`kit.report_blocked` (khoá/nhả ô theo agent, hết hạn 2 h — cột trên `kit_slots`), `upload.start`/
+// `upload.chunk`/`upload.finish` (phiên tải chunk 1 MB tới 50 MB, tệp tạm ngoài media/), `submission.submit` (tạo
+// asset + asset_submission từ nội dung Muse nộp — thay cho `asset.put` lõi vì cần magic bytes mở rộng của Bộ Neo
+// và không cần quyền 'compose'). Tool MCP tiêu thụ các op này ở server/mcp-tools/kit.js.
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
+const magic = require('../checks/magic.js');
 
 const KIT_SLOTS_FILE = path.join(__dirname, '..', '..', 'seed', 'kit-slots.json');
 const SLOT_RE = /^[a-z]+(\.[a-z0-9-]+){1,3}$/;
+const CLAIM_MS = 2 * 3600e3;
+const MAX_CHUNK_BYTES = 1024 * 1024;
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+// Mở rộng từ EXT của write.js (ASSET_KINDS không có 'font' riêng — font/lottie dùng kind 'manifest', quyết định tự chọn gói B).
+const KIT_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/svg+xml': 'svg',
+  'audio/wav': 'wav', 'audio/mpeg': 'mp3', 'audio/ogg': 'ogg', 'video/mp4': 'mp4', 'video/webm': 'webm',
+  'font/woff2': 'woff2', 'font/woff': 'woff', 'font/ttf': 'ttf', 'font/otf': 'otf', 'application/json': 'json' };
+const KIT_KIND = { 'image/png': 'image', 'image/jpeg': 'image', 'image/webp': 'image', 'image/svg+xml': 'svg',
+  'audio/wav': 'audio', 'audio/mpeg': 'audio', 'audio/ogg': 'audio', 'video/mp4': 'video', 'video/webm': 'video',
+  'font/woff2': 'manifest', 'font/woff': 'manifest', 'font/ttf': 'manifest', 'font/otf': 'manifest', 'application/json': 'manifest' };
 const KIT_SCOPES = ['assets.submit', 'assets.review'];
 
 // assets.subject suy ra từ tiền tố kit_slot (DB-GK-0.1 §4.1): nhi./vy./ryan.* và audio.voice.<x>
@@ -226,6 +242,114 @@ function register(op, ctx) {
   op('fetch_log.prune', 'system', (c) => {
     const r = db.run("DELETE FROM asset_fetch_log WHERE at < datetime('now','-180 days')");
     return { result: { deleted: r.changes }, entity: ['asset_fetch_log', 'ALL'], before: null, after: { deleted: r.changes } };
+  });
+
+  // ============ 0.3.0-B — Muse nộp hàng qua MCP (SPEC-GK-0.1) ============
+  const liveSlot = (code) => {
+    const slot = db.get('SELECT * FROM kit_slots WHERE workspace_id=? AND code=?', ws(), code);
+    if (!slot) throw err('not_found', `Không tìm thấy ô "${code}".`, { kit_slot: code });
+    if (slot.retired_in) throw err('invalid', `Ô "${code}" đã retired (${slot.retired_in}).`, { kit_slot: code });
+    return slot;
+  };
+  const claimLive = (slot, now) => !!(slot.claimed_by && slot.claim_expires_at && slot.claim_expires_at > now);
+
+  // ---- kit.claim — nhận ô ⇒ "Đang làm", khoá theo agent, hết hạn 2 h (SPEC-GK-0.1 Muse.claim) ----
+  op('kit.claim', 'assetsSubmit', (c) => {
+    const slot = liveSlot(c.p.kit_slot);
+    const now = db.now();
+    if (claimLive(slot, now) && slot.claimed_by !== c.a.id) {
+      throw err('conflict', `Ô "${slot.code}" đang được agent khác giữ tới ${slot.claim_expires_at}.`, { kit_slot: slot.code, claimed_by: slot.claimed_by, claim_expires_at: slot.claim_expires_at });
+    }
+    const expires = new Date(Date.now() + CLAIM_MS).toISOString();
+    db.run('UPDATE kit_slots SET claimed_by=?, claimed_at=?, claim_expires_at=? WHERE workspace_id=? AND code=?', c.a.id, now, expires, ws(), slot.code);
+    return { result: { kit_slot: slot.code, claimed_by: c.a.id, claim_expires_at: expires }, entity: ['kit_slots', slot.code],
+      before: { claimed_by: slot.claimed_by }, after: { claimed_by: c.a.id, claim_expires_at: expires } };
+  });
+
+  // ---- kit.report_blocked — Muse trả ô lại (lý do, không nộp được), bỏ claim ----
+  op('kit.report_blocked', 'assetsSubmit', (c) => {
+    const p = c.p;
+    if (!nonEmptyStr(p.reason)) throw err('invalid', 'Cần lý do (reason).', null);
+    const slot = liveSlot(p.kit_slot);
+    if (slot.claimed_by !== c.a.id) throw err('forbidden', `Ô "${slot.code}" không phải bạn đang giữ.`, { kit_slot: slot.code, claimed_by: slot.claimed_by });
+    db.run('UPDATE kit_slots SET claimed_by=NULL, claimed_at=NULL, claim_expires_at=NULL WHERE workspace_id=? AND code=?', ws(), slot.code);
+    return { result: { kit_slot: slot.code, released: true, reason: p.reason }, entity: ['kit_slots', slot.code],
+      before: { claimed_by: c.a.id }, after: { claimed_by: null, blocked_reason: p.reason } };
+  });
+
+  // ---- upload.start/chunk/finish — phiên tải chunk (kit_upload_chunk), tới 50 MB, chunk ≤1 MB, tệp tạm ngoài media/ ----
+  const sessionRow = (id) => db.get('SELECT * FROM upload_sessions WHERE workspace_id=? AND id=?', ws(), String(id || ''));
+  const needSession = (id, agentId) => {
+    const row = sessionRow(id);
+    if (!row) throw err('not_found', 'Không tìm thấy phiên tải.', { session: id });
+    if (row.agent_id !== agentId) throw err('forbidden', 'Phiên tải thuộc agent khác.', { session: id });
+    return row;
+  };
+  op('upload.start', 'assetsSubmit', (c) => {
+    const slot = liveSlot(c.p.kit_slot);
+    const dir = path.join(db.dataDir, 'tmp', 'uploads');
+    fs.mkdirSync(dir, { recursive: true });
+    const row = db.insertRow('upload_sessions', { agent_id: c.a.id, kit_slot: slot.code, declared_mime: c.p.declared_mime || null, tmp_path: 'pending', received_bytes: 0, next_chunk: 0, state: 'open' });
+    const tmpPath = path.join(dir, `${row.id}.bin`);
+    fs.writeFileSync(tmpPath, Buffer.alloc(0));
+    db.update('upload_sessions', row.id, { tmp_path: tmpPath });
+    return { result: { session: row.id, kit_slot: slot.code }, entity: ['upload_session', row.id], before: null, after: { kit_slot: slot.code } };
+  });
+  op('upload.chunk', 'assetsSubmit', (c) => {
+    const p = c.p;
+    const row = needSession(p.session, c.a.id);
+    if (row.state !== 'open') throw err('conflict', `Phiên tải đã "${row.state}".`, { session: row.id });
+    if (typeof p.index !== 'number' || p.index !== row.next_chunk) throw err('invalid', `Cần chunk #${row.next_chunk} (nhận #${p.index}).`, { expected: row.next_chunk, got: p.index });
+    const buf = Buffer.from(nonEmptyStr(p.data_base64) ? p.data_base64 : '', 'base64');
+    if (!buf.length) throw err('invalid', 'Chunk rỗng.', null);
+    if (buf.length > MAX_CHUNK_BYTES) throw err('invalid', `Mỗi chunk tối đa ${MAX_CHUNK_BYTES} byte.`, { bytes: buf.length });
+    if (row.received_bytes + buf.length > MAX_UPLOAD_BYTES) throw err('invalid', `Tổng dung lượng vượt ${MAX_UPLOAD_BYTES} byte.`, { would_be: row.received_bytes + buf.length });
+    fs.appendFileSync(row.tmp_path, buf);
+    const received = row.received_bytes + buf.length, nextChunk = row.next_chunk + 1;
+    db.run('UPDATE upload_sessions SET received_bytes=?, next_chunk=?, updated_at=? WHERE id=?', received, nextChunk, db.now(), row.id);
+    return { result: { session: row.id, received_bytes: received, next_chunk: nextChunk }, entity: ['upload_session', row.id], before: { received_bytes: row.received_bytes }, after: { received_bytes: received } };
+  });
+  op('upload.finish', 'assetsSubmit', (c) => {
+    const row = needSession(c.p.session, c.a.id);
+    if (row.state !== 'open') throw err('conflict', `Phiên tải đã "${row.state}".`, { session: row.id });
+    if (!row.received_bytes) throw err('invalid', 'Phiên chưa nhận chunk nào.', { session: row.id });
+    db.run("UPDATE upload_sessions SET state='done', updated_at=? WHERE id=?", db.now(), row.id);
+    return { result: { session: row.id, kit_slot: row.kit_slot, bytes: row.received_bytes, tmp_path: row.tmp_path, declared_mime: row.declared_mime },
+      entity: ['upload_session', row.id], before: { state: 'open' }, after: { state: 'done' } };
+  });
+
+  // ---- submission.submit — Muse nộp nội dung (kit_submit): magic bytes mở rộng Bộ Neo, lưu media, tạo asset + asset_submission ----
+  // Khác `asset.put` lõi (composeOrSystem, MIME hẹp png/jpeg/webp/svg): Muse chỉ có scope assets.submit (không có 'compose'),
+  // và Bộ Neo cần thêm wav/mp3/ogg/mp4/webm/ttf/otf/woff2/json-lottie (server/checks/magic.js, gói E) — quyết định tự chọn gói B.
+  op('submission.submit', 'assetsSubmit', (c) => {
+    const p = c.p;
+    const slot = liveSlot(p.kit_slot);
+    if (!Buffer.isBuffer(p.bytes) || !p.bytes.length) throw err('invalid', 'Thiếu nội dung.', null);
+    if (p.bytes.length > MAX_UPLOAD_BYTES) throw err('invalid', `Tệp vượt ${MAX_UPLOAD_BYTES} byte.`, { bytes: p.bytes.length });
+    const sn = magic.sniff(p.bytes, p.declared_mime || null);
+    if (!sn.ok) throw err('invalid', `Magic bytes không khớp (phát hiện ${sn.detected || 'không rõ'}${sn.declared ? ', khai ' + sn.declared : ''}).`, sn);
+    const mime = sn.detected, kind = KIT_KIND[mime];
+    if (!kind) throw err('invalid', `Định dạng "${mime}" chưa có ánh xạ kind cho Bộ Neo.`, { mime });
+    const sha = crypto.createHash('sha256').update(p.bytes).digest('hex');
+    let asset = db.json(db.get('SELECT * FROM assets WHERE workspace_id=? AND sha256=?', ws(), sha));
+    const subject = deriveSubject(slot.code);
+    if (!asset) {
+      const ext = KIT_EXT[mime] || 'bin';
+      const rel = path.join('media', sha.slice(0, 2), `${sha}.${ext}`);
+      const abs = path.join(db.dataDir, rel);
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      const tmp = `${abs}.tmp${process.pid}`;
+      fs.writeFileSync(tmp, p.bytes);
+      fs.renameSync(tmp, abs);
+      asset = db.insertRow('assets', { kind, sha256: sha, path: rel, bytes: p.bytes.length, mime, meta: null, media_present: 1,
+        source: 'upload', source_kind: 'muse', subject, kit_slot: slot.code, created_by: c.by }, { prefix: 'AS' });
+    }
+    const prev = p.previous ? need('asset_submissions', p.previous, 'lần nộp trước') : null;
+    if (prev && prev.kit_slot !== slot.code) throw err('invalid', 'Lần nộp trước không cùng ô với lần nộp này.', { previous: prev.display_id, kit_slot: slot.code });
+    const attempt = prev ? prev.attempt + 1 : 1;
+    const sub = db.insertRow('asset_submissions', { agent_id: c.a.id, kit_slot: slot.code, asset_id: asset.id, previous_id: prev ? prev.id : null, attempt, state: 'submitted', created_by: c.by }, { prefix: 'SB' });
+    db.run('UPDATE kit_slots SET claimed_by=NULL, claimed_at=NULL, claim_expires_at=NULL WHERE workspace_id=? AND code=?', ws(), slot.code);
+    return { result: { submission: byRef('asset_submissions', sub.id), asset }, entity: ['asset_submission', sub.display_id], before: null, after: { kit_slot: slot.code, asset: asset.display_id, attempt } };
   });
 }
 

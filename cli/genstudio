@@ -27,8 +27,11 @@ genstudio <lệnh>
   mcp [--token <t>]      cầu stdio cho agent ngoài (client MCP chạy lệnh này)
   password               đặt lại mật khẩu chủ sở hữu
   lang [vi|en]           xem / đổi ngôn ngữ
-  token create [tên] [--scopes read,compose,run]
-                         nâng cao: cấp token tay cho agent ngoài (hiện một lần); CLI không duyệt được quyền agent
+  token create [tên] [--scopes read,compose,run] [--expires <Nd|Nh>]
+                         nâng cao: cấp token tay cho agent ngoài (hiện một lần); CLI không duyệt được quyền agent.
+                         --expires: hạn token (vd 30d, 12h); không khai = không hết hạn (như trước)
+  token revoke <id>      thu hồi MỘT token tay (không đụng agent/token khác) — id in ra lúc `token create`
+  token list              liệt kê token tay: id, agent, phạm vi, hạn, đã thu hồi chưa
   agent-login            đăng nhập Claude Code cho agent nội bộ (chính chủ, một lần, trên máy chủ)
   voice status|pull      giọng offline trên máy (không cần khoá): xem trạng thái · tải model (~1 GB) và bật dịch vụ
   check <file> --slot <mã ô> [--ref <file>] [--json]
@@ -95,11 +98,21 @@ case "$cmd" in
     if [ $# -eq 0 ]; then echo "${GS_LANG:-$(envget GS_LANG)}"; exit 0; fi
     case "$1" in vi|en) envset GS_LANG "$1"; dc up -d studio; echo "✓ Ngôn ngữ: $1" ;; *) echo "✗ Chỉ hỗ trợ vi | en" >&2; exit 2 ;; esac ;;
   token)
-    # Nâng cao: cấp token tay (gst_…, không hết hạn) cho agent ngoài; ghi Nhật ký actor cli. Không thể duyệt quyền agent bằng CLI.
-    [ "${1:-}" = create ] || { echo "Dùng: genstudio token create [tên] [--scopes read,compose,run]" >&2; exit 2; }; shift
+    # Nâng cao: cấp/thu hồi/liệt kê token tay (gst_…); 0.3.0-B thêm --expires (hạn) và revoke/list. Ghi Nhật ký actor cli.
+    # Không thể duyệt quyền agent bằng CLI (chỉ owner trên UI, xem studio/views/authorize.js).
+    sub="${1:-}"; [ $# -gt 0 ] && shift
     need_up
-    name="Agent token tay"; [ $# -gt 0 ] && case "$1" in --*) ;; *) name="$1"; shift ;; esac
-    exec $SUDO docker compose exec -T studio node server/main.js --create-token "$name" "$@" ;;
+    case "$sub" in
+      create)
+        name="Agent token tay"; [ $# -gt 0 ] && case "$1" in --*) ;; *) name="$1"; shift ;; esac
+        exec $SUDO docker compose exec -T studio node server/main.js --create-token "$name" "$@" ;;
+      revoke)
+        [ $# -ge 1 ] || { echo "Dùng: genstudio token revoke <id>" >&2; exit 2; }
+        exec $SUDO docker compose exec -T studio node server/main.js --revoke-token "$1" ;;
+      list)
+        exec $SUDO docker compose exec -T studio node server/main.js --list-tokens ;;
+      *) echo "Dùng: genstudio token create|revoke|list ..." >&2; exit 2 ;;
+    esac ;;
   agent-login)
     exec $SUDO docker compose run --rm -it agent claude auth login ;;   # `claude login` không phải lệnh (mở phiên chat) — đúng là `claude auth login`
   voice)
