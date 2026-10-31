@@ -1,11 +1,13 @@
 // © 2026 Gen Labs — All rights reserved.
 // Gói C (0.3.0) — quy tắc ánh xạ TÊN FILE → mã ô Bộ Neo (kit_slots.code). Dùng chung cho `server/ops/import.js`
-// và `cli/import-kit.js`. Hai tầng:
+// và `cli/import-kit.js`. Ba tầng, thử theo thứ tự:
 //  1) OVERRIDES — ánh xạ tay theo (mã phiếu MR, tên file) cho hàng THẬT đã nộp trong `library/inbox/` (tên file
 //     tự do, không theo mẫu máy đọc được — xem ghi chú MUSE.md §3 "tên file viết thường, nối gạch ngang").
-//  2) Mẫu tổng quát `<subject>-<NN>-<slug>.<ext>` ⇒ thử `<subject>.expr.<NN>` rồi `<subject>.pose.<NN>` (mẫu đặt
-//     tên khuyến nghị cho lô Muse SAU này khi nộp thẳng theo ô — ví dụ `nhi-21-sulking.png` ⇒ `nhi.expr.21`).
-// Không khớp cả hai ⇒ unmapped, kèm lý do (brief 0.3.0-C: "báo rõ file không ánh xạ được").
+//  2) Tên file CHUẨN (docs/MUSE-CONNECT.md, bổ sung cổng C.2 mục 1) = đúng mã ô, vd `nhi.expr.08.png`,
+//     `fx.manpu.03.png`, `audio.sfx.pop.03.wav` — MỘT quy ước cho hàng Muse nộp mới.
+//  3) Mẫu CŨ `<subject>-<NN>-<slug>.<ext>` ⇒ thử `<subject>.expr.<NN>` rồi `<subject>.pose.<NN>` — GIỮ TƯƠNG
+//     THÍCH cho hàng đã nộp trước khi chốt quy ước §2 (vd `nhi-21-sulking.png` ⇒ `nhi.expr.21`).
+// Không khớp cả ba ⇒ unmapped, kèm lý do (brief 0.3.0-C: "báo rõ file không ánh xạ được").
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
@@ -65,6 +67,14 @@ const OVERRIDES = {
 const NUMBERED_RE = /^([a-z]+)-([0-9]{1,2})-([a-z0-9-]+)\.(png|jpg|jpeg|webp)$/i;
 const BASE_FRAME_RE = /^([a-z]+)-00-base\.(png|jpg|jpeg|webp)$/i;
 
+// Review Gen (bổ sung cổng C.2, mục 1): tên file CHUẨN theo docs/MUSE-CONNECT.md = đúng mã ô Bộ Neo
+// (vd `nhi.expr.08.png`, `fx.manpu.03.png`, `audio.sfx.pop.03.wav`) — một quy ước, docs + HuongDan Sheet
+// cùng nói một thứ. `stemOf` cắt đúng MỘT đuôi cuối (mã ô có dấu chấm nên không dùng path.extname).
+function stemOf(filename) {
+  const i = filename.lastIndexOf('.');
+  return i > 0 ? filename.slice(0, i) : filename;
+}
+
 // mapFile({ mrId, filename }) → { code: string|null, reason: string }
 function mapFile({ mrId, filename }) {
   const ov = mrId && OVERRIDES[mrId];
@@ -72,6 +82,9 @@ function mapFile({ mrId, filename }) {
     const code = ov[filename];
     return code ? { code, reason: `override MR-ánh xạ tay (${mrId})` } : { code: null, reason: 'override: cố ý không gắn ô (ảnh xem trước/tổng hợp)' };
   }
+  // Dạng CHUẨN (ưu tiên trước mẫu số cũ): tên file = đúng mã ô, vd `nhi.expr.08.png`.
+  const stem = stemOf(filename).toLowerCase();
+  if (slotCodes().has(stem)) return { code: stem, reason: `tên file = mã ô (chuẩn docs/MUSE-CONNECT.md): ${stem}` };
   // `<subject>-00-base.ext` (MR-063 bước 1, STANDARD-KIT-v1): ảnh gốc dùng để sửa-ra các biểu cảm bằng
   // image-to-image, KHÔNG phải một ô Bộ Neo (mã ô bắt đầu từ 01) — cố ý bỏ qua, không phải lỗi.
   if (BASE_FRAME_RE.test(filename)) {
