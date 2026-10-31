@@ -3,14 +3,16 @@
 # Chạy trong Cloud Shell (console.cloud.google.com → nút >_), đã chọn đúng project:
 #   bash gcp-create.sh
 # Chạy lại an toàn: phần nào đã có thì bỏ qua. Không tạo gì ngoài: 1 IP tĩnh, 1 firewall, 1 bucket sao lưu,
-# 1 service account chỉ ghi/đọc bucket đó, 1 VM. Tiền trừ vào credit (~17 USD/tháng: e2-small + IP + ổ 30 GB).
+# 1 service account chỉ ghi/đọc bucket đó, 1 VM. Tiền trừ vào credit (~60 USD/tháng: e2-standard-2 ~50 + IP ~3,6 + ổ 50 GB ~5).
+# VM là xưởng làm việc chính (Claude Code + Docker + bộ test) nên cần 8 GB RAM; đổi cỡ: GS_MACHINE=e2-medium, ổ: GS_DISK_GB=30.
 set -euo pipefail
 
 PROJECT="${GS_PROJECT:-$(gcloud config get-value project 2>/dev/null)}"
 REGION="${GS_REGION:-us-west1}"
 ZONE="${GS_ZONE:-us-west1-b}"
 VM="${GS_VM:-gen-studio}"
-TYPE="${GS_MACHINE:-e2-small}"
+TYPE="${GS_MACHINE:-e2-standard-2}"
+DISK="${GS_DISK_GB:-50}"
 BUCKET="gs://${PROJECT}-gs-backup"
 SA="gs-backup@${PROJECT}.iam.gserviceaccount.com"
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -22,7 +24,7 @@ done
 FILES="startup-script=$HERE/startup.sh"
 # khoá metadata chỉ nhận chữ/số/-/_ ⇒ đổi dấu chấm thành gạch (startup.sh đổi y hệt khi lấy về)
 for f in setup-vm.sh backup-offsite.sh restore-test.sh Caddyfile.tpl; do FILES="$FILES,gs-file-${f//./-}=$HERE/$f"; done
-echo "Project: $PROJECT · vùng $ZONE · máy $TYPE"
+echo "Project: $PROJECT · vùng $ZONE · máy $TYPE · ổ ${DISK} GB"
 
 echo "› Bật API Compute Engine + Cloud Storage"
 gcloud services enable compute.googleapis.com storage.googleapis.com --project "$PROJECT" >/dev/null
@@ -59,7 +61,7 @@ echo "› Máy chủ $VM"
 if ! gcloud compute instances describe "$VM" --zone "$ZONE" --project "$PROJECT" >/dev/null 2>&1; then
   gcloud compute instances create "$VM" --project "$PROJECT" --zone "$ZONE" --machine-type "$TYPE" \
     --image-family ubuntu-2404-lts-amd64 --image-project ubuntu-os-cloud \
-    --boot-disk-size 30GB --boot-disk-type pd-balanced \
+    --boot-disk-size "${DISK}GB" --boot-disk-type pd-balanced \
     --address "$IP" --tags gs-web \
     --service-account "$SA" --scopes https://www.googleapis.com/auth/devstorage.read_write \
     --metadata "gs-bucket=$BUCKET" --metadata-from-file "$FILES" >/dev/null
