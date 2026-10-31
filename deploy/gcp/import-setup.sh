@@ -8,16 +8,23 @@ set -euo pipefail
 D=/opt/gs-deploy
 APP=/opt/gen-studio
 U=genstudio
-SRC="${GS_DRIVE_DEST:-/opt/gen-studio/data/inbox/drive}"
+# review opus PR #38 mục 1 [chặn]: hàng Drive thật nằm ở <GS_DRIVE_DEST>/03_Hoan-thanh/<Mã phiếu>/<file> (xem
+# docs/MUSE-CONNECT.md, tickets-sheet.py DATA_INBOX_DIR.glob) — trỏ thẳng GS_DRIVE_DEST (thiếu "03_Hoan-thanh")
+# quét ra 0 thư mục MR, trước đây thoát êm mã 0 mỗi lượt. Mặc định đúng đường con.
+SRC="${GS_IMPORT_SRC:-${GS_DRIVE_DEST:-/opt/gen-studio/data/inbox/drive}/03_Hoan-thanh}"
 LOG=/var/log/gs-import.log
-LOCK=/run/gs-import.lock
+LOCK=/opt/gen-studio/data/.gs-import.lock
 
 [ -x "$APP/cli/genstudio" ] || { echo "✗ Không thấy $APP/cli/genstudio — cài Gen-Studio trước" >&2; exit 1; }
+[ -f "$D/import-run.sh" ] || { echo "✗ Không thấy $D/import-run.sh — copy thiếu file (xem gcp-create.sh/startup.sh)" >&2; exit 1; }
+[ -f "$D/alert.sh" ] || { echo "✗ Không thấy $D/alert.sh — cài đặt chưa đủ bộ" >&2; exit 1; }
 
+chmod 755 "$D/import-run.sh"
 touch "$LOG"; chown "$U:$U" "$LOG"; chmod 600 "$LOG"
+mkdir -p "$(dirname "$LOCK")"; chown "$U:$U" "$(dirname "$LOCK")"
 
-# flock (mục 2 — Gen): timer chạy mỗi 10 phút, một lần nhập kho có thể chạy lâu hơn (nhiều file) — khoá tránh hai
-# lượt chồng nhau ghi cùng DB. `-n` (non-blocking): lượt sau thấy khoá đang giữ thì bỏ qua êm (exit 0), không xếp hàng.
+# review opus PR #38 mục 2 [chặn]: khoá chống chồng lượt + gọi alert.sh khi hỏng thật (mục 3 [major]) nằm trong
+# import-run.sh (lock ở data/, ghi được bởi $U — không cần RuntimeDirectory/quyền /run).
 cat > /etc/systemd/system/gs-import.service <<EOF
 [Unit]
 Description=Gen-Studio: nhập kho hàng Drive vào DB Gen Kit (genstudio import --source)
@@ -26,7 +33,9 @@ After=network-online.target gs-drive-sync.service
 [Service]
 Type=oneshot
 User=$U
-ExecStart=/usr/bin/flock -n $LOCK $APP/cli/genstudio import --source $SRC --allow-errors
+Environment="GS_IMPORT_SRC=$SRC"
+Environment="GS_IMPORT_LOCK=$LOCK"
+ExecStart=$D/import-run.sh
 StandardOutput=append:$LOG
 StandardError=append:$LOG
 EOF
