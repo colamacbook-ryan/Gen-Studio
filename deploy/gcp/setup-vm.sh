@@ -32,11 +32,51 @@ HOST="${GS_HOST_NAME:-$(echo "$IP" | tr . -).sslip.io}"
 BUCKET="$(md instance/attributes/gs-bucket)"
 echo "Máy chủ: https://$HOST · sao lưu: $BUCKET · xưởng: $([ "$WORKSHOP" = 1 ] && echo bật || echo tắt)"
 
+# 0.5 vá bảo mật tự động (chỉ gói security, không nâng cấp lớn tự ý) — idempotent, chạy trước mọi thứ khác
+echo "› unattended-upgrades (chỉ vá bảo mật)"
+APTGET0() { apt-get -o DPkg::Lock::Timeout=300 "$@"; }
+dpkg -s unattended-upgrades >/dev/null 2>&1 || { APTGET0 update -qq; APTGET0 install -y -qq unattended-upgrades apt-listchanges >/dev/null; }
+cat > /etc/apt/apt.conf.d/51gs-unattended-upgrades <<'EOF'
+// Tạo bởi deploy/gcp/setup-vm.sh — chỉ vá bản an ninh Ubuntu, không nâng cấp phiên bản lớn tự động.
+Unattended-Upgrade::Allowed-Origins {
+    "${distro_id}:${distro_codename}-security";
+    "${distro_id}ESMApps:${distro_codename}-apps-security";
+    "${distro_id}ESM:${distro_codename}-infra-security";
+};
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Automatic-Reboot "false";
+EOF
+cat > /etc/apt/apt.conf.d/20gs-auto-upgrades <<'EOF'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+EOF
+systemctl enable --now unattended-upgrades >/dev/null 2>&1 || true
+
 # 1. user chạy dịch vụ (không chạy container bằng root) — cũng là user xưởng (tmux + Claude Code)
 id "$U" >/dev/null 2>&1 || useradd --system --create-home --shell /bin/bash "$U"
 usermod -aG docker "$U"
 GHOME="$(getent passwd "$U" | cut -d: -f6)"
 mkdir -p "$APP" && chown "$U:$U" "$APP"
+
+# 1.2 cách ly dev ↔ prod: user riêng cho xưởng (Claude Code + dev stack), KHÔNG dùng chung user genstudio chạy prod.
+# Đánh đổi: Node/npm/Claude Code vẫn cài ở mức hệ thống (root) — chỉ tách user chạy tiến trình + chủ file, không sandbox hoàn toàn (xem docs/OPS.md).
+DEVUSER=gsdev
+id "$DEVUSER" >/dev/null 2>&1 || useradd --create-home --shell /bin/bash "$DEVUSER"
+usermod -aG docker "$DEVUSER"
+DEVHOME="$(getent passwd "$DEVUSER" | cut -d: -f6)"
+
+# 1.3 cách ly dữ liệu prod: chỉ user genstudio đọc được (group/other không có quyền)
+[ -d "$APP/data" ] && chmod 700 "$APP/data" || true
+[ -f "$APP/.env" ] && chmod 600 "$APP/.env" || true
+
+# 1.4 group gs-ops: alert.sh/health-check.sh được gọi bởi nhiều user KHÔNG phải root (cron genstudio, systemd User=genstudio
+# ở gs-drive-sync/gs-tickets-sync) ⇒ cần đọc alert.env + ghi log/cờ mà không phải root. Thêm genstudio + gsdev vào nhóm này.
+getent group gs-ops >/dev/null 2>&1 || groupadd gs-ops
+usermod -aG gs-ops "$U"
+usermod -aG gs-ops "$DEVUSER"
+mkdir -p /var/lib/gs-ops
+chown root:gs-ops /var/lib/gs-ops
+chmod 775 /var/lib/gs-ops
 
 # 1.5 công cụ xưởng (idempotent — chỉ cài khi thiếu), mức hệ thống, chạy ở root
 if [ "$WORKSHOP" = 1 ]; then
@@ -108,40 +148,73 @@ sudo -u "$U" -H git config --global --get-all safe.directory 2>/dev/null | grep 
 
 sudo -u "$U" -H bash "$APP/install.sh" --dir "$APP" --port "$PORT"
 
-# 2.5 xưởng: kéo kho mã làm việc dưới genstudio + dev stack riêng cổng 7491 (Claude Code làm việc ở đây)
+# 2.5 xưởng: kéo kho mã làm việc + dev stack riêng cổng 7491 — chạy dưới user gsdev (KHÔNG phải genstudio,
+# user chạy prod) để Claude Code/dev không bao giờ đọc được data/ prod kể cả có lỗi code.
 if [ "$WORKSHOP" = 1 ]; then
-  echo "› Xưởng: kho mã làm việc + dev stack cổng 7491"
-  mkdir -p "$GHOME/genlabs" && chown "$U:$U" "$GHOME/genlabs"
+  # di chuyển một lần: xưởng cũ từng chạy dưới ~genstudio/genlabs (trước bản vá cách ly) ⇒ chuyển sang gsdev, giữ dữ liệu
+  if [ -d "$GHOME/genlabs" ] && [ ! -d "$DEVHOME/genlabs" ]; then
+    echo "› Chuyển xưởng từ $GHOME/genlabs sang $DEVHOME/genlabs (cách ly dev/prod)…"
+    if [ -f "$GHOME/genlabs/Gen-Studio/.env" ]; then
+      (cd "$GHOME/genlabs/Gen-Studio" && sudo -u "$U" -H docker compose down >/dev/null 2>&1) || true
+    fi
+    mv "$GHOME/genlabs" "$DEVHOME/genlabs"
+    chown -R "$DEVUSER:$DEVUSER" "$DEVHOME/genlabs"
+    # .env dev cũ ghi uid/gid của genstudio (chủ cũ) — sửa lại đúng uid/gid gsdev rồi mới cho chạy lại, không thì EACCES /data
+    if [ -f "$DEVHOME/genlabs/Gen-Studio/.env" ]; then
+      DEV_UID="$(id -u "$DEVUSER")"; DEV_GID="$(id -g "$DEVUSER")"
+      if grep -q '^GS_UID=' "$DEVHOME/genlabs/Gen-Studio/.env"; then
+        sed -i "s|^GS_UID=.*|GS_UID=$DEV_UID|; s|^GS_GID=.*|GS_GID=$DEV_GID|" "$DEVHOME/genlabs/Gen-Studio/.env"
+      else
+        { echo "GS_UID=$DEV_UID"; echo "GS_GID=$DEV_GID"; } >> "$DEVHOME/genlabs/Gen-Studio/.env"
+      fi
+      (cd "$DEVHOME/genlabs/Gen-Studio" && sudo -u "$DEVUSER" -H docker compose up -d studio >/dev/null 2>&1) \
+        || echo "⚠ dev stack chưa lên sau khi chuyển xưởng — kiểm tay: sudo -u $DEVUSER -H bash -c 'cd ~/genlabs/Gen-Studio && docker compose logs studio'"
+    fi
+  fi
+  echo "› Xưởng (user $DEVUSER): kho mã làm việc + dev stack cổng 7491"
+  mkdir -p "$DEVHOME/genlabs" && chown "$DEVUSER:$DEVUSER" "$DEVHOME/genlabs"
   for repo in Second-Brain Gen-Studio; do
-    WDIR="$GHOME/genlabs/$repo"
+    WDIR="$DEVHOME/genlabs/$repo"
     if [ -d "$WDIR/.git" ]; then
-      { printf '%s\n' "$AUTHHDR" | git_with_token "$U" -C "$WDIR" fetch origin main \
-        && sudo -u "$U" -H git -C "$WDIR" checkout main \
-        && printf '%s\n' "$AUTHHDR" | git_with_token "$U" -C "$WDIR" pull --ff-only origin main; } \
+      { printf '%s\n' "$AUTHHDR" | git_with_token "$DEVUSER" -C "$WDIR" fetch origin main \
+        && sudo -u "$DEVUSER" -H git -C "$WDIR" checkout main \
+        && printf '%s\n' "$AUTHHDR" | git_with_token "$DEVUSER" -C "$WDIR" pull --ff-only origin main; } \
         || echo "⚠ Không cập nhật được $WDIR từ git — bỏ qua, kiểm tay sau"
     else
-      printf '%s\n' "$AUTHHDR" | git_with_token "$U" clone --branch main \
+      printf '%s\n' "$AUTHHDR" | git_with_token "$DEVUSER" clone --branch main \
         "https://github.com/colamacbook-ryan/$repo.git" "$WDIR" \
         || echo "⚠ Không clone được $repo — bỏ qua, kiểm tay sau"
     fi
   done
+  sudo -u "$DEVUSER" -H git config --global --get-all safe.directory 2>/dev/null | grep -qx "$DEVHOME/genlabs/Gen-Studio" \
+    || sudo -u "$DEVUSER" -H git config --global --add safe.directory "$DEVHOME/genlabs/Gen-Studio"
   # dev stack cổng 7491: chỉ cài lần đầu (chưa có .env) — không đụng nếu đã có, Claude Code có thể đang sửa dở
-  # .env dev đã có nhưng thiếu GS_UID/GS_GID (lỗi lần cài 31/10: container chạy uid 1000 ≠ genstudio ⇒ EACCES /data) ⇒ vá rồi bật lại
-  if [ -f "$GHOME/genlabs/Gen-Studio/.env" ] && ! grep -q '^GS_UID=' "$GHOME/genlabs/Gen-Studio/.env"; then
-    { echo "GS_UID=$(id -u "$U")"; echo "GS_GID=$(id -g "$U")"; } >> "$GHOME/genlabs/Gen-Studio/.env"
-    (cd "$GHOME/genlabs/Gen-Studio" && sudo -u "$U" -H env GS_VERSION=dev docker compose up -d studio >/dev/null 2>&1) || echo "⚠ dev stack chưa lên — kiểm tay: cd ~/genlabs/Gen-Studio && docker compose logs studio"
+  # .env dev thiếu GS_UID/GID, hoặc còn mang uid/gid user cũ (di chuyển từ genstudio) ⇒ lệch với $DEVUSER ⇒ EACCES /data ⇒ vá rồi bật lại
+  DEV_UID="$(id -u "$DEVUSER")"; DEV_GID="$(id -g "$DEVUSER")"
+  if [ -f "$DEVHOME/genlabs/Gen-Studio/.env" ]; then
+    CUR_UID="$(sed -n 's/^GS_UID=//p' "$DEVHOME/genlabs/Gen-Studio/.env" | head -1)"
+    if [ "$CUR_UID" != "$DEV_UID" ]; then
+      if grep -q '^GS_UID=' "$DEVHOME/genlabs/Gen-Studio/.env"; then
+        sed -i "s|^GS_UID=.*|GS_UID=$DEV_UID|; s|^GS_GID=.*|GS_GID=$DEV_GID|" "$DEVHOME/genlabs/Gen-Studio/.env"
+      else
+        { echo "GS_UID=$DEV_UID"; echo "GS_GID=$DEV_GID"; } >> "$DEVHOME/genlabs/Gen-Studio/.env"
+      fi
+      chown "$DEVUSER:$DEVUSER" "$DEVHOME/genlabs/Gen-Studio/.env"
+      (cd "$DEVHOME/genlabs/Gen-Studio" && sudo -u "$DEVUSER" -H docker compose up -d studio >/dev/null 2>&1) || echo "⚠ dev stack chưa lên — kiểm tay: sudo -u $DEVUSER -H bash -c 'cd ~/genlabs/Gen-Studio && docker compose logs studio'"
+    fi
   fi
-  if [ -d "$GHOME/genlabs/Gen-Studio" ] && [ ! -f "$GHOME/genlabs/Gen-Studio/.env" ]; then
+  if [ -d "$DEVHOME/genlabs/Gen-Studio" ] && [ ! -f "$DEVHOME/genlabs/Gen-Studio/.env" ]; then
     # .env dev tối thiểu TRƯỚC khi install.sh chạy: COMPOSE_PROJECT_NAME riêng — /opt/gen-studio (prod) và
-    # ~/genlabs/Gen-Studio (dev) ra cùng project "gen-studio" theo mặc định docker compose ⇒ đạp container/volume prod
-    { echo "COMPOSE_PROJECT_NAME=gen-studio-dev"; echo "GS_VERSION=dev"; echo "GS_UID=$(id -u "$U")"; echo "GS_GID=$(id -g "$U")"; } > "$GHOME/genlabs/Gen-Studio/.env"
-    chown "$U:$U" "$GHOME/genlabs/Gen-Studio/.env"; chmod 600 "$GHOME/genlabs/Gen-Studio/.env"
+    # ~gsdev/genlabs/Gen-Studio (dev) ra cùng project "gen-studio" theo mặc định docker compose ⇒ đạp container/volume prod
+    { echo "COMPOSE_PROJECT_NAME=gen-studio-dev"; echo "GS_VERSION=dev"; echo "GS_UID=$(id -u "$DEVUSER")"; echo "GS_GID=$(id -g "$DEVUSER")"; } > "$DEVHOME/genlabs/Gen-Studio/.env"
+    chown "$DEVUSER:$DEVUSER" "$DEVHOME/genlabs/Gen-Studio/.env"; chmod 600 "$DEVHOME/genlabs/Gen-Studio/.env"
     # install.sh sẽ tự ghi đè GS_VERSION theo file VERSION trong repo (giống hệt prod) ⇒ export lại qua biến môi
     # trường shell: biến môi trường thắng giá trị trong .env khi docker compose thay thế ${GS_VERSION}, nên image
     # dev vẫn lên tag "dev" lúc build dù dòng GS_VERSION trong .env bị install.sh sửa lại.
-    sudo -u "$U" -H env GS_VERSION=dev bash "$GHOME/genlabs/Gen-Studio/install.sh" --dir "$GHOME/genlabs/Gen-Studio" --port 7491 \
+    sudo -u "$DEVUSER" -H env GS_VERSION=dev bash "$DEVHOME/genlabs/Gen-Studio/install.sh" --dir "$DEVHOME/genlabs/Gen-Studio" --port 7491 \
       || echo "⚠ dev stack cài lỗi — prod không ảnh hưởng; kiểm tay: cd ~/genlabs/Gen-Studio && docker compose logs studio"
   fi
+  chown -R "$DEVUSER:$DEVUSER" "$DEVHOME/genlabs" 2>/dev/null || true
 fi
 unset TOK AUTHHDR
 
@@ -169,18 +242,75 @@ docker rm -f gs-caddy >/dev/null 2>&1 || true
 docker run -d --name gs-caddy --restart unless-stopped --network host \
   -v "$D/Caddyfile:/etc/caddy/Caddyfile:ro" -v gs-caddy-data:/data -v gs-caddy-config:/config "$CADDY" >/dev/null
 
-# 5. sao lưu hằng đêm 02:30 giờ VN (19:30 UTC) ra bucket + thử khôi phục mỗi chủ nhật
+# 5. sao lưu hằng đêm 02:30 giờ VN (19:30 UTC) ra bucket + thử khôi phục mỗi chủ nhật — hỏng ⇒ alert.sh
 cat > /etc/cron.d/gs-backup <<EOF
 GS_HOME=$APP
 GS_BUCKET=$BUCKET
-30 19 * * * $U /opt/gs-deploy/backup-offsite.sh >> /var/log/gs-backup.log 2>&1
-30 20 * * 0 $U /opt/gs-deploy/restore-test.sh >> /var/log/gs-backup.log 2>&1
+30 19 * * * $U /opt/gs-deploy/backup-offsite.sh >> /var/log/gs-backup.log 2>&1 || /opt/gs-deploy/alert.sh "backup-offsite hỏng"
+30 20 * * 0 $U /opt/gs-deploy/restore-test.sh >> /var/log/gs-backup.log 2>&1 || /opt/gs-deploy/alert.sh "restore-test hỏng"
 EOF
 touch /var/log/gs-backup.log && chown "$U" /var/log/gs-backup.log && chmod 600 /var/log/gs-backup.log
+
+# 5.2 cảnh báo khi hỏng: Telegram nếu có alert.env (root:gs-ops 640), không thì log + cờ /var/lib/gs-ops/ALERT.
+# Caller thường KHÔNG phải root (cron/systemd User=genstudio) ⇒ quyền group gs-ops (mục 1.4), không phải chỉ root đọc/ghi được.
+chmod 755 "$D/alert.sh" "$D/health-check.sh" 2>/dev/null || true
+touch /var/log/gs-alert.log && chown root:gs-ops /var/log/gs-alert.log && chmod 660 /var/log/gs-alert.log
+if [ ! -f "$D/alert.env" ]; then
+  : > "$D/alert.env"
+  echo "# GS_ALERT_TG_TOKEN=... / GS_ALERT_TG_CHAT=... (rỗng ⇒ alert.sh chỉ ghi log + cờ)" >> "$D/alert.env"
+fi
+chown root:gs-ops "$D/alert.env"; chmod 640 "$D/alert.env"
+
+# 5.3 kiểm sức khoẻ mỗi 15 phút: health API, ổ đầy >80%, container Restarting ⇒ alert.sh
+cat > /etc/systemd/system/gs-health.service <<EOF
+[Unit]
+Description=Gen-Studio: kiểm sức khoẻ định kỳ
+[Service]
+Type=oneshot
+User=root
+Environment=GS_PORT=$PORT
+ExecStart=$D/health-check.sh
+StandardOutput=append:/var/log/gs-health.log
+StandardError=append:/var/log/gs-health.log
+EOF
+cat > /etc/systemd/system/gs-health.timer <<'EOF'
+[Unit]
+Description=Chạy gs-health định kỳ
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=15min
+Persistent=true
+[Install]
+WantedBy=timers.target
+EOF
+touch /var/log/gs-health.log && chmod 600 /var/log/gs-health.log
+systemctl daemon-reload
+systemctl enable --now gs-health.timer >/dev/null
+
+# 5.4 logrotate cho log vận hành /var/log/gs-*.log (tránh đĩa đầy)
+cat > /etc/logrotate.d/gs-ops <<'EOF'
+/var/log/gs-*.log {
+  weekly
+  rotate 8
+  compress
+  delaycompress
+  missingok
+  notifempty
+  copytruncate
+}
+EOF
+
+# 5.5 giới hạn log Docker (max-size/max-file) trong docker-compose.yml chỉ có hiệu lực khi container được TẠO LẠI —
+# container prod đang chạy từ trước bản vá này vẫn dùng cấu hình log cũ (không giới hạn) cho tới khi recreate.
+# Recreate ngay 1 lần ở đây (không đổi VERSION/image, chỉ đổi cấu hình log, an toàn — agent giữ nguyên agent-home/agent-state).
+echo "› Áp cấu hình log mới cho container đang chạy (recreate, giữ dữ liệu/volume)…"
+sudo -u "$U" -H docker compose up -d --force-recreate studio agent >/dev/null 2>&1 \
+  || echo "⚠ recreate để áp log mới chưa xong — kiểm tay: cd $APP && docker compose logs"
 
 # 6. kiểm ngay: sao lưu 1 bản + khôi phục thử + đường công khai/đường bị chặn
 sudo -u "$U" -H env GS_HOME="$APP" GS_BUCKET="$BUCKET" "$D/backup-offsite.sh"
 sudo -u "$U" -H env GS_BUCKET="$BUCKET" "$D/restore-test.sh"
+"$D/health-check.sh" || true
 
 # 7. xưởng: MCP shell cấp cứu — chỉ loopback 127.0.0.1:7777, vào qua đường hầm SSH khi Claude hết quota
 # Bọc trong hàm riêng: lỗi bên trong (npm hỏng mạng, systemd, …) chỉ làm bước này bị bỏ qua, không giết cả script.
@@ -270,10 +400,10 @@ fi
 
 if [ "$WORKSHOP" = 1 ]; then
   echo
-  echo "› Xưởng đã sẵn sàng trên máy này. Làm 1 lần:"
-  echo "  1) sudo -iu genstudio   rồi  gh auth login   rồi  gh auth setup-git   (đẩy GitHub bằng token đọc+ghi)"
+  echo "› Xưởng đã sẵn sàng trên máy này (user $DEVUSER, cách ly khỏi user $U chạy prod). Làm 1 lần:"
+  echo "  1) sudo -iu $DEVUSER   rồi  gh auth login   rồi  gh auth setup-git   (đẩy GitHub bằng token đọc+ghi)"
   echo "  2) claude login   (đăng nhập Claude Code, một lần)"
-  echo "  3) vào xưởng:  sudo -iu genstudio tmux new -A -s gen"
+  echo "  3) vào xưởng:  sudo -iu $DEVUSER tmux new -A -s gen"
   echo "     rồi:        cd ~/genlabs/Second-Brain && claude --add-dir ../Gen-Studio"
   echo "  Xem dev stack (cổng 7491, chỉ 127.0.0.1) — chạy lệnh này ở Cloud Shell/máy Ryan (không phải trên VM):"
   echo "    gcloud compute ssh $VMNAME --zone $VMZONE --ssh-flag=\"-L 7491:127.0.0.1:7491\""

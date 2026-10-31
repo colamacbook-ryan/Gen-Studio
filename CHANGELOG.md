@@ -32,6 +32,7 @@
   `--source` không có `meta.json` tự dựng danh sách file, bỏ qua máy kiểm).
 
 ## Chưa phát hành · khối cho clip giải thích dài
+- Đổi mật khẩu đăng nhập: `POST /api/me/password` (phiên UI + CSRF, cấm trùng mật khẩu cũ, huỷ các phiên khác), nút trong sidebar (hộp người dùng).
 - **12 khối mới (bài thường):** `quiz` (guess/pause/comment, đếm 3-2-1), `compare-split`, `sticky-tracker` (giấy nhớ giữ suốt video, lật ôn), `agent-steps`, `checklist-card`, `morph`, `pip-swap` (PiP tròn, phóng ×1,3 khi có thẻ «Bạn làm gì»), `chat-bubble`, `split-compare-run`, `bars`, `loop`; `title` thêm `num`/`kicker` (bumper «CỬA 1»).
 - **Mốc trong khối neo theo chữ** (`cue` = số giây hoặc `{line, word}`) — hình và tiếng (`sfxTimed`) theo đúng mốc từng chữ của giọng; bài cũ dựng ra plan y hệt (golden 16:9).
 - Bộ biểu tượng phẳng tự vẽ (`render/blocks/icons.js`); `tools/blocks-preview.js` chụp bảng 3 mốc mỗi khối qua sân khấu thật.

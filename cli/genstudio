@@ -19,10 +19,35 @@ PORT="$(envget GS_PORT)"; PORT="${PORT:-7490}"
 ensure_pairing_secret() { [ -n "$(envget GS_PAIRING_SECRET)" ] || envset GS_PAIRING_SECRET "gsp_$(head -c 32 /dev/urandom | base64 | tr '+/' '-_' | tr -d '=\n')"; }
 need_up() { dc ps --status running --services 2>/dev/null | grep -qx studio || { echo "✗ studio chưa chạy — genstudio start" >&2; exit 1; }; }
 
+# do_backup [tiền-tố] — mặc định "gen-studio" (khớp mẫu backup-offsite.sh đẩy lên bucket + prune nội bộ giữ 2 bản).
+# tiền tố khác (vd "pre-update") ⇒ KHÔNG khớp mẫu prune "gen-studio-*.tar.gz" ⇒ không bị xoá tự động khi backup-offsite
+# dọn bản cũ — bản chụp trước khi cập nhật luôn còn đó để rollback dữ liệu nếu cần (dọn tay khi không cần nữa).
+do_backup() {
+  prefix="${1:-gen-studio}"
+  mkdir -p data/backups; f="data/backups/${prefix}-$(date +%Y%m%d-%H%M%S).tar.gz"
+  was=0; dc ps --status running --services 2>/dev/null | grep -qx studio && was=1
+  [ "$was" = 1 ] && dc stop studio >/dev/null
+  tar -czf "$f" --exclude=data/backups --exclude=data/run --exclude=data/.env data
+  [ "$was" = 1 ] && dc up -d studio >/dev/null
+  echo "$f"
+}
+
+# khoá chung cho backup/update/rollback/restore — cron (backup-offsite.sh gọi `genstudio backup`) và thao tác tay
+# (update/rollback) có thể trùng giờ; không khoá thì `update` prune backup đang được cron đẩy lên dở, hoặc 2 tiến
+# trình cùng dừng/khởi động studio chồng nhau. Khoá theo file trong data/ (luôn có ở bản cài đã chạy).
+# GS_OPS_LOCKED tránh tự khoá lại lần 2 khi `update` thất bại `exec`-vào `rollback` (vẫn cùng tiến trình, giữ nguyên khoá cũ).
+with_lock() {
+  [ "${GS_OPS_LOCKED:-0}" = 1 ] && return 0
+  mkdir -p data
+  exec 9>"data/.gs-ops.lock"
+  flock -w 120 9 || { echo "✗ đang có thao tác backup/update/rollback/restore khác chạy — thử lại sau" >&2; exit 1; }
+  export GS_OPS_LOCKED=1
+}
+
 usage() {
   cat <<'U'
 genstudio <lệnh>
-  start | stop | restart | status | logs [dịch vụ] | update | open
+  start | stop | restart | status | logs [dịch vụ] | update | rollback [tag] | open
   backup | restore <file> | uninstall
   mcp [--token <t>]      cầu stdio cho agent ngoài (client MCP chạy lệnh này)
   password               đặt lại mật khẩu chủ sở hữu
@@ -55,19 +80,60 @@ case "$cmd" in
     if [ -s data/run/admin-key ] && ! printf '%s' "$st" | grep -q '"owner":true'; then url="$url/#/setup?k=$(cat data/run/admin-key)"; fi
     echo "$url"; (command -v xdg-open >/dev/null && xdg-open "$url") || (command -v open >/dev/null && open "$url") || true ;;
   update)
-    if [ -d .git ]; then git pull --ff-only; else echo "Bản cài từ Release: chạy lại install.sh (giữ nguyên data/ và .env)"; exit 0; fi
+    with_lock
+    [ -d .git ] || { echo "Bản cài từ Release: chạy lại install.sh (giữ nguyên data/ và .env)"; exit 0; }
+    # đường lùi: sao lưu dữ liệu + đánh dấu commit hiện tại (trước khi kéo mã mới) rồi mới cập nhật.
+    # Thất bại ở bất kỳ bước nào (build/up/smoke) ⇒ tự quay lại commit cũ (tag pre-update-*).
+    tag="pre-update-$(date +%Y%m%d-%H%M%S)"
+    echo "› Sao lưu dữ liệu trước khi cập nhật…"
+    bf="$(do_backup pre-update)"; echo "  ✓ $bf"
+    git tag "$tag" HEAD >/dev/null 2>&1 || true
+    echo "› Đánh dấu mã hiện tại: $tag"
+    echo "› Kéo mã mới…"
+    if ! git pull --ff-only; then
+      echo "✗ git pull thất bại — chưa đổi gì, không cần rollback" >&2; exit 1
+    fi
+    ensure_pairing_secret
+    fail=0
+    dc build || fail=1
+    [ "$fail" = 0 ] && { dc up -d || fail=1; }
+    if [ "$fail" = 0 ]; then
+      ok=0
+      for _ in $(seq 1 30); do curl -fsS -o /dev/null --max-time 2 "http://127.0.0.1:$PORT/api/health" && { ok=1; break; }; sleep 2; done
+      [ "$ok" = 1 ] || fail=1
+    fi
+    if [ "$fail" = 0 ] && [ -x deploy/gcp/smoke.sh ]; then
+      deploy/gcp/smoke.sh || fail=1
+    fi
+    if [ "$fail" = 1 ]; then
+      echo "✗ Cập nhật không đạt (build/up/health/smoke) — tự rollback về $tag" >&2
+      exec "$SELF" rollback "$tag"
+    fi
+    echo "✓ Đã cập nhật — mã cũ đánh dấu $tag (rollback: genstudio rollback $tag)" ;;
+  rollback)
+    with_lock
+    [ -d .git ] || { echo "✗ Bản cài từ Release không có git — khôi phục bằng install.sh bản cũ + genstudio restore <file>" >&2; exit 1; }
+    tag="${1:-}"
+    [ -n "$tag" ] || tag="$(git tag --list 'pre-update-*' --sort=-creatordate | head -1)"
+    [ -n "$tag" ] || { echo "✗ Không có tag pre-update-* nào để rollback — chỉ định tay: genstudio rollback <tag|commit>" >&2; exit 1; }
+    git rev-parse --verify "$tag" >/dev/null 2>&1 || { echo "✗ Không thấy tag/commit $tag" >&2; exit 1; }
+    echo "› Rollback mã về $tag…"
+    # reset --hard (không checkout rời nhánh): chuyển HEAD nhánh hiện tại về đúng commit $tag, xoá sạch file mới hơn
+    # tag đó, KHÔNG đụng file không theo dõi git (data/ nằm trong .gitignore) — và vẫn ở trên nhánh để `update` lần
+    # sau `git pull --ff-only` chạy được (không bị kẹt detached HEAD).
+    git reset --hard "$tag"
     ensure_pairing_secret; dc build; dc up -d
-    echo "✓ Đã cập nhật" ;;
+    ok=0
+    for _ in $(seq 1 30); do curl -fsS -o /dev/null --max-time 2 "http://127.0.0.1:$PORT/api/health" && { ok=1; break; }; sleep 2; done
+    if [ "$ok" = 1 ]; then echo "✓ Đã rollback về $tag — khoẻ"; else echo "⚠ Đã rollback về $tag nhưng /api/health chưa trả lời — kiểm tay: genstudio logs" >&2; exit 1; fi
+    echo "! Dữ liệu (data/) KHÔNG tự rollback — nếu cần, dùng bản sao lưu đã tạo trước cập nhật: genstudio restore <file trong data/backups/>" ;;
   backup)
-    mkdir -p data/backups; f="data/backups/gen-studio-$(date +%Y%m%d-%H%M%S).tar.gz"
-    # DB SQLite: dừng studio ngắn để chép nhất quán
-    was=0; dc ps --status running --services 2>/dev/null | grep -qx studio && was=1
-    [ "$was" = 1 ] && dc stop studio >/dev/null
-    tar -czf "$f" --exclude=data/backups --exclude=data/run --exclude=data/.env data
-    [ "$was" = 1 ] && dc up -d studio >/dev/null
+    with_lock
+    f="$(do_backup)"
     echo "✓ $f"
     echo "! Bản sao lưu KHÔNG chứa GS_MASTER_KEY (nằm ở data/.env). Hãy cất khoá chủ riêng (trình quản lý mật khẩu); mất khoá thì các khoá nhà cung cấp đã lưu không giải mã được." ;;
   restore)
+    with_lock
     f="${1:?Dùng: genstudio restore <file.tar.gz>}"; [ -f "$f" ] || { echo "✗ Không thấy $f" >&2; exit 1; }
     printf 'Ghi đè dữ liệu hiện tại bằng %s? Gõ "co" để tiếp tục: ' "$f"; read -r a; [ "$a" = "co" ] || { echo "Đã huỷ."; exit 1; }
     dc stop studio >/dev/null 2>&1 || true
