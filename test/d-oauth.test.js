@@ -71,13 +71,13 @@ test('oauth: metadata (PRM cả hai đường, AS đủ trường) + /mcp 401 tr
     for (const p of ['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp']) {
       const pr = await request(t.base, 'GET', p);
       assert.equal(pr.status, 200); assert.equal(pr.json.resource, t.base + '/mcp'); assert.deepEqual(pr.json.authorization_servers, [t.base]);
-      assert.deepEqual(pr.json.scopes_supported, ['read', 'compose', 'run']); assert.deepEqual(pr.json.bearer_methods_supported, ['header']);
+      assert.deepEqual(pr.json.scopes_supported, ['read', 'compose', 'run', 'assets.submit', 'assets.review']); assert.deepEqual(pr.json.bearer_methods_supported, ['header']);
     }
     for (const p of ['/.well-known/oauth-authorization-server', '/.well-known/openid-configuration']) {
       const as = (await request(t.base, 'GET', p)).json;
       assert.equal(as.issuer, t.base);
       assert.deepEqual(as.code_challenge_methods_supported, ['S256']); assert.deepEqual(as.token_endpoint_auth_methods_supported, ['none']); assert.deepEqual(as.response_types_supported, ['code']);
-      assert.deepEqual(as.scopes_supported, ['read', 'compose', 'run']); assert.ok(as.grant_types_supported.includes(DEV) && as.grant_types_supported.includes('refresh_token'));
+      assert.deepEqual(as.scopes_supported, ['read', 'compose', 'run', 'assets.submit', 'assets.review']); assert.ok(as.grant_types_supported.includes(DEV) && as.grant_types_supported.includes('refresh_token'));
       for (const k of ['authorization_endpoint', 'token_endpoint', 'registration_endpoint', 'device_authorization_endpoint']) assert.ok(as[k].startsWith(t.base + '/oauth/'), k);
     }
     const un = await request(t.base, 'POST', '/mcp', { body: { jsonrpc: '2.0', id: 1, method: 'ping' } });
@@ -823,7 +823,7 @@ test('migration 0002: tiền kiểm oauth_grants rỗng; nâng DB tạo từ 000
     assert.equal(db.get("SELECT COUNT(*) AS n FROM audit_log WHERE id='au'").n, 1);
     db.run("INSERT INTO audit_log(id,workspace_id,display_id,ts,actor,entry,action) VALUES('au2','w','AU-0002','2026-01-01','client:x','oauth','x')");
     assert.throws(() => db.run("UPDATE audit_log SET action='y'"), /chỉ thêm/); assert.throws(() => db.run('DELETE FROM audit_log'), /chỉ thêm/);
-    assert.equal(db.get('SELECT COUNT(*) AS n FROM schema_migrations').n, 7);   // 0001 + 0002 + 0003 (v0.2.0) + 0004 (gói V: cast_members.origin) + 0005 (F7: aspect) + 0006/0007 (0.3.0-A: Gen Kit)
+    assert.equal(db.get('SELECT COUNT(*) AS n FROM schema_migrations').n, 8);   // 0001 + 0002 + 0003 (v0.2.0) + 0004 (gói V: cast_members.origin) + 0005 (F7: aspect) + 0006/0007 (0.3.0-A: Gen Kit) + 0008 (0.3.0-B: MCP nộp hàng)
     assert.equal(dbm.migrate(db).length, 0, 'chạy lại không làm gì');
     db.close();
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }

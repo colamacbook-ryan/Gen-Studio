@@ -110,8 +110,10 @@ function verifyAgentToken(db, token, opts = {}) {
     `SELECT t.kind AS tk_kind, t.expires_at AS tk_expires, t.audience AS tk_audience, t.scopes AS tk_scopes, ag.* FROM agent_tokens t JOIN agents ag ON ag.id=t.agent_id
      WHERE t.token_hash=? AND t.revoked_at IS NULL AND ag.deleted_at IS NULL AND ag.status!='revoked'`, secrets.hashToken(token));
   if (!t) return null;
+  // 0.3.0-B: token tay (gst_…) cũng kiểm hạn nếu có khai expires_at (CLI `token create --expires`); không khai ⇒ không hết hạn (hành vi cũ).
+  if (t.tk_expires && t.tk_expires < new Date().toISOString()) return null;
   if (t.tk_kind === 'access') {
-    if (!t.tk_expires || t.tk_expires < new Date().toISOString()) return null;
+    if (!t.tk_expires) return null;
     if (!opts.audience || t.tk_audience !== opts.audience) return null;   // token cấp cho nơi khác (hoặc không nói rõ nơi dùng) → từ chối
   }
   const { tk_kind, tk_expires, tk_audience, tk_scopes, ...ag } = t;

@@ -8,6 +8,11 @@ const events = require('./events.js');
 const auth = require('./auth.js');
 const secrets = require('./secrets.js');
 const { redirectMatches, SCOPES } = require('./write.js');
+// 0.3.0-B (SPEC-GK-0.1): scope nộp hàng Gen Kit — CHỈ cấp qua token tay (`genstudio token create --scopes assets.submit`,
+// server/ops/kit.js around('agent.create')), KHÔNG qua luồng ghép OAuth/thiết bị (approve ở studio/views/authorize.js
+// chỉ có 3 ô read/compose/run — ngoài phạm vi gói B). Liệt kê ở đây chỉ để `.well-known` khai đúng tập scope máy chủ hỗ trợ.
+const KIT_SCOPES = ['assets.submit', 'assets.review'];
+const SCOPES_SUPPORTED = [...SCOPES, ...KIT_SCOPES];
 
 const DEVICE_GRANT = 'urn:ietf:params:oauth:grant-type:device_code';
 const PATHS = new Set(['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp', '/.well-known/oauth-authorization-server', '/.well-known/openid-configuration',
@@ -119,10 +124,10 @@ function create(ctx, { hosts }) {
         issuer: base, authorization_endpoint: base + '/oauth/authorize', token_endpoint: base + '/oauth/token', registration_endpoint: base + '/oauth/register',
         device_authorization_endpoint: base + '/oauth/device', response_types_supported: ['code'],
         grant_types_supported: ['authorization_code', 'refresh_token', DEVICE_GRANT], code_challenge_methods_supported: ['S256'],
-        token_endpoint_auth_methods_supported: ['none'], scopes_supported: SCOPES,
+        token_endpoint_auth_methods_supported: ['none'], scopes_supported: SCOPES_SUPPORTED,
       }, { 'Cache-Control': 'public, max-age=300' });
     }
-    return json(res, 200, { resource: base + '/mcp', authorization_servers: [base], scopes_supported: SCOPES, bearer_methods_supported: ['header'] }, { 'Cache-Control': 'public, max-age=300' });
+    return json(res, 200, { resource: base + '/mcp', authorization_servers: [base], scopes_supported: SCOPES_SUPPORTED, bearer_methods_supported: ['header'] }, { 'Cache-Control': 'public, max-age=300' });
   }
 
   // ---- đăng ký client động ----

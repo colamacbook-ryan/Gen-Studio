@@ -18,7 +18,7 @@ const cols = (db, t) => db.all(`PRAGMA table_info(${t})`).map(c => c.name);
 
 // mọi thứ 0003 phải để lại, dù DB mới hay nâng cấp
 function assertV020Schema(db) {
-  assert.deepEqual(db.all('SELECT version FROM schema_migrations ORDER BY version').map(r => r.version), [1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual(db.all('SELECT version FROM schema_migrations ORDER BY version').map(r => r.version), [1, 2, 3, 4, 5, 6, 7, 8]);
   for (const c of ['kind', 'variant', 'thumbnail', 'screens', 'host', 'music']) assert.ok(cols(db, 'lesson_versions').includes(c), 'lesson_versions.' + c);
   for (const c of ['thumbnail_pick', 'thumbnail_picked_by', 'thumbnail_picked_at', 'exported_at', 'published_at', 'published_by', 'published_source', 'awaiting_review_at']) assert.ok(cols(db, 'renders').includes(c), 'renders.' + c);
   for (const c of ['status', 'approved_version', 'approved_by', 'approved_at']) assert.ok(cols(db, 'cast_members').includes(c), 'cast_members.' + c);
@@ -160,7 +160,7 @@ test('0003 nâng cấp DB 0001+0002 có dữ liệu: giữ hàng, backfill await
 test('0006/0007 trên DB mới: đủ bảng/cột/trigger/index; chạy lại không làm gì', () => {
   const t = tmpDb();
   try {
-    assert.deepEqual(t.db.all('SELECT version FROM schema_migrations ORDER BY version').map(r => r.version), [1, 2, 3, 4, 5, 6, 7]);
+    assert.deepEqual(t.db.all('SELECT version FROM schema_migrations ORDER BY version').map(r => r.version), [1, 2, 3, 4, 5, 6, 7, 8]);
     for (const c of ['source_kind', 'redistribution', 'quality', 'commercial_ok', 'subject', 'kit_slot', 'public_ok']) assert.ok(cols(t.db, 'assets').includes(c), 'assets.' + c);
     for (const tb of ['kit_slots', 'asset_submissions', 'asset_checks', 'kit_certs', 'asset_fetch_log']) assert.ok(names(t.db, 'table').includes(tb), tb);
     const trg = names(t.db, 'trigger');
@@ -223,7 +223,7 @@ test('0006 nâng cấp DB 0005 có dữ liệu: giữ asset cũ, backfill source
     raw.close();
 
     const db = dbm.open(dir, { masterKey: key });
-    assert.deepEqual(db.all('SELECT version FROM schema_migrations ORDER BY version').map(r => r.version), [1, 2, 3, 4, 5, 6, 7]);
+    assert.deepEqual(db.all('SELECT version FROM schema_migrations ORDER BY version').map(r => r.version), [1, 2, 3, 4, 5, 6, 7, 8]);
     assert.ok(fs.readdirSync(path.join(dir, 'backups')).some(f => /^pre-migrate-\d+\.db$/.test(f)));
     assert.equal(db.get('SELECT COUNT(*) n FROM assets').n, 2, 'hàng cũ còn nguyên');
     const byId = Object.fromEntries(db.all('SELECT id, source_kind, public_ok FROM assets').map(r => [r.id, r]));

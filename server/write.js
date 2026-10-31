@@ -534,10 +534,26 @@ function createWriter(db, opts = {}) {
     if (!Array.isArray(scopes) || scopes.some((s) => !['read', 'compose', 'run'].includes(s))) throw err('invalid', 'Phạm vi (scopes) phải thuộc read, compose, run.', { scopes });
     const kind = p.kind || 'token';
     if (!['internal', 'token', 'oauth'].includes(kind)) throw err('invalid', 'Loại agent không hợp lệ.', null);
+    // 0.3.0-B: token tay (gst_…) có thể mang hạn (CLI `genstudio token create --expires 30d`); không khai ⇒ không hết hạn (hành vi cũ).
+    let tokenExpiresAt = null;
+    if (p.token_expires_at !== undefined && p.token_expires_at !== null) {
+      tokenExpiresAt = String(p.token_expires_at);
+      if (Number.isNaN(Date.parse(tokenExpiresAt))) throw err('invalid', 'token_expires_at phải là ngày giờ ISO hợp lệ.', { token_expires_at: p.token_expires_at });
+    }
     const ag = db.insertRow('agents', { name: p.name, kind, scopes, cli: p.cli || null, wake_limit_per_day: p.wake_limit_per_day ?? null, status: 'active', created_by: c.by }, { prefix: 'AG' });
     const token = `gst_${crypto.randomBytes(24).toString('base64url')}`;
-    db.insertRow('agent_tokens', { agent_id: ag.id, token_hash: secrets.hashToken(token), prefix: token.slice(0, 8), kind: 'static' });
-    return { result: { agent: ag, token }, entity: ['agent', ag.display_id], before: null, after: { name: ag.name, kind, scopes } };
+    const tokenRow = db.insertRow('agent_tokens', { agent_id: ag.id, token_hash: secrets.hashToken(token), prefix: token.slice(0, 8), kind: 'static', expires_at: tokenExpiresAt });
+    return { result: { agent: ag, token, token_id: tokenRow.id, token_expires_at: tokenExpiresAt }, entity: ['agent', ag.display_id], before: null, after: { name: ag.name, kind, scopes, token_expires_at: tokenExpiresAt } };
+  });
+  // 0.3.0-B: thu hồi MỘT token (không đụng agent/các token khác) — dùng cho `genstudio token revoke <id>` (token nộp có hạn, SPEC-GK-0.1).
+  op('agent_token.revoke', 'ownerOrCli', (c) => {
+    const ref = String(c.p.token || '').trim();
+    if (!ref) throw err('invalid', 'Cần id hoặc tiền tố của token.', null);
+    const row = db.get('SELECT * FROM agent_tokens WHERE (id=? OR prefix=?) AND revoked_at IS NULL', ref, ref);
+    if (!row) throw err('not_found', 'Không tìm thấy token còn hiệu lực với id/tiền tố này.', { token: ref });
+    db.run('UPDATE agent_tokens SET revoked_at=? WHERE id=?', db.now(), row.id);
+    const ag = byRef('agents', row.agent_id);
+    return { result: { token_id: row.id, agent: ag ? ag.display_id : row.agent_id }, entity: ['agent', ag ? ag.display_id : row.agent_id], before: { revoked_at: null }, after: { revoked_at: db.now() } };
   });
   // Thu hồi một agent: token (tay + access), client OAuth, mọi grant (code/refresh) — dùng cho agent.revoke, phát hiện refresh bị dùng lại, đăng ký lại cùng client.
   const revokeAgentRows = (agentId) => {
