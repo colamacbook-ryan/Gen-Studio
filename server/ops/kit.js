@@ -383,7 +383,12 @@ function register(op, ctx) {
     if (!buf.length) throw err('invalid', 'Chunk rỗng.', null);
     if (buf.length > MAX_CHUNK_BYTES) throw err('invalid', `Mỗi chunk tối đa ${MAX_CHUNK_BYTES} byte.`, { bytes: buf.length });
     if (row.received_bytes + buf.length > MAX_UPLOAD_BYTES) throw err('invalid', `Tổng dung lượng vượt ${MAX_UPLOAD_BYTES} byte.`, { would_be: row.received_bytes + buf.length });
-    fs.appendFileSync(row.tmp_path, buf);
+    // review Gen (0.3.0-B, mục 10 [nhỏ]): appendFileSync ghi NGAY (không nằm trong db.tx) trong khi op này chạy bên
+    // trong transaction SQLite của write() — nếu tx rollback (lỗi ở bước khác) rồi được GỌI LẠI với cùng tham số,
+    // append cũ vẫn còn trên đĩa ⇒ ghi chồng thêm lần nữa, tệp tạm có dữ liệu nhân đôi. Ghi TẠI ĐÚNG OFFSET
+    // row.received_bytes (không phải "nối vào cuối tệp") — gọi lại với cùng state luôn ra cùng một kết quả trên đĩa.
+    const fd = fs.openSync(row.tmp_path, 'r+');
+    try { fs.writeSync(fd, buf, 0, buf.length, row.received_bytes); } finally { fs.closeSync(fd); }
     const received = row.received_bytes + buf.length, nextChunk = row.next_chunk + 1;
     db.run('UPDATE upload_sessions SET received_bytes=?, next_chunk=?, updated_at=? WHERE id=?', received, nextChunk, db.now(), row.id);
     return { result: { session: row.id, received_bytes: received, next_chunk: nextChunk }, entity: ['upload_session', row.id], before: { received_bytes: row.received_bytes }, after: { received_bytes: received } };
