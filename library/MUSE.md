@@ -51,6 +51,7 @@ Ghi xong thì commit với message `muse: heartbeat` rồi push.
   - Trong `library/requests/MR-*.md`: dòng `status:`, dòng `assignee:`, ô tick, và dòng `> MUSE-…` ở cuối phiếu.
 - **Mọi file khác đều cấm**, kể cả code, catalog, `characters/`, workflow, `CLAUDE.md`, `AGENTS.md` và file này.
 - Không push lên `main`.
+- CI: chỉ bước «Phạm vi sửa» chặn PR. Lỗi `meta.json`/định dạng chỉ là cảnh báo — sửa nếu kịp, không cần đẩy lại nhiều lần.
 - Không commit bí mật.
 - Không đưa vào tài nguyên của bên thứ ba, không mô phỏng bài hát có sẵn: **mọi thứ phải do bạn tự tạo**.
 
