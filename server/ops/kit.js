@@ -386,6 +386,11 @@ function register(op, ctx) {
   op('submission.submit', 'assetsSubmit', (c) => {
     const p = c.p;
     const slot = liveSlot(p.kit_slot);
+    // review Gen (0.3.0-B, mục 3 [nên]): claim còn sống (<2h) của MỘT AGENT KHÁC ⇒ chặn — trước đây submit không kiểm
+    // claimed_by nên agent B nộp được vào ô agent A đang giữ (và xoá mất claim của A).
+    if (claimLive(slot, db.now()) && slot.claimed_by !== c.a.id) {
+      throw err('conflict', `Ô "${slot.code}" đang được agent khác giữ tới ${slot.claim_expires_at} — không nộp được.`, { kit_slot: slot.code, claimed_by: slot.claimed_by, claim_expires_at: slot.claim_expires_at });
+    }
     if (!Buffer.isBuffer(p.bytes) || !p.bytes.length) throw err('invalid', 'Thiếu nội dung.', null);
     if (p.bytes.length > MAX_UPLOAD_BYTES) throw err('invalid', `Tệp vượt ${MAX_UPLOAD_BYTES} byte.`, { bytes: p.bytes.length });
     const sn = magic.sniff(p.bytes, p.declared_mime || null);
@@ -412,7 +417,8 @@ function register(op, ctx) {
     const prev = db.json(db.get("SELECT * FROM asset_submissions WHERE workspace_id=? AND agent_id=? AND kit_slot=? AND state='rework' ORDER BY created_at DESC, id DESC LIMIT 1", ws(), c.a.id, slot.code));
     const attempt = prev ? prev.attempt + 1 : 1;
     const sub = db.insertRow('asset_submissions', { agent_id: c.a.id, kit_slot: slot.code, asset_id: asset.id, previous_id: prev ? prev.id : null, attempt, state: 'submitted', created_by: c.by }, { prefix: 'SB' });
-    db.run('UPDATE kit_slots SET claimed_by=NULL, claimed_at=NULL, claim_expires_at=NULL WHERE workspace_id=? AND code=?', ws(), slot.code);
+    // review Gen (0.3.0-B, mục 3 [nên]): chỉ xoá claim của CHÍNH MÌNH (claim của agent khác, nếu còn sống, đã bị chặn ở trên).
+    db.run('UPDATE kit_slots SET claimed_by=NULL, claimed_at=NULL, claim_expires_at=NULL WHERE workspace_id=? AND code=? AND claimed_by=?', ws(), slot.code, c.a.id);
     return { result: { submission: byRef('asset_submissions', sub.id), asset }, entity: ['asset_submission', sub.display_id], before: null, after: { kit_slot: slot.code, asset: asset.display_id, attempt } };
   });
 }

@@ -178,3 +178,30 @@ test('k-kit-mcp: kit_report_blocked ghi lý do, bỏ claim', async (t) => {
     assert.equal(after.claimed_by, null);
   } finally { await b.clean(); }
 });
+
+test('0.3.0-B (review Gen, mục 3 [nên]): submit không nộp được vào ô agent khác đang giữ claim còn sống; claim của người khác không bị xoá', async (t) => {
+  if (skip(t)) return;
+  const b = await bootTmp();
+  try {
+    b.app.ctx.write(CLI, 'kit.sync', {});
+    const museA = await museToken(b.app.ctx);
+    const museB = await museToken(b.app.ctx);
+    const claimA = await mcpCall(b.base, museA.token, 'kit_claim', { kit_slot: 'prop.tech.04' });
+    assert.ok(!claimA.json.result.isError, JSON.stringify(claimA.json.result));
+
+    const f = path.join(tmp, 'steal.png');
+    flatPng(f, { w: 2048, h: 2048 });
+    const b64 = fs.readFileSync(f).toString('base64');
+    const stolen = await mcpCall(b.base, museB.token, 'kit_submit', { kit_slot: 'prop.tech.04', declared_mime: 'image/png', data_base64: b64 });
+    assert.ok(stolen.json.result.isError, 'agent B không nộp được vào ô agent A đang giữ');
+    assert.equal(stolen.json.result.structuredContent.error.code, 'conflict');
+
+    // claim của A còn nguyên — B không xoá mất được
+    const row = b.app.ctx.db.get('SELECT claimed_by FROM kit_slots WHERE code=?', 'prop.tech.04');
+    assert.equal(row.claimed_by, museA.agent.id);
+
+    // chính A nộp bình thường được
+    const okSub = await mcpCall(b.base, museA.token, 'kit_submit', { kit_slot: 'prop.tech.04', declared_mime: 'image/png', data_base64: b64 });
+    assert.ok(!okSub.json.result.isError, JSON.stringify(okSub.json.result));
+  } finally { await b.clean(); }
+});
