@@ -86,6 +86,50 @@ test('submission.record_checks: idempotent theo (run_id, tệp, tiêu chí); c�
     assert.throws(() => t.write(noScope, 'submission.record_checks', { submission: sub.display_id, run_id: 'r4', results: [{ criterion: 'CH-02', level: 'ok' }] }), /quyền/);
     // system cũng gọi được (checks.run)
     t.write(system, 'submission.record_checks', { submission: sub.display_id, run_id: 'r5', results: [{ criterion: 'CH-06', level: 'ok' }] });
+
+    // review #8: CÙNG run_id + criterion nhưng KHÁC level ⇒ conflict (trước đây level nằm trong WHERE dedupe nên lọt
+    // qua, ghi thêm hàng thứ hai mâu thuẫn cho cùng một lần kiểm).
+    t.write(gen, 'submission.record_checks', { submission: sub.display_id, run_id: 'r6', results: [{ criterion: 'CH-07', level: 'fail' }] });
+    assert.throws(() => t.write(gen, 'submission.record_checks', { submission: sub.display_id, run_id: 'r6', results: [{ criterion: 'CH-07', level: 'ok' }] }), /conflict|khác/i);
+    assert.equal(t.db.get("SELECT COUNT(*) n FROM asset_checks WHERE run_id='r6' AND criterion='CH-07'").n, 1, 'không ghi thêm hàng thứ hai mâu thuẫn');
+    // severity hợp lệ được lưu; severity sai bị từ chối
+    t.write(gen, 'submission.record_checks', { submission: sub.display_id, run_id: 'r7', results: [{ criterion: 'CH-08', level: 'ok', severity: 'M*' }] });
+    assert.equal(t.db.get("SELECT severity FROM asset_checks WHERE run_id='r7'").severity, 'M*');
+    assert.throws(() => t.write(gen, 'submission.record_checks', { submission: sub.display_id, run_id: 'r8', results: [{ criterion: 'CH-09', level: 'ok', severity: 'X' }] }), /severity/);
+  } finally { t.clean(); }
+});
+
+test('server/checks/to-db.js: adapter đổi {code, level, pass, measured, note_vi} của gói E sang {criterion, severity, level}', () => {
+  const { toDbResults, severityOf, levelOf } = require('../server/checks/to-db');
+  assert.equal(severityOf('M'), 'M');
+  assert.equal(severityOf('M*'), 'M*');
+  assert.equal(severityOf('H'), 'H');
+  assert.equal(severityOf('M + H'), 'M', 'tiêu chí lai M+H vẫn chặn như M (chưa cài máy đo)');
+  assert.equal(levelOf(true), 'ok');
+  assert.equal(levelOf(false), 'fail');
+  assert.equal(levelOf(null), 'warn', 'chưa đo được ⇒ warn (không ok ngầm, không fail oan)');
+  const fake = { checks: [
+    { code: 'CH-01', level: 'M', pass: true, measured: { w: 2048 }, note_vi: 'đạt', note_en: 'ok' },
+    { code: 'CH-02', level: 'M', pass: false, measured: {}, note_vi: 'trượt', note_en: 'fail' },
+    { code: 'CH-04', level: 'M*', pass: null, measured: {}, note_vi: 'chưa đo', note_en: 'n/a' },
+    { code: 'CH-09', level: 'H', pass: null, measured: {}, note_vi: 'cần Ryan', note_en: 'n/a' },
+  ] };
+  const rows = toDbResults(fake);
+  assert.deepEqual(rows.map((r) => [r.criterion, r.severity, r.level]), [
+    ['CH-01', 'M', 'ok'], ['CH-02', 'M', 'fail'], ['CH-04', 'M*', 'warn'], ['CH-09', 'H', 'warn'],
+  ]);
+  // kết quả adapter ghi được thẳng qua submission.record_checks (cùng hình dạng {criterion, severity, level, measured, detail})
+  const t = tmpDb();
+  try {
+    const o = owner(t.db);
+    t.write(o, 'kit.sync', {});
+    const a1 = putAsset(t, o);
+    const sub = submissionRow(t, { asset: a1 });
+    const gen = agent(['assets.review'], 'AG-GEN');
+    const okRows = rows.filter((r) => r.level !== 'fail' || true); // record_checks chỉ nhận ok/warn/fail — rows đã đúng hình dạng
+    const out = t.write(gen, 'submission.record_checks', { submission: sub.display_id, run_id: 'adapter-1', results: okRows });
+    assert.equal(out.written, rows.length);
+    assert.equal(t.db.get("SELECT severity FROM asset_checks WHERE criterion='CH-04'").severity, 'M*');
   } finally { t.clean(); }
 });
 
@@ -121,14 +165,42 @@ test('submission.auto_rework: cần còn tiêu chí M fail; đếm chuỗi liên
     const out3 = t.write(gen, 'submission.auto_rework', { submission: sub3.display_id });
     assert.equal(out3.blocked, true);
     assert.ok(out3.text_human.includes('chờ Ryan'));
-    // vẫn 'submitted' (op bị chặn không đổi trạng thái) và đã tạo đúng một đề xuất submission_verdict
-    assert.equal(t.db.get('SELECT state FROM asset_submissions WHERE id=?', sub3.id).state, 'submitted');
+    // review #5: trạng thái bền 'blocked' (không phải 'submitted' bị chặn tạm) + đúng một đề xuất submission_verdict
+    assert.equal(t.db.get('SELECT state FROM asset_submissions WHERE id=?', sub3.id).state, 'blocked');
     const sg = t.db.all("SELECT * FROM suggestions WHERE target_kind='submission_verdict'");
     assert.equal(sg.length, 1);
     assert.equal(sg[0].target_id, sub3.display_id);
+    // review #5: gọi lại auto_rework trên lần đã 'blocked' ⇒ idempotent, KHÔNG tạo thêm đề xuất thứ hai
+    const out3b = t.write(gen, 'submission.auto_rework', { submission: sub3.display_id });
+    assert.equal(out3b.blocked, true);
+    assert.equal(out3b.suggestion, out3.suggestion);
+    assert.equal(t.db.get('SELECT COUNT(*) n FROM suggestions').n, 1, 'không tạo thêm SG- thứ hai');
     // chỉ 'review' (agent scope assets.review hoặc system) gọi được — agent thường bị chặn
     const noScope = agent(['compose'], 'AG-NO2');
     assert.throws(() => t.write(noScope, 'submission.auto_rework', { submission: sub1.display_id }), /quyền/);
+  } finally { t.clean(); }
+});
+
+test('submission.auto_rework → suggestion.apply: Ryan áp dụng đề xuất rework_blocked thì submission thật sự đổi state', () => {
+  const t = tmpDb();
+  try {
+    const o = owner(t.db);
+    t.write(o, 'kit.sync', {});
+    const a1 = putAsset(t, o);
+    const gen = agent(['assets.review'], 'AG-GEN');
+    const fail = (sub, runId) => t.write(gen, 'submission.record_checks', { submission: sub.display_id, run_id: runId, results: [{ criterion: 'CH-02', level: 'fail' }] });
+    let prev = null, sub;
+    for (let i = 0; i < 3; i++) {
+      sub = submissionRow(t, { asset: a1, previous: prev });
+      fail(sub, 'run' + i);
+      t.write(gen, 'submission.auto_rework', { submission: sub.display_id });
+      prev = sub;
+    }
+    assert.equal(t.db.get('SELECT state FROM asset_submissions WHERE id=?', sub.id).state, 'blocked');
+    const sg = t.db.get("SELECT * FROM suggestions WHERE target_kind='submission_verdict' AND target_id=?", sub.display_id);
+    t.write(o, 'suggestion.apply', { suggestion: sg.display_id });
+    assert.equal(t.db.get('SELECT state, decision_kind FROM asset_submissions WHERE id=?', sub.id).state, 'rework');
+    assert.equal(t.db.get('SELECT decision_kind FROM asset_submissions WHERE id=?', sub.id).decision_kind, 'owner');
   } finally { t.clean(); }
 });
 
@@ -170,7 +242,7 @@ test('check.waive: chỉ ownerUi, lý do ≥ 10 ký tự, chỉ thêm hàng', ()
   } finally { t.clean(); }
 });
 
-test('kit.certify: chặn khi còn M fail; ghi kit_certs chỉ-thêm; không chứng nhận trùng (asset, ô, major, subject_rev)', () => {
+test('kit.certify: review #1 chặn khi THIẾU kết quả kiểm (không chỉ khi có fail) hoặc còn warn; review #2 chặn khi thiếu h_ticks M*/H', () => {
   const t = tmpDb();
   try {
     const o = owner(t.db);
@@ -178,17 +250,33 @@ test('kit.certify: chặn khi còn M fail; ghi kit_certs chỉ-thêm; không ch�
     const a1 = putAsset(t, o);
     t.write(o, 'slot.assign', { asset: a1.display_id, kit_slot: 'nhi.id.01' });
     const gen = agent(['assets.review'], 'AG-GEN');
-    t.write(gen, 'submission.record_checks', { asset: a1.display_id, run_id: 'r1', results: [{ criterion: 'CH-01', level: 'fail' }] });
-    assert.throws(() => t.write(o, 'kit.certify', { asset: a1.display_id }), /fail/);
-    t.write(o, 'check.waive', { asset: a1.display_id, criterion: 'CH-01', reason: 'Đo lại bằng tay, đạt.' });
-    const cert = t.write(o, 'kit.certify', { asset: a1.display_id });
+    const { requiredCriteria } = require('../server/kit-criteria');
+    const req = requiredCriteria('nhi.id.01');
+    assert.deepEqual(req.m.sort(), ['CH-01', 'CH-02', 'CH-03', 'GEN-FMT'].sort());
+    assert.deepEqual(req.mh.sort(), ['CH-08', 'CH-09', 'CH-10'].sort());
+
+    // review #1: CHƯA kiểm gì cả ⇒ chặn (trước đây lọt vì chỉ chặn theo "có fail")
+    assert.throws(() => t.write(o, 'kit.certify', { asset: a1.display_id }), /Thiếu kết quả kiểm/);
+
+    // ghi đủ các tiêu chí M nhưng một cái còn 'warn' ⇒ vẫn chặn
+    const ok = (criterion) => t.write(gen, 'submission.record_checks', { asset: a1.display_id, run_id: 'r-' + criterion, results: [{ criterion, level: 'ok' }] });
+    ok('GEN-FMT'); ok('CH-01'); ok('CH-03');
+    t.write(gen, 'submission.record_checks', { asset: a1.display_id, run_id: 'r-CH-02', results: [{ criterion: 'CH-02', level: 'warn' }] });
+    assert.throws(() => t.write(o, 'kit.certify', { asset: a1.display_id }), /chưa "ok"/);
+    t.write(o, 'check.waive', { asset: a1.display_id, criterion: 'CH-02', reason: 'Đo lại bằng tay, đạt.' });
+
+    // review #2: đủ M nhưng CHƯA tick M*/H ⇒ chặn (trước đây h_ticks không bắt buộc)
+    assert.throws(() => t.write(o, 'kit.certify', { asset: a1.display_id }), /h_ticks/);
+    assert.throws(() => t.write(o, 'kit.certify', { asset: a1.display_id, h_ticks: ['CH-08', 'CH-09'] }), /h_ticks/, 'thiếu CH-10 vẫn chặn');
+
+    const cert = t.write(o, 'kit.certify', { asset: a1.display_id, h_ticks: ['CH-08', 'CH-09', 'CH-10'] });
     assert.equal(cert.kit_slot, 'nhi.id.01');
     assert.equal(cert.via, 'certify');
-    assert.throws(() => t.write(o, 'kit.certify', { asset: a1.display_id }), /đã có chứng nhận/);
+    assert.throws(() => t.write(o, 'kit.certify', { asset: a1.display_id, h_ticks: ['CH-08', 'CH-09', 'CH-10'] }), /đã có chứng nhận/);
     assert.throws(() => t.db.run("UPDATE kit_certs SET via='approve' WHERE id=?", cert.id), /chỉ thêm/);
     assert.throws(() => t.db.run('DELETE FROM kit_certs WHERE id=?', cert.id), /chỉ thêm/);
     // Gen không chứng nhận được (INTENT INT-GK-04)
-    assert.throws(() => t.write(gen, 'kit.certify', { asset: a1.display_id }), /quyền/);
+    assert.throws(() => t.write(gen, 'kit.certify', { asset: a1.display_id, h_ticks: ['CH-08', 'CH-09', 'CH-10'] }), /quyền/);
   } finally { t.clean(); }
 });
 
@@ -210,13 +298,12 @@ test('fetch_log.prune: chỉ xoá hàng quá hạn giữ 180 ngày; chỉ system
   } finally { t.clean(); }
 });
 
-test('agent.create: nhận thêm scope assets.submit/assets.review (bọc, không sửa lõi); scope lõi vẫn bị chặn như cũ', () => {
+test('agent.create: nhận thêm scope assets.submit/assets.review (bọc, không sửa lõi); review #10 KHÔNG fallback read', () => {
   const t = tmpDb();
   try {
     const o = owner(t.db);
     const ag = t.write(o, 'agent.create', { name: 'Muse', scopes: ['assets.submit'] });
-    assert.ok(ag.agent.scopes.includes('assets.submit'));
-    assert.ok(ag.agent.scopes.includes('read'), 'không gửi scope lõi nào ⇒ mặc định read');
+    assert.deepEqual(ag.agent.scopes, ['assets.submit'], 'review #10: chỉ gửi scope Gen Kit ⇒ KHÔNG tự thêm "read"');
     const gen = t.write(o, 'agent.create', { name: 'Gen-review', scopes: ['compose', 'assets.review'] });
     assert.deepEqual(gen.agent.scopes.sort(), ['assets.review', 'compose']);
     assert.throws(() => t.write(o, 'agent.create', { name: 'Bad', scopes: ['compose', 'không-hợp-lệ'] }), /read, compose, run/);

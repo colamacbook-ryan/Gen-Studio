@@ -49,8 +49,8 @@ function register(op, ctx) {
   op('submission.import', 'ownerOrCli', (c) => {
     const p = c.p;
     const asset = need('assets', p.asset, 'tài sản');
-    if (!['submitted', 'approved', 'rework', 'rejected'].includes(p.state)) {
-      throw err('invalid', 'state phải là submitted/approved/rework/rejected.', { state: p.state });
+    if (!['submitted', 'approved', 'rework', 'rejected', 'blocked'].includes(p.state)) {
+      throw err('invalid', 'state phải là submitted/approved/rework/rejected/blocked.', { state: p.state });
     }
     const kitSlot = p.kit_slot || null;
     const dup = db.get('SELECT * FROM asset_submissions WHERE workspace_id=? AND asset_id=? AND kit_slot IS ?', ws(), asset.id, kitSlot);

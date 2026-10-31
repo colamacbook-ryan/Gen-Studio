@@ -148,11 +148,9 @@ async function importInboxFolder(write, libDir, dirName, slotsById, groups, repo
     if (!sub.deduped) {
       try {
         const checksMod = require('../server/checks/index.js');
+        const toDb = require('../server/checks/to-db.js');
         const r = await checksMod.runChecks(filePath, map.code, {});
-        const results = r.checks.map((ck) => ({
-          criterion: ck.code, level: ck.pass === true ? 'ok' : ck.pass === false ? 'fail' : 'warn',
-          measured: ck.measured, detail: ck.note_vi,
-        }));
+        const results = toDb.toDbResults(r);
         // Gắn vào ASSET (không phải submission): record_checks chặn ghi khi submission không còn "submitted"
         // (vd. đã approved) — asset không có hạn chế đó, và `kit.certify` đọc kiểm theo asset.
         write(SYS_ACTOR, 'submission.record_checks', { asset: asset.display_id, run_id: `import-${mrId}-${f.name}`, results });
