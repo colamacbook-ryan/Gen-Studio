@@ -85,6 +85,31 @@
     → `report.skipped`, magic bytes audio/video sai → lỗi trước `asset.put`, chống đụng ô, `submission.set_state` giới hạn,
     kit-map hai quy ước tên file) · `test/h-migration.test.js`/`test/d-oauth.test.js`/`test/g-aspect-data.test.js` đếm 11
     migration.
+  - **Sửa sau review opus PR #38 (10 mục, đã chạy thật):**
+    1. [chặn] `--source` quét ra 0 thư mục MR (vd đường dẫn thiếu `03_Hoan-thanh/`) không còn thoát êm mã 0 —
+       `runImport` ghi `report.configErrors` (lỗi cấu hình, KHÔNG bị `--allow-errors` bỏ qua, luôn exit 1).
+    2. [chặn] `deploy/gcp/import-setup.sh`: `SRC` mặc định đúng `<GS_DRIVE_DEST>/03_Hoan-thanh` (trước trỏ thẳng
+       thư mục cha, luôn quét ra 0); khoá chuyển từ `/run/gs-import.lock` (User=genstudio không có quyền ghi
+       `/run` → `Permission denied` exit 66 mỗi lượt) sang `data/.gs-import.lock` (cùng mẫu `cli/genstudio:42`).
+    3. [major] `deploy/gcp/import-run.sh` (mới): khoá bận (lượt trước chưa xong) bỏ qua êm KHÔNG alert; import
+       thật lỗi (exit ≠ 0, kể cả có `--allow-errors` nhờ mục 1) mới gọi `alert.sh`.
+    4. [major] `tickets-sheet.py`: Sheet thật đã có dòng mã RÚT GỌN (`nhi-08`, seed trước khi chốt mã đầy đủ) —
+       `existing_key_set()` chấp nhận CẢ hai dạng (seed không còn append ~205 dòng trùng); lệnh mới
+       `migrate-codes` (chạy tay một lần) ghi lại cột "Mã ô" từ rút gọn sang đầy đủ.
+    5. [major] `asset.meta` (gắn `kit_slot`) chống đụng ô như `submission.import` — trước đây chỉ
+       `submission.import` chặn, `asset.meta` vẫn gắn được vào ô đang có agent MCP giữ claim sống.
+    6. [major] View `v_kit_coverage` thêm cột `competing` (số lần nộp `submitted`/`blocked` đang mở cho ô) —
+       ô "đạt" không còn che mất việc còn bài đang chờ xem xét ở đường MCP; `cli/import-kit.js` in một dòng
+       `report.coveredWithCompeting`.
+    7. [minor] Tách `try`/`catch` riêng cho `asset.attest_import` — lỗi attest (hiếm) không còn xoá mất
+       `asset.put`/`asset.meta` đã ghi thành công (trước đây `catch` chung `continue` bỏ luôn cả lần nộp/máy kiểm).
+    8. [minor] `claimLive` chuyển module-level ở `server/ops/kit.js`, export dùng chung với `server/ops/import.js`
+       (trước đây định nghĩa lặp lại 2 nơi); ghi chú rõ biểu thức "quyền hiệu lực" lặp 4 lần trong `0011` (SQL
+       view không có macro để gọi lại một nguồn), nguồn sự thật vẫn là `server/rights.js`.
+    9. [minor] Test: claim đã **hết hạn** (`claim_expires_at` quá khứ) không chặn `submission.import` lẫn
+       `asset.meta`.
+    10. [minor] `kit-map.js`: thông điệp unmapped phân biệt "đúng ngữ pháp mã ô nhưng không phải mã ô hợp lệ"
+        (lỗi gõ sai mã) với "không khớp quy tắc nào" (tên tự do).
 
 ## Chưa phát hành · khối cho clip giải thích dài
 - Đổi mật khẩu đăng nhập: `POST /api/me/password` (phiên UI + CSRF, cấm trùng mật khẩu cũ, huỷ các phiên khác), nút trong sidebar (hộp người dùng).
