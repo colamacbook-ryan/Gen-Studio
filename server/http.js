@@ -33,6 +33,10 @@ async function start(ctx) {
   let hosts = null; // cần cổng thật (port 0 trong test)
   const oauth = oauthMod.create(ctx, { hosts: () => hosts });
   ctx.oauth = oauth;
+  // review Gen (0.3.0-B, mục 7 [nên]): /mcp trước đây không giới hạn tần suất — một agent (hay bug lặp gọi) gọi vô
+  // hạn. Tái dùng auth.limiter() (như oauth.js): 60 lệnh/phút/agent nói chung; kit_upload_chunk (nhiều lệnh nhỏ cho
+  // 1 tệp lớn — tới 50 chunk/50 MB) có trần riêng rộng hơn, 200/phút/agent.
+  const mcpLim = auth.limiter();
   const baseHeaders = { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY' };
 
   function text(res, status, body, type = 'text/plain; charset=utf-8', extra) {
@@ -56,6 +60,12 @@ async function start(ctx) {
     let body;
     try { body = JSON.parse((await apiMod.readBody(req, 30 * 1024 * 1024)).toString('utf8')); }
     catch (e) { if (e && e.code === 'payload_too_large') return apiMod.send(res, 413, { error: { code: 'payload_too_large', text_human: e.text_human, detail: null } }); return apiMod.send(res, 400, { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } }); }
+    const isChunkMsg = (m) => !!(m && m.method === 'tools/call' && m.params && m.params.name === 'kit_upload_chunk');
+    const allChunk = Array.isArray(body) ? body.length > 0 && body.every(isChunkMsg) : isChunkMsg(body);
+    const rlMax = allChunk ? 200 : 60, rlKey = (allChunk ? 'mcp-chunk:' : 'mcp:') + who.agent.id;
+    if (mcpLim.hit(rlKey, rlMax, 60e3)) {
+      return apiMod.send(res, 429, { error: { code: 'rate_limited', text_human: `Quá nhiều yêu cầu MCP (tối đa ${rlMax}/phút), thử lại sau.`, detail: null } }, { 'Retry-After': '60' });
+    }
     const c = { agent: who.agent, scopes: who.scopes };
     if (Array.isArray(body)) {
       const outs = (await Promise.all(body.map(m => ctx.mcp.handle(m, c)))).filter(Boolean);
