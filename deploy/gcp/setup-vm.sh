@@ -126,15 +126,21 @@ if [ "$WORKSHOP" = 1 ]; then
     fi
   done
   # dev stack cổng 7491: chỉ cài lần đầu (chưa có .env) — không đụng nếu đã có, Claude Code có thể đang sửa dở
+  # .env dev đã có nhưng thiếu GS_UID/GS_GID (lỗi lần cài 31/10: container chạy uid 1000 ≠ genstudio ⇒ EACCES /data) ⇒ vá rồi bật lại
+  if [ -f "$GHOME/genlabs/Gen-Studio/.env" ] && ! grep -q '^GS_UID=' "$GHOME/genlabs/Gen-Studio/.env"; then
+    { echo "GS_UID=$(id -u "$U")"; echo "GS_GID=$(id -g "$U")"; } >> "$GHOME/genlabs/Gen-Studio/.env"
+    (cd "$GHOME/genlabs/Gen-Studio" && sudo -u "$U" -H env GS_VERSION=dev docker compose up -d studio >/dev/null 2>&1) || echo "⚠ dev stack chưa lên — kiểm tay: cd ~/genlabs/Gen-Studio && docker compose logs studio"
+  fi
   if [ -d "$GHOME/genlabs/Gen-Studio" ] && [ ! -f "$GHOME/genlabs/Gen-Studio/.env" ]; then
     # .env dev tối thiểu TRƯỚC khi install.sh chạy: COMPOSE_PROJECT_NAME riêng — /opt/gen-studio (prod) và
     # ~/genlabs/Gen-Studio (dev) ra cùng project "gen-studio" theo mặc định docker compose ⇒ đạp container/volume prod
-    { echo "COMPOSE_PROJECT_NAME=gen-studio-dev"; echo "GS_VERSION=dev"; } > "$GHOME/genlabs/Gen-Studio/.env"
+    { echo "COMPOSE_PROJECT_NAME=gen-studio-dev"; echo "GS_VERSION=dev"; echo "GS_UID=$(id -u "$U")"; echo "GS_GID=$(id -g "$U")"; } > "$GHOME/genlabs/Gen-Studio/.env"
     chown "$U:$U" "$GHOME/genlabs/Gen-Studio/.env"; chmod 600 "$GHOME/genlabs/Gen-Studio/.env"
     # install.sh sẽ tự ghi đè GS_VERSION theo file VERSION trong repo (giống hệt prod) ⇒ export lại qua biến môi
     # trường shell: biến môi trường thắng giá trị trong .env khi docker compose thay thế ${GS_VERSION}, nên image
     # dev vẫn lên tag "dev" lúc build dù dòng GS_VERSION trong .env bị install.sh sửa lại.
-    sudo -u "$U" -H env GS_VERSION=dev bash "$GHOME/genlabs/Gen-Studio/install.sh" --dir "$GHOME/genlabs/Gen-Studio" --port 7491
+    sudo -u "$U" -H env GS_VERSION=dev bash "$GHOME/genlabs/Gen-Studio/install.sh" --dir "$GHOME/genlabs/Gen-Studio" --port 7491 \
+      || echo "⚠ dev stack cài lỗi — prod không ảnh hưởng; kiểm tay: cd ~/genlabs/Gen-Studio && docker compose logs studio"
   fi
 fi
 unset TOK AUTHHDR
