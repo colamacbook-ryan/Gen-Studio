@@ -106,7 +106,14 @@ function mapFile({ mrId, filename }) {
     if (codes.has(pose)) return { code: pose, reason: `mẫu tên số <subject>-NN-slug → ${pose}` };
     return { code: null, reason: `mẫu tên số khớp nhưng không có ô "${expr}"/"${pose}" trong seed/kit-slots.json` };
   }
-  return { code: null, reason: 'không khớp quy tắc ánh xạ (override hoặc mẫu <subject>-NN-slug.ext)' };
+  // review opus PR #38 mục 10 [minor]: phân biệt "đúng ngữ pháp mã ô nhưng không phải mã ô hợp lệ" (file đặt tên
+  // đúng dạng <nhóm>.<loại>…, vd `nhi.expr.99.png`, nhưng mã đó KHÔNG có trong seed/kit-slots.json — lỗi gõ số/
+  // đặt tên sai mã thật) với "không khớp quy tắc nào cả" (tên tự do, không theo quy ước nào) — người đọc báo
+  // cáo biết ngay cần sửa gì.
+  if (/^[a-z]+(\.[a-z0-9-]+){1,3}$/.test(stem)) {
+    return { code: null, reason: `tên file đúng dạng mã ô ("${stem}") nhưng không phải mã ô hợp lệ (không có trong seed/kit-slots.json)` };
+  }
+  return { code: null, reason: 'không khớp quy tắc ánh xạ (override hoặc mẫu <subject>-NN-slug.ext), không phải mã ô hợp lệ' };
 }
 
 module.exports = { mapFile, slotCodes, OVERRIDES };
