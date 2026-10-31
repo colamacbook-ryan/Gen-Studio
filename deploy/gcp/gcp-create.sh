@@ -47,6 +47,9 @@ echo "› Service account chỉ dùng bucket sao lưu"
 gcloud iam service-accounts describe "$SA" --project "$PROJECT" >/dev/null 2>&1 \
   || gcloud iam service-accounts create gs-backup --project "$PROJECT" --display-name "Gen-Studio backup" >/dev/null
 # chỉ tạo + đọc (khôi phục thử); không xoá/ghi đè — VM bị chiếm cũng không phá được bản sao lưu cũ. Xoá do lifecycle 30 ngày.
+gcloud storage buckets remove-iam-policy-binding "$BUCKET" --member "serviceAccount:$SA" --role roles/storage.objectAdmin >/dev/null 2>&1 || true
+# giữ tối thiểu 7 ngày: kể cả ai có quyền xoá cũng không xoá được bản sao lưu mới (khoá hẳn bằng --lock-retention-period khi đã ổn)
+gcloud storage buckets update "$BUCKET" --retention-period=7d >/dev/null
 for role in roles/storage.objectCreator roles/storage.objectViewer; do
   gcloud storage buckets add-iam-policy-binding "$BUCKET" --member "serviceAccount:$SA" --role "$role" >/dev/null
 done
