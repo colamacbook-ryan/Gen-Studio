@@ -2,6 +2,7 @@
 // Đo hình học trên PNG đã giải mã (render/png.js, thuần Node, không npm): kích thước, màu nền 4 góc,
 // lẫn màu nền vào nhân vật, chân/vai chạm mép — theo STANDARD-KIT-v1.md §3.4/§4.
 'use strict';
+const { spawnSync } = require('node:child_process');
 const png = require('../../render/png.js');
 
 const BG = [0, 177, 64]; // #00B140
@@ -14,6 +15,16 @@ function chDiff(px, target) { return Math.max(Math.abs(px[0] - target[0]), Math.
 function isBg(px, target, tol) { return px[3] < 10 || chDiff(px, target) <= tol; }
 
 function decodePng(buf) { return png.decode(buf); }
+
+// render/png.js chỉ đọc RGB/RGBA 8-bit không xen kẽ; PNG 16-bit/palette/interlaced ném lỗi. Chuẩn hoá qua
+// ffmpeg (8-bit RGBA, không xen kẽ) trước khi thử lại — không thêm dependency npm (CLAUDE.md).
+function normalizePng(buf, ffmpegPath) {
+  const bin = ffmpegPath || 'ffmpeg';
+  const r = spawnSync(bin, ['-v', 'error', '-i', 'pipe:0', '-frames:v', '1', '-f', 'image2pipe', '-c:v', 'png', '-pix_fmt', 'rgba', 'pipe:1'],
+    { input: buf, maxBuffer: 1 << 30 });
+  if (r.error || r.status !== 0 || !r.stdout || !r.stdout.length) return null;
+  return r.stdout;
+}
 
 // CH-02 / tương tự PR/FX: trung bình + độ lệch chuẩn mỗi kênh trên 4 góc 64×64.
 function cornerColor(img, { size = 64, target = BG, meanTol = 6, stdTol = 3 } = {}) {
@@ -37,23 +48,31 @@ function cornerColor(img, { size = 64, target = BG, meanTol = 6, stdTol = 3 } = 
 }
 
 // CH-01 / PR-01 / FX-01: kích thước đúng y hệt + không có dải mép đồng màu khác nền dày > padMax px.
+// Đệm (letterbox) = CẢ hàng (top/bottom) hoặc CẢ cột (left/right) một màu phẳng duy nhất, khác nền, dày hơn
+// padMax — khác với nhân vật/vật chạm mép (chỉ lấp MỘT PHẦN hàng/cột ⇒ hàng/cột không đồng màu ⇒ không
+// tính là đệm). Sửa theo review #3: quét 1 scanline giữa cạnh trước đây coi nhầm vai/chân chạm mép là đệm.
 function sizePad(img, { w, h, target = BG, tol = 24, padMax = 4, scanDepth = 32 } = {}) {
   const sizeOk = img.w === w && img.h === h;
-  const run = (get, len) => {
-    let depth = 0, refOk = true;
-    while (depth < Math.min(scanDepth, len)) {
-      const px = get(depth);
-      if (isBg(px, target, tol)) break; // về lại nền thật ⇒ hết dải đệm
-      if (depth === 0) refOk = true;
-      else if (chDiff(get(depth), get(0)) > tol) { refOk = false; break; } // dải không đồng màu ⇒ không tính là đệm phẳng
+  // uniform(getPx, len) → màu chung nếu CẢ dòng/cột cùng một màu (trong tol), ngược lại null.
+  const uniform = (getPx, len) => {
+    const first = getPx(0);
+    for (let i = 1; i < len; i++) if (chDiff(getPx(i), first) > tol) return null;
+    return first;
+  };
+  const run = (getLine, lineLen, depthLen) => {
+    let depth = 0;
+    while (depth < Math.min(scanDepth, depthLen)) {
+      const color = uniform((i) => getLine(depth, i), lineLen);
+      if (!color) break; // không đồng màu toàn dòng/cột ⇒ vật chạm mép, không phải đệm
+      if (isBg(color, target, tol)) break; // đã về nền thật
       depth++;
     }
-    return refOk ? depth : 0;
+    return depth;
   };
-  const top = run((d) => at(img, Math.floor(img.w / 2), d), img.h);
-  const bottom = run((d) => at(img, Math.floor(img.w / 2), img.h - 1 - d), img.h);
-  const left = run((d) => at(img, d, Math.floor(img.h / 2)), img.w);
-  const right = run((d) => at(img, img.w - 1 - d, Math.floor(img.h / 2)), img.w);
+  const top = run((d, x) => at(img, x, d), img.w, img.h);
+  const bottom = run((d, x) => at(img, x, img.h - 1 - d), img.w, img.h);
+  const left = run((d, y) => at(img, d, y), img.h, img.w);
+  const right = run((d, y) => at(img, img.w - 1 - d, y), img.h, img.w);
   const pad = { top, bottom, left, right };
   const maxPad = Math.max(top, bottom, left, right);
   return { w: img.w, h: img.h, sizeOk, pad, maxPad, pass: sizeOk && maxPad <= padMax };
@@ -62,7 +81,9 @@ function sizePad(img, { w, h, target = BG, tol = 24, padMax = 4, scanDepth = 32 
 // CH-03 / PR-02 / FX-02: lẫn màu nền vào nhân vật — flood-fill nền từ 4 góc (4 liên thông), phần còn lại
 // coi là "mặt nạ nhân vật"; đếm tỉ lệ điểm ảnh trong mặt nạ vẫn có màu gần nền (SUY LUẬN: không có mặt nạ
 // thật từ nguồn — xấp xỉ bằng liên thông nền từ biên; lỗ nền kín bên trong nhân vật không bị tính).
-function chromaBleed(img, { target = BG, bgTol = 40, bleedTol = 28, maxRatio = 0.005 } = {}) {
+// Sửa theo review #4: ảnh không có vật nào (mặt nạ ≈ 0) KHÔNG được coi là đạt — đó là dấu hiệu ảnh trống,
+// không phải "không lẫn màu"; yêu cầu mặt nạ chiếm tối thiểu minMaskRatio diện tích khung.
+function chromaBleed(img, { target = BG, bgTol = 40, bleedTol = 28, maxRatio = 0.005, minMaskRatio = 0.01 } = {}) {
   const w = img.w, h = img.h, n = w * h;
   const visited = new Uint8Array(n);
   const stack = [];
@@ -82,8 +103,10 @@ function chromaBleed(img, { target = BG, bgTol = 40, bleedTol = 28, maxRatio = 0
     maskN++;
     if (isBg(at(img, x, y), target, bleedTol)) bleed++;
   }
+  const maskRatio = maskN / n;
   const ratio = maskN ? bleed / maskN : 0;
-  return { maskPx: maskN, bleedPx: bleed, ratio: Math.round(ratio * 100000) / 1000, pass: ratio <= maxRatio };
+  const hasSubject = maskRatio >= minMaskRatio;
+  return { maskPx: maskN, maskRatio: Math.round(maskRatio * 10000) / 10000, bleedPx: bleed, ratio: Math.round(ratio * 100000) / 1000, hasSubject, pass: hasSubject && ratio <= maxRatio };
 }
 
 // CH-05 (expr): cột ngoài cùng trái/phải phải có điểm khác nền trong 30% dưới ảnh.
@@ -94,15 +117,31 @@ function shouldersTouchEdges(img, { target = BG, tol = 40, bottomFrac = 0.3 } = 
   return { left, right, pass: left && right };
 }
 
-// CH-07 (pose): hàng thấp nhất khác nền phải nằm ở groundY ± tol.
-function feetTouchGround(img, { target = BG, tol = 40, groundY, groundTol = 8 } = {}) {
-  const gy = groundY != null ? groundY : img.h - 160; // SUY LUẬN: y_g = 2400 trên khung 2560 ⇒ cách đáy 160px
+// CH-07 (pose): hàng thấp nhất khác nền phải nằm ở groundY ± tol. groundY mặc định cố định theo SUY LUẬN
+// của STANDARD-KIT-v1 (y_g = 2400 trên khung 2560), KHÔNG tự suy ra từ chính ảnh đang đo (review #10) — gọi
+// phải truyền rõ groundY khi khung khác 2560.
+function feetTouchGround(img, { target = BG, tol = 40, groundY = 2400, groundTol = 8 } = {}) {
   let lowest = -1;
   for (let y = img.h - 1; y >= 0 && lowest < 0; y--) {
     for (let x = 0; x < img.w; x++) if (!isBg(at(img, x, y), target, tol)) { lowest = y; break; }
   }
-  const pass = lowest >= 0 && Math.abs(lowest - gy) <= groundTol;
-  return { lowestY: lowest, groundY: gy, pass };
+  const pass = lowest >= 0 && Math.abs(lowest - groundY) <= groundTol;
+  return { lowestY: lowest, groundY, pass };
+}
+
+// PR-01/FX-01: hộp bao vật (điểm khác nền) phải cách mọi mép ≥ marginPx. Trả margin=null nếu không có vật.
+function boundingBox(img, { target = BG, tol = 40 } = {}) {
+  let minX = -1, maxX = -1, minY = -1, maxY = -1;
+  for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
+    if (isBg(at(img, x, y), target, tol)) continue;
+    if (minX < 0 || x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (minY < 0 || y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  const found = minX >= 0;
+  const margin = found ? Math.min(minX, img.w - 1 - maxX, minY, img.h - 1 - maxY) : null;
+  return { found, minX, maxX, minY, maxY, margin };
 }
 
 // CH-04 (M*, tạm H — STANDARD-KIT-v1 §3.4): chưa có dò mốc mặt; so chồng mờ 50% với .expr.00 tham chiếu
@@ -127,4 +166,4 @@ function alphaRatio(img, { minAlpha = 10 } = {}) {
   return { hasAlpha: true, ratio: Math.round((transparent / n) * 1000) / 1000 };
 }
 
-module.exports = { BG, decodePng, cornerColor, sizePad, chromaBleed, shouldersTouchEdges, feetTouchGround, overlayDiff, alphaRatio };
+module.exports = { BG, decodePng, normalizePng, cornerColor, sizePad, chromaBleed, shouldersTouchEdges, feetTouchGround, boundingBox, overlayDiff, alphaRatio };
