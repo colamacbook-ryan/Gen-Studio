@@ -18,12 +18,12 @@ SA="gs-backup@${PROJECT}.iam.gserviceaccount.com"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
 [ -n "$PROJECT" ] || { echo "✗ Chưa chọn project — chạy: gcloud config set project <ID>" >&2; exit 1; }
-for f in startup.sh setup-vm.sh backup-offsite.sh restore-test.sh Caddyfile.tpl tailscale.sh; do
+for f in startup.sh setup-vm.sh backup-offsite.sh restore-test.sh Caddyfile.tpl tailscale.sh drive-sync.sh drive-setup.sh; do
   [ -f "$HERE/$f" ] || { echo "✗ Thiếu $f cạnh script này" >&2; exit 1; }
 done
 FILES="startup-script=$HERE/startup.sh"
 # khoá metadata chỉ nhận chữ/số/-/_ ⇒ đổi dấu chấm thành gạch (startup.sh đổi y hệt khi lấy về)
-for f in setup-vm.sh backup-offsite.sh restore-test.sh Caddyfile.tpl tailscale.sh; do FILES="$FILES,gs-file-${f//./-}=$HERE/$f"; done
+for f in setup-vm.sh backup-offsite.sh restore-test.sh Caddyfile.tpl tailscale.sh drive-sync.sh drive-setup.sh; do FILES="$FILES,gs-file-${f//./-}=$HERE/$f"; done
 echo "Project: $PROJECT · vùng $ZONE · máy $TYPE · ổ ${DISK} GB"
 
 echo "› Bật API Compute Engine + Cloud Storage"
