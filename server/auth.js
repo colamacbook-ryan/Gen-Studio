@@ -143,12 +143,14 @@ function loginOk(ip, username) { fails.delete(throttleKey(ip, username)); }
 function limiter() {
   const m = new Map();
   return {
-    hit(key, max, windowMs) {
+    // count: số lượt tính một lần hit() (0.3.0-B re-review #36 mục 1: /mcp đếm theo SỐ MESSAGE JSON-RPC trong batch,
+    // không phải 1 request = 1 lượt — batch N message phải tính N).
+    hit(key, max, windowMs, count = 1) {
       const t = Date.now();
       if (m.size > 5000) for (const [k, v] of m) if (t > v.until) m.delete(k);
       const f = m.get(key);
-      if (!f || t > f.until) { m.set(key, { n: 1, until: t + windowMs }); return false; }
-      f.n++;
+      if (!f || t > f.until) { m.set(key, { n: count, until: t + windowMs }); return count > max; }
+      f.n += count;
       return f.n > max;
     },
     // đã chạm trần chưa (không tính thêm): dùng để chỉ đếm các yêu cầu THẤT BẠI

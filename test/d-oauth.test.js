@@ -171,8 +171,9 @@ test('oauth: PKCE sai, redirect_uri lạ, code dùng lại (thu hồi cái đã 
     assert.equal(a5.status, 302);
     assert.match(a5.location, /error=invalid_scope/, a5.location);
     // assets.submit/assets.review nay ĐƯỢC parseScopes nhận diện (không còn rơi vào rỗng/ignored) — auth.request qua
-    // được bình thường; nhưng auth.approve (ownerUi) vẫn CHỈ cấp được scope lõi (SCOPES=read/compose/run), scope Gen
-    // Kit chỉ cấp qua CLI token tay — nên xin CHỈ assets.submit vẫn không bao giờ lấy được agent qua đường ghép này.
+    // được bình thường; re-review #36 mục 3: auth.approve (ownerUi) nay CŨNG cấp được ĐÚNG MỘT scope Gen Kit (không
+    // còn giới hạn chỉ 3 scope lõi) — scopes_supported ở .well-known khai assets.submit/assets.review thì auth.approve
+    // phải thật sự cấp được, không chỉ quảng cáo suông.
     const c6 = await register(t.base);
     const a6 = await authorize(t.base, c6, 'http://127.0.0.1:53682/callback', { challenge: pkce().challenge, scope: 'assets.submit' });
     assert.equal(a6.status, 302);
@@ -180,8 +181,14 @@ test('oauth: PKCE sai, redirect_uri lạ, code dùng lại (thu hồi cái đã 
     const id6 = reqIdOf(a6.location);
     assert.deepEqual(dbOf(t).json(dbOf(t).get('SELECT * FROM auth_requests WHERE display_id=?', id6)).scopes_requested, ['assets.submit']);
     const ap6 = await t.call('POST', '/api/auth-requests/' + id6 + '/approve', {});
-    assert.equal(ap6.status, 400, JSON.stringify(ap6.json));
-    assert.match(ap6.json.error.text_human, /phạm vi hợp lệ/);
+    assert.equal(ap6.status, 200, JSON.stringify(ap6.json));
+    assert.deepEqual(ap6.json.agent.scopes, ['assets.submit']);
+    // không được gộp thêm scope lõi khi cấp qua đường này dù owner tự ý truyền (đã xin assets.submit riêng)
+    const c6b = await register(t.base);
+    const a6b = await authorize(t.base, c6b, 'http://127.0.0.1:53682/callback', { challenge: pkce().challenge, scope: 'assets.review' });
+    const id6b = reqIdOf(a6b.location);
+    const bad6b = await t.call('POST', '/api/auth-requests/' + id6b + '/approve', { scopes: ['assets.review', 'read'] });
+    assert.equal(bad6b.status, 400, JSON.stringify(bad6b.json));
     // bổ sung cổng M1 (cortex, mục c, INT-GK-03): assets.submit/assets.review phải xin RIÊNG, không gộp với core —
     // chặn ngay ở auth.request (xin), không đợi tới auth.approve mới báo lỗi.
     const c7 = await register(t.base);

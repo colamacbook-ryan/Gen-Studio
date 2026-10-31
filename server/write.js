@@ -715,7 +715,11 @@ function createWriter(db, opts = {}) {
     if (rq.kind === 'oauth' && !isLoopbackUri(rq.redirect_uri) && c.p.confirm !== true) throw err('invalid', 'Xác nhận rằng chính bạn vừa tự bấm kết nối này.', { need: 'confirm' });
     const asked = rq.scopes_requested || [];
     const granted = c.p.scopes === undefined ? asked.slice() : c.p.scopes;
-    if (!Array.isArray(granted) || !granted.length || granted.some((x) => !SCOPES.includes(x))) throw err('invalid', 'Chọn ít nhất một phạm vi hợp lệ (read, compose, run).', { scopes: granted });
+    // re-review #36 mục 3: assets.submit/assets.review giờ parseScopes CHO XIN (không gộp core — xem parseScopes),
+    // nên auth.approve cũng phải CẤP được đúng 1 scope Gen Kit đó (không chỉ 3 scope lõi như trước).
+    const isCoreGrant = Array.isArray(granted) && granted.length > 0 && granted.every((x) => SCOPES.includes(x));
+    const isKitGrant = Array.isArray(granted) && granted.length === 1 && KIT_SCOPES_OAUTH.includes(granted[0]);
+    if (!isCoreGrant && !isKitGrant) throw err('invalid', 'Chọn ít nhất một phạm vi hợp lệ (read, compose, run) — hoặc đúng một phạm vi Gen Kit (assets.submit hoặc assets.review).', { scopes: granted });
     if (granted.some((x) => !asked.includes(x))) throw err('invalid', 'Chỉ được hạ phạm vi, không nâng quá mức agent xin.', { requested: asked, granted });
     const cl = getClient(rq.client_id);
     if (!clientOk(cl)) throw err('conflict', 'Client đã bị thu hồi hoặc hết hạn.', null);

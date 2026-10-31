@@ -21,11 +21,12 @@ function tools(ctx) {
   // review Gen (0.3.0-B, mục 12 [nhỏ]): trước đây 3 query/ô × 457 ô (kit_certs + 2× asset_submissions) — nay 3 query
   // TỔNG (gộp theo kit_slot) rồi map trong bộ nhớ, bất kể danh mục bao nhiêu ô.
   const statusSets = () => {
-    const certified = new Set(db.all('SELECT DISTINCT kit_slot FROM kit_certs').map((r) => r.kit_slot));
-    const submitted = new Set(db.all("SELECT DISTINCT kit_slot FROM asset_submissions WHERE state='submitted'").map((r) => r.kit_slot));
+    // re-review #36 mục 2: thêm workspace_id — trước thiếu, lẫn trạng thái giữa các workspace khác nhau trên cùng DB.
+    const certified = new Set(db.all('SELECT DISTINCT kit_slot FROM kit_certs WHERE workspace_id=?', db.ws).map((r) => r.kit_slot));
+    const submitted = new Set(db.all("SELECT DISTINCT kit_slot FROM asset_submissions WHERE workspace_id=? AND state='submitted'", db.ws).map((r) => r.kit_slot));
     // 'blocked' (PR #33 review #5 — lần 3 liên tiếp, chờ Ryan áp dụng đề xuất) hiển thị gộp vào "rework" cho Muse:
     // dù sao cũng không claim/nộp lại được cho tới khi Ryan quyết — chi tiết xem kit_get_input.rework.
-    const rework = new Set(db.all("SELECT DISTINCT kit_slot FROM asset_submissions WHERE state IN ('rework','blocked')").map((r) => r.kit_slot));
+    const rework = new Set(db.all("SELECT DISTINCT kit_slot FROM asset_submissions WHERE workspace_id=? AND state IN ('rework','blocked')", db.ws).map((r) => r.kit_slot));
     return { certified, submitted, rework };
   };
   const slotStatus = (row, nowIso, sets) => {
