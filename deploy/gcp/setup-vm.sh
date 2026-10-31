@@ -69,6 +69,15 @@ DEVHOME="$(getent passwd "$DEVUSER" | cut -d: -f6)"
 [ -d "$APP/data" ] && chmod 700 "$APP/data" || true
 [ -f "$APP/.env" ] && chmod 600 "$APP/.env" || true
 
+# 1.4 group gs-ops: alert.sh/health-check.sh được gọi bởi nhiều user KHÔNG phải root (cron genstudio, systemd User=genstudio
+# ở gs-drive-sync/gs-tickets-sync) ⇒ cần đọc alert.env + ghi log/cờ mà không phải root. Thêm genstudio + gsdev vào nhóm này.
+getent group gs-ops >/dev/null 2>&1 || groupadd gs-ops
+usermod -aG gs-ops "$U"
+usermod -aG gs-ops "$DEVUSER"
+mkdir -p /var/lib/gs-ops
+chown root:gs-ops /var/lib/gs-ops
+chmod 775 /var/lib/gs-ops
+
 # 1.5 công cụ xưởng (idempotent — chỉ cài khi thiếu), mức hệ thống, chạy ở root
 if [ "$WORKSHOP" = 1 ]; then
   echo "› Công cụ xưởng (tmux, git, Node 22, gh, Claude Code)"
@@ -242,10 +251,15 @@ GS_BUCKET=$BUCKET
 EOF
 touch /var/log/gs-backup.log && chown "$U" /var/log/gs-backup.log && chmod 600 /var/log/gs-backup.log
 
-# 5.2 cảnh báo khi hỏng: Telegram nếu có alert.env (600, GS_ALERT_TG_TOKEN/CHAT), không thì log + cờ /opt/gs-deploy/ALERT
+# 5.2 cảnh báo khi hỏng: Telegram nếu có alert.env (root:gs-ops 640), không thì log + cờ /var/lib/gs-ops/ALERT.
+# Caller thường KHÔNG phải root (cron/systemd User=genstudio) ⇒ quyền group gs-ops (mục 1.4), không phải chỉ root đọc/ghi được.
 chmod 755 "$D/alert.sh" "$D/health-check.sh" 2>/dev/null || true
-touch /var/log/gs-alert.log && chmod 600 /var/log/gs-alert.log
-[ -f "$D/alert.env" ] || { : > "$D/alert.env"; chmod 600 "$D/alert.env"; echo "# GS_ALERT_TG_TOKEN=... / GS_ALERT_TG_CHAT=... (rỗng ⇒ alert.sh chỉ ghi log + cờ)" >> "$D/alert.env"; }
+touch /var/log/gs-alert.log && chown root:gs-ops /var/log/gs-alert.log && chmod 660 /var/log/gs-alert.log
+if [ ! -f "$D/alert.env" ]; then
+  : > "$D/alert.env"
+  echo "# GS_ALERT_TG_TOKEN=... / GS_ALERT_TG_CHAT=... (rỗng ⇒ alert.sh chỉ ghi log + cờ)" >> "$D/alert.env"
+fi
+chown root:gs-ops "$D/alert.env"; chmod 640 "$D/alert.env"
 
 # 5.3 kiểm sức khoẻ mỗi 15 phút: health API, ổ đầy >80%, container Restarting ⇒ alert.sh
 cat > /etc/systemd/system/gs-health.service <<EOF
@@ -285,6 +299,13 @@ cat > /etc/logrotate.d/gs-ops <<'EOF'
   copytruncate
 }
 EOF
+
+# 5.5 giới hạn log Docker (max-size/max-file) trong docker-compose.yml chỉ có hiệu lực khi container được TẠO LẠI —
+# container prod đang chạy từ trước bản vá này vẫn dùng cấu hình log cũ (không giới hạn) cho tới khi recreate.
+# Recreate ngay 1 lần ở đây (không đổi VERSION/image, chỉ đổi cấu hình log, an toàn — agent giữ nguyên agent-home/agent-state).
+echo "› Áp cấu hình log mới cho container đang chạy (recreate, giữ dữ liệu/volume)…"
+sudo -u "$U" -H docker compose up -d --force-recreate studio agent >/dev/null 2>&1 \
+  || echo "⚠ recreate để áp log mới chưa xong — kiểm tay: cd $APP && docker compose logs"
 
 # 6. kiểm ngay: sao lưu 1 bản + khôi phục thử + đường công khai/đường bị chặn
 sudo -u "$U" -H env GS_HOME="$APP" GS_BUCKET="$BUCKET" "$D/backup-offsite.sh"
