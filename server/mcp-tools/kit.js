@@ -67,8 +67,8 @@ function tools(ctx) {
         }
         return { text: `Ô ${slot.code}: ${slot.title_vi}` + (out.rework ? ` — ĐANG LÀM LẠI lần ${rw.attempt + 1}: ${rw.decision_reason}` : ''), data: out };
       } },
-    { name: 'kit_submit', scope: 'assets.submit', description: 'Nộp nội dung cho một ô (ảnh dừng ô đang giữ qua kit_claim không bắt buộc nhưng nên làm trước). Nội dung nhỏ ≤256 KB: gửi data_base64 hoặc text. Tệp lớn tới 50 MB: tải trước bằng kit_upload_chunk rồi gửi upload_session thay cho data_base64. Chạy máy kiểm ngay sau khi lưu; trượt tiêu chí M thì tự trả về làm lại (tối đa 2 lần tự động, lần 3 chờ Ryan).',
-      schema: { kit_slot: S, declared_mime: S, data_base64: S, text: S, upload_session: S, previous: S }, required: ['kit_slot'], handler: async (a, c) => {
+    { name: 'kit_submit', scope: 'assets.submit', description: 'Nộp nội dung cho một ô (nên kit_claim trước). Nội dung nhỏ ≤256 KB: gửi data_base64 hoặc text. Tệp lớn tới 50 MB: tải trước bằng kit_upload_chunk rồi gửi upload_session thay cho data_base64. Chạy máy kiểm ngay sau khi lưu; trượt tiêu chí M thì tự trả về làm lại (tối đa 2 lần tự động, lần 3 chờ Ryan). Nộp lại sau khi làm lại: gọi lại đúng kit_slot — server TỰ nối vào lần nộp trước (đang "rework") của bạn, không nhận tham số previous.',
+      schema: { kit_slot: S, declared_mime: S, data_base64: S, text: S, upload_session: S }, required: ['kit_slot'], handler: async (a, c) => {
         let buf, tmpToClean = null;
         if (a.upload_session) {
           // kit_upload_chunk(action=finish) có thể đã đóng phiên trước đó — chỉ finish lại nếu còn "open" (tránh lỗi "đã done").
@@ -87,7 +87,7 @@ function tools(ctx) {
         }
         if (!buf || !buf.length) throw fail('invalid', 'Nội dung rỗng.');
         if (buf.length > 262144 && !a.upload_session) throw fail('invalid', `Nội dung ${buf.length} byte vượt 256 KB — dùng kit_upload_chunk cho tệp lớn.`);
-        const subRes = write(actorOf(c), 'submission.submit', { kit_slot: a.kit_slot, bytes: buf, declared_mime: a.declared_mime || null, previous: a.previous || null });
+        const subRes = write(actorOf(c), 'submission.submit', { kit_slot: a.kit_slot, bytes: buf, declared_mime: a.declared_mime || null });
         if (tmpToClean) { try { fs.unlinkSync(tmpToClean); } catch { /* best-effort, tệp tạm không chặn luồng */ } }
         const sub = subRes.submission, asset = subRes.asset;
         const file = pipeline.assetFile(db, asset.id).file;

@@ -76,26 +76,30 @@ test('k-kit-mcp: token → kit_list → kit_claim → kit_submit (PNG nền đú
   } finally { await b.clean(); }
 });
 
-test('k-kit-mcp: submit sai nền → rework lần 1, 2; lần 3 → chờ Ryan (blocked_for_ryan)', async (t) => {
+test('k-kit-mcp: submit sai nền → rework lần 1, 2; lần 3 → chờ Ryan (blocked_for_ryan) — KHÔNG truyền previous (review mục 2: server tự nối chuỗi)', async (t) => {
   if (skip(t)) return;
   const b = await bootTmp();
   try {
     b.app.ctx.write(CLI, 'kit.sync', {});
     const muse = await museToken(b.app.ctx);
-    const badPng = (name) => { const f = path.join(tmp, name); flatPng(f, { w: 2048, h: 2048, color: '0x04A53C' }); return f; }; // bg sai (MR-051)
-    const submit = (previous) => mcpCall(b.base, muse.token, 'kit_submit', {
-      kit_slot: 'prop.tech.02', declared_mime: 'image/png', data_base64: fs.readFileSync(badPng(`bad-${previous || '0'}.png`)).toString('base64'), previous,
+    const badPng = (n) => { const f = path.join(tmp, `bad-${n}.png`); flatPng(f, { w: 2048, h: 2048, color: '0x04A53C' }); return f; }; // bg sai (MR-051)
+    // review Gen mục 2 [chặn]: tool kit_submit KHÔNG còn nhận `previous` — gọi lại CÙNG kit_slot, server tự tìm lần
+    // nộp "rework" gần nhất của agent để nối chuỗi. Không truyền previous ở cả 3 lần dưới đây.
+    const submit = (n) => mcpCall(b.base, muse.token, 'kit_submit', {
+      kit_slot: 'prop.tech.02', declared_mime: 'image/png', data_base64: fs.readFileSync(badPng(n)).toString('base64'),
     });
 
-    const r1 = await submit();
+    const r1 = await submit(1);
     const d1 = r1.json.result.structuredContent;
     assert.equal(d1.verdict, 'rework'); assert.equal(d1.state, 'rework');
 
-    const r2 = await submit(d1.submission);
+    const r2 = await submit(2);
     const d2 = r2.json.result.structuredContent;
     assert.equal(d2.verdict, 'rework'); assert.equal(d2.state, 'rework');
+    assert.equal(b.app.ctx.db.get('SELECT previous_id FROM asset_submissions WHERE display_id=?', d2.submission).previous_id,
+      b.app.ctx.db.get('SELECT id FROM asset_submissions WHERE display_id=?', d1.submission).id, 'server tự nối previous_id dù client không gửi');
 
-    const r3 = await submit(d2.submission);
+    const r3 = await submit(3);
     const d3 = r3.json.result.structuredContent;
     assert.equal(d3.verdict, 'rework');
     assert.equal(d3.state, 'blocked_for_ryan', 'lần 3 liên tiếp ⇒ chờ Ryan, không tự rework nữa');

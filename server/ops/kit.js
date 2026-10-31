@@ -406,8 +406,10 @@ function register(op, ctx) {
       asset = db.insertRow('assets', { kind, sha256: sha, path: rel, bytes: p.bytes.length, mime, meta: null, media_present: 1,
         source: 'upload', source_kind: 'muse', subject, kit_slot: slot.code, created_by: c.by }, { prefix: 'AS' });
     }
-    const prev = p.previous ? need('asset_submissions', p.previous, 'lần nộp trước') : null;
-    if (prev && prev.kit_slot !== slot.code) throw err('invalid', 'Lần nộp trước không cùng ô với lần nộp này.', { previous: prev.display_id, kit_slot: slot.code });
+    // review Gen (0.3.0-B, mục 2 [chặn]): KHÔNG nhận `previous` do client khai — agent có thể cố tình bỏ qua để
+    // auto_rework không bao giờ đếm đủ 3 lần. Server tự nối chuỗi: lần nộp GẦN NHẤT của CHÍNH agent này cho CÙNG ô,
+    // đang ở "rework" (đang làm lại) ⇒ đó là previous; không có ⇒ lần đầu (previous=null).
+    const prev = db.json(db.get("SELECT * FROM asset_submissions WHERE workspace_id=? AND agent_id=? AND kit_slot=? AND state='rework' ORDER BY created_at DESC, id DESC LIMIT 1", ws(), c.a.id, slot.code));
     const attempt = prev ? prev.attempt + 1 : 1;
     const sub = db.insertRow('asset_submissions', { agent_id: c.a.id, kit_slot: slot.code, asset_id: asset.id, previous_id: prev ? prev.id : null, attempt, state: 'submitted', created_by: c.by }, { prefix: 'SB' });
     db.run('UPDATE kit_slots SET claimed_by=NULL, claimed_at=NULL, claim_expires_at=NULL WHERE workspace_id=? AND code=?', ws(), slot.code);
