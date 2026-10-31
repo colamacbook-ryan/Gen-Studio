@@ -6,6 +6,7 @@ import { get } from './api.js';
 import { on, onDebounced } from './bus.js';
 import { buildHash } from './util.js';
 import { toText } from './util.js';
+import { openChangePassword } from './account.js';
 
 const NAV = [
   { group: 'nav.g.overview', items: [{ path: 'overview', icon: 'home', label: 'nav.overview' }] },
@@ -45,8 +46,9 @@ export function buildShell(ctx) {
     h('div', { class: 'spacer' }),
     h('div', { class: 'user-box' },
       h('span', { class: 'avatar', 'aria-hidden': 'true' }, toText((ctx.me && ctx.me.user && (ctx.me.user.display_name || ctx.me.user.username)) || '?').slice(0, 1).toUpperCase()),
-      h('div', null, h('div', null, toText(ctx.me && ctx.me.user && (ctx.me.user.display_name || ctx.me.user.username))),
-        h('div', { class: 'muted small' }, tOr('role.' + toText(ctx.me && ctx.me.user && ctx.me.user.role), toText(ctx.me && ctx.me.user && ctx.me.user.role))))));
+      h('div', { style: { flex: '1', minWidth: '0' } }, h('div', null, toText(ctx.me && ctx.me.user && (ctx.me.user.display_name || ctx.me.user.username))),
+        h('div', { class: 'muted small' }, tOr('role.' + toText(ctx.me && ctx.me.user && ctx.me.user.role), toText(ctx.me && ctx.me.user && ctx.me.user.role)))),
+      h('button', { type: 'button', class: 'icon-btn', title: t('account.change_password'), 'aria-label': t('account.change_password'), onclick: () => openChangePassword() }, icon('key'))));
 
   const status = h('span', { class: 'conn ok' }, h('i', { class: 'dot' }), t('conn.ok'));
   const jump = h('input', {
