@@ -24,8 +24,10 @@ chmod 755 /opt/gs-deploy/*.sh 2>/dev/null || true
 # DOCKER-USER do docker tạo, mất sau mỗi lần khởi động ⇒ đặt lại ở đây. Không chặn Caddy (chạy --network host).
 if command -v iptables >/dev/null 2>&1; then
   iptables -N DOCKER-USER 2>/dev/null || true
-  iptables -C DOCKER-USER -d 169.254.169.254/32 -j REJECT 2>/dev/null \
-    || iptables -I DOCKER-USER -d 169.254.169.254/32 -j REJECT \
+  # rule cũ (chặn cả DNS 53 ⇒ docker build không phân giải tên) — gỡ nếu còn
+  while iptables -D DOCKER-USER -d 169.254.169.254/32 -j REJECT 2>/dev/null; do :; done
+  iptables -C DOCKER-USER -d 169.254.169.254/32 -p tcp --dport 80 -j REJECT 2>/dev/null \
+    || iptables -I DOCKER-USER -d 169.254.169.254/32 -p tcp --dport 80 -j REJECT \
     || echo "! không đặt được rào metadata cho container"
 fi
 

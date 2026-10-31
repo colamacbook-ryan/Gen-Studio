@@ -275,8 +275,9 @@ fi
 
 echo "› Kiểm rào metadata cho container"
 iptables -N DOCKER-USER 2>/dev/null || true
-iptables -C DOCKER-USER -d 169.254.169.254/32 -j REJECT 2>/dev/null \
-  || iptables -I DOCKER-USER -d 169.254.169.254/32 -j REJECT 2>/dev/null || true
+while iptables -D DOCKER-USER -d 169.254.169.254/32 -j REJECT 2>/dev/null; do :; done   # gỡ rule cũ chặn cả DNS
+iptables -C DOCKER-USER -d 169.254.169.254/32 -p tcp --dport 80 -j REJECT 2>/dev/null \
+  || iptables -I DOCKER-USER -d 169.254.169.254/32 -p tcp --dport 80 -j REJECT 2>/dev/null || true
 # phải gọi đúng đường có header, nếu không metadata trả 403 ⇒ tưởng nhầm là đã chặn
 if docker run --rm --entrypoint sh "$CADDY" -c \
      "wget -q -T2 --header='Metadata-Flavor: Google' -O- http://169.254.169.254/computeMetadata/v1/instance/id" >/dev/null 2>&1; then
