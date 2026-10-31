@@ -66,6 +66,29 @@ touch /var/log/gs-backup.log && chown "$U" /var/log/gs-backup.log
 # 6. kiểm ngay: sao lưu 1 bản + khôi phục thử + đường công khai/đường bị chặn
 sudo -u "$U" -H env GS_HOME="$APP" GS_BUCKET="$BUCKET" "$D/backup-offsite.sh"
 sudo -u "$U" -H env GS_BUCKET="$BUCKET" "$D/restore-test.sh"
+echo
+echo "✓ Gen-Studio đã cài — https://$HOST"
+echo "  MCP cho Muse:  https://$HOST/mcp"
+echo "  Mật khẩu cổng (trình duyệt hỏi khi mở UI): user = owner"
+if [ "${NEWPW:-0}" = 1 ]; then echo "  pass = $(cat "$D/gate-password")   ← cất vào trình quản lý mật khẩu"; fi
+echo "  Xem lại mật khẩu cổng bất cứ lúc nào: sudo cat $D/gate-password"
+echo "  Khoá chủ (GS_MASTER_KEY) KHÔNG nằm trong sao lưu: sudo cat $APP/data/.env → cất vào trình quản lý mật khẩu."
+if ! curl -fsS "http://127.0.0.1:$PORT/api/setup/state" 2>/dev/null | grep -q '"owner":true'; then
+  echo "  Thiết lập lần đầu: https://$HOST/#/setup?k=$(cat "$APP/data/run/admin-key" 2>/dev/null)"
+fi
+
+echo "› Kiểm rào metadata cho container"
+iptables -N DOCKER-USER 2>/dev/null || true
+iptables -C DOCKER-USER -d 169.254.169.254/32 -j REJECT 2>/dev/null \
+  || iptables -I DOCKER-USER -d 169.254.169.254/32 -j REJECT 2>/dev/null || true
+# phải gọi đúng đường có header, nếu không metadata trả 403 ⇒ tưởng nhầm là đã chặn
+if docker run --rm --entrypoint sh "$CADDY" -c \
+     "wget -q -T2 --header='Metadata-Flavor: Google' -O- http://169.254.169.254/computeMetadata/v1/instance/id" >/dev/null 2>&1; then
+  echo "  ⚠ container VẪN gọi được metadata server — token sao lưu có thể bị container lấy. Xử lý trước khi mở cho người ngoài."
+else
+  echo "  ✓ container không gọi được metadata server"
+fi
+
 echo "› Đợi chứng chỉ HTTPS…"
 for _ in $(seq 1 30); do curl -fsS -o /dev/null "https://$HOST/.well-known/oauth-authorization-server" && break; sleep 4; done
 code_pub="$(curl -s -o /dev/null -w '%{http_code}' "https://$HOST/.well-known/oauth-authorization-server")"
@@ -74,11 +97,4 @@ code_api="$(curl -s -o /dev/null -w '%{http_code}' "https://$HOST/api/health")"
 echo "  công khai /.well-known → $code_pub (cần 200) · UI / → $code_ui (cần 401) · /api → $code_api (cần 401)"
 [ "$code_pub" = 200 ] && [ "$code_ui" = 401 ] && [ "$code_api" = 401 ] || { echo "✗ Kiểm đường không đạt — xem: docker logs gs-caddy" >&2; exit 1; }
 
-echo
-echo "✓ Gen-Studio chạy tại https://$HOST"
-echo "  MCP cho Muse:  https://$HOST/mcp"
-echo "  Mật khẩu cổng (trình duyệt hỏi khi mở UI): user = owner"
-[ "${NEWPW:-0}" = 1 ] && echo "  pass = $(cat "$D/gate-password")   ← cất vào trình quản lý mật khẩu; xem lại: sudo cat $D/gate-password"
-grep -q '"owner":true' <(curl -fsS "http://127.0.0.1:$PORT/api/setup/state" 2>/dev/null) \
-  || echo "  Thiết lập lần đầu: https://$HOST/#/setup?k=$(cat "$APP/data/run/admin-key" 2>/dev/null)"
-echo "  Khoá chủ (GS_MASTER_KEY) KHÔNG nằm trong sao lưu: sudo cat $APP/data/.env → cất vào trình quản lý mật khẩu."
+echo "✓ Tất cả đạt."

@@ -17,7 +17,16 @@ command -v docker >/dev/null 2>&1 || { curl -fsSL https://get.docker.com | sh; s
 MD=http://metadata.google.internal/computeMetadata/v1/instance/attributes
 mkdir -p /opt/gs-deploy
 for k in setup-vm.sh backup-offsite.sh restore-test.sh Caddyfile.tpl; do
-  curl -fsS -H 'Metadata-Flavor: Google' "$MD/gs-file-$k" -o "/opt/gs-deploy/$k" || echo "! thiếu metadata gs-file-$k"
+  curl -fsS -H 'Metadata-Flavor: Google' "$MD/gs-file-${k//./-}" -o "/opt/gs-deploy/$k" || echo "! thiếu metadata gs-file-${k//./-}"
 done
 chmod 755 /opt/gs-deploy/*.sh 2>/dev/null || true
+# container (cầu docker) không được gọi metadata server — token service account chỉ dành cho script chạy trên máy.
+# DOCKER-USER do docker tạo, mất sau mỗi lần khởi động ⇒ đặt lại ở đây. Không chặn Caddy (chạy --network host).
+if command -v iptables >/dev/null 2>&1; then
+  iptables -N DOCKER-USER 2>/dev/null || true
+  iptables -C DOCKER-USER -d 169.254.169.254/32 -j REJECT 2>/dev/null \
+    || iptables -I DOCKER-USER -d 169.254.169.254/32 -j REJECT \
+    || echo "! không đặt được rào metadata cho container"
+fi
+
 echo "== gs-startup xong $(date -Is)"

@@ -20,7 +20,8 @@ for f in startup.sh setup-vm.sh backup-offsite.sh restore-test.sh Caddyfile.tpl;
   [ -f "$HERE/$f" ] || { echo "✗ Thiếu $f cạnh script này" >&2; exit 1; }
 done
 FILES="startup-script=$HERE/startup.sh"
-for f in setup-vm.sh backup-offsite.sh restore-test.sh Caddyfile.tpl; do FILES="$FILES,gs-file-$f=$HERE/$f"; done
+# khoá metadata chỉ nhận chữ/số/-/_ ⇒ đổi dấu chấm thành gạch (startup.sh đổi y hệt khi lấy về)
+for f in setup-vm.sh backup-offsite.sh restore-test.sh Caddyfile.tpl; do FILES="$FILES,gs-file-${f//./-}=$HERE/$f"; done
 echo "Project: $PROJECT · vùng $ZONE · máy $TYPE"
 
 echo "› Bật API Compute Engine + Cloud Storage"
@@ -60,7 +61,7 @@ if ! gcloud compute instances describe "$VM" --zone "$ZONE" --project "$PROJECT"
     --image-family ubuntu-2404-lts-amd64 --image-project ubuntu-os-cloud \
     --boot-disk-size 30GB --boot-disk-type pd-balanced \
     --address "$IP" --tags gs-web \
-    --service-account "$SA" --scopes cloud-platform \
+    --service-account "$SA" --scopes https://www.googleapis.com/auth/devstorage.read_write \
     --metadata "gs-bucket=$BUCKET" --metadata-from-file "$FILES" >/dev/null
 fi
 
