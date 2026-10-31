@@ -44,11 +44,13 @@ else
   rsync -a --exclude data --exclude .git "$GS_HOME/" "$T/stage/" 2>/dev/null || cp -a "$GS_HOME/." "$T/stage/"
 fi
 rm -rf "$T/stage/data"
-tar -xzf "$T/b.tar.gz" -C "$T/stage" --no-same-owner   # ghi đè data/ bằng bản sao lưu
+tar -xzf "$T/b.tar.gz" -C "$T/stage" --no-same-owner   # ghi đè data/ bằng bản sao lưu — file thuộc user đang chạy script này
 cat > "$T/stage/.env" <<EOF
 GS_PORT=$PORT
 GS_VERSION=drill
 COMPOSE_PROJECT_NAME=$PROJECT
+GS_UID=$(id -u)
+GS_GID=$(id -g)
 EOF
 
 echo "› Dựng app tạm (cổng 127.0.0.1:$PORT, project $PROJECT)…"
