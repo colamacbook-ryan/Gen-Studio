@@ -1,0 +1,17 @@
+{
+  "name": "gs-shell-mcp",
+  "version": "0.1.0",
+  "description": "MCP shell cấp cứu cho VM Gen-Studio — chỉ nghe 127.0.0.1:7777, vào qua đường hầm SSH.",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
+  }
+}
