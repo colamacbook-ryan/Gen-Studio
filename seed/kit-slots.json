@@ -1,0 +1,3663 @@
+{
+  "version": "KIT-v1",
+  "generated_at": "2026-10-31T13:23:58.812Z",
+  "count": 457,
+  "slots": [
+    {
+      "code": "nhi.id.01",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Mẫu gốc toàn thân",
+      "title_en": "Nhi · Base design, full body",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.id.02",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Xoay · chính diện",
+      "title_en": "Nhi · Turnaround · front",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.id.03",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Xoay · 3/4",
+      "title_en": "Nhi · Turnaround · three-quarter",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.id.04",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Xoay · nghiêng",
+      "title_en": "Nhi · Turnaround · side",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.id.05",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Xoay · sau lưng",
+      "title_en": "Nhi · Turnaround · back",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.01",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Cười mỉm, miệng khép",
+      "title_en": "Nhi · Soft smile, mouth closed",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.02",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Khẩu hình a",
+      "title_en": "Nhi · Mouth shape a",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.03",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Khẩu hình á (mở to)",
+      "title_en": "Nhi · Mouth shape ah (wide open)",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.04",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Khẩu hình o",
+      "title_en": "Nhi · Mouth shape o",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.05",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Khẩu hình e/i",
+      "title_en": "Nhi · Mouth shape e/i",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.06",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Khẩu hình m/b/p",
+      "title_en": "Nhi · Mouth shape m/b/p",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.07",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Cười tít mắt ^_^",
+      "title_en": "Nhi · Eyes-closed grin ^_^",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.08",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Cười lăn, nước mắt vui",
+      "title_en": "Nhi · Rolling laugh, happy tears",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.09",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Cười che miệng",
+      "title_en": "Nhi · Laughing behind hand",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.10",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Mắt sao lấp lánh",
+      "title_en": "Nhi · Sparkling star eyes",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.11",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Mắt tim, tay ôm má",
+      "title_en": "Nhi · Heart eyes, hands on cheeks",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.12",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Đắc ý hất cằm",
+      "title_en": "Nhi · Smug chin lift",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.13",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Nháy mắt + chữ V",
+      "title_en": "Nhi · Wink + V sign",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.14",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Vỗ tay phấn khích",
+      "title_en": "Nhi · Excited clapping",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.15",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Há miệng ngạc nhiên",
+      "title_en": "Nhi · Surprised open mouth",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.16",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Há hốc sốc",
+      "title_en": "Nhi · Jaw-drop shock",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.17",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Hoá đá 石化",
+      "title_en": "Nhi · Turned to stone 石化",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.18",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Mắt lồi",
+      "title_en": "Nhi · Bulging eyes",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.19",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Phụng phịu sắp khóc",
+      "title_en": "Nhi · Pouting, about to cry",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.20",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Khóc thác 宽面条泪",
+      "title_en": "Nhi · Waterfall tears 宽面条泪",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.21",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Dỗi bĩu môi",
+      "title_en": "Nhi · Sulking pout",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.22",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Phồng má 鼓腮",
+      "title_en": "Nhi · Puffed cheeks 鼓腮",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.23",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Gân giận, nắm đấm",
+      "title_en": "Nhi · Anger vein, clenched fist",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.24",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Khoanh tay quay đi",
+      "title_en": "Nhi · Arms crossed, turned away",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.25",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Đỏ mặt ngượng",
+      "title_en": "Nhi · Blushing, embarrassed",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.26",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Cười gượng, giọt mồ hôi",
+      "title_en": "Nhi · Awkward smile, sweat drop",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.27",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Ôm mặt facepalm",
+      "title_en": "Nhi · Facepalm",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.28",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Gãi đầu cười trừ",
+      "title_en": "Nhi · Scratching head, sheepish",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.29",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Suy nghĩ, tay chống cằm",
+      "title_en": "Nhi · Thinking, hand on chin",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.30",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Lú, nghiêng đầu",
+      "title_en": "Nhi · Confused, head tilt",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.31",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Mắt xoáy chóng mặt",
+      "title_en": "Nhi · Spiral dizzy eyes",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.32",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Bóng đèn ý tưởng",
+      "title_en": "Nhi · Idea light bulb",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.33",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Quyết tâm, mắt lửa",
+      "title_en": "Nhi · Determined, fiery eyes",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.34",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Sợ run, mặt xanh",
+      "title_en": "Nhi · Trembling, pale face",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.35",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Chán, mắt lờ đờ",
+      "title_en": "Nhi · Bored, half-lidded eyes",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.36",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Ngáp buồn ngủ",
+      "title_en": "Nhi · Sleepy yawn",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.37",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Nhún vai",
+      "title_en": "Nhi · Shrug",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.38",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Chỉ sang bên",
+      "title_en": "Nhi · Pointing aside",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.39",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Ngón cái + cười",
+      "title_en": "Nhi · Thumbs up + smile",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.expr.40",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Ký hiệu OK",
+      "title_en": "Nhi · OK sign",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.01",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Đứng chờ thả lỏng",
+      "title_en": "Nhi · Relaxed idle",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.02",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Chỉ tay trái",
+      "title_en": "Nhi · Pointing left",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.03",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Chỉ tay phải",
+      "title_en": "Nhi · Pointing right",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.04",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Vẫy chào",
+      "title_en": "Nhi · Waving hello",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.05",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Khoanh tay",
+      "title_en": "Nhi · Arms crossed",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.06",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Chống nạnh",
+      "title_en": "Nhi · Hands on hips",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.07",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Ngồi ghế",
+      "title_en": "Nhi · Sitting in chair",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.08",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Ngồi gõ máy tính",
+      "title_en": "Nhi · Typing at computer",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.09",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Cầm điện thoại",
+      "title_en": "Nhi · Holding phone",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.10",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Cầm tài liệu",
+      "title_en": "Nhi · Holding document",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.11",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Đi bộ · bước 1",
+      "title_en": "Nhi · Walking · step 1",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.12",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Đi bộ · bước 2",
+      "title_en": "Nhi · Walking · step 2",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.13",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Chạy",
+      "title_en": "Nhi · Running",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.14",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Nhảy ăn mừng",
+      "title_en": "Nhi · Jumping for joy",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.15",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Vấp ngã",
+      "title_en": "Nhi · Tripping",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.16",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Núp sau đồ vật",
+      "title_en": "Nhi · Hiding behind object",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.17",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Ôm đầu hoảng",
+      "title_en": "Nhi · Panic, hands on head",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.18",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Quỳ cầu xin",
+      "title_en": "Nhi · Kneeling, begging",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.19",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Chắp tay cảm ơn",
+      "title_en": "Nhi · Hands together, thanks",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "nhi.pose.20",
+      "group_code": "NB-01",
+      "title_vi": "Nhi · Ngủ gật",
+      "title_en": "Nhi · Dozing off",
+      "added_in": "v1",
+      "subject_rev": "nhi@r1"
+    },
+    {
+      "code": "vy.id.01",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Mẫu gốc toàn thân",
+      "title_en": "Vy · Base design, full body",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.id.02",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Xoay · chính diện",
+      "title_en": "Vy · Turnaround · front",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.id.03",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Xoay · 3/4",
+      "title_en": "Vy · Turnaround · three-quarter",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.id.04",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Xoay · nghiêng",
+      "title_en": "Vy · Turnaround · side",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.id.05",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Xoay · sau lưng",
+      "title_en": "Vy · Turnaround · back",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.01",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Cười mỉm, miệng khép",
+      "title_en": "Vy · Soft smile, mouth closed",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.02",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Khẩu hình a",
+      "title_en": "Vy · Mouth shape a",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.03",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Khẩu hình á (mở to)",
+      "title_en": "Vy · Mouth shape ah (wide open)",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.04",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Khẩu hình o",
+      "title_en": "Vy · Mouth shape o",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.05",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Khẩu hình e/i",
+      "title_en": "Vy · Mouth shape e/i",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.06",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Khẩu hình m/b/p",
+      "title_en": "Vy · Mouth shape m/b/p",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.07",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Cười tít mắt ^_^",
+      "title_en": "Vy · Eyes-closed grin ^_^",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.08",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Cười lăn, nước mắt vui",
+      "title_en": "Vy · Rolling laugh, happy tears",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.09",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Cười che miệng",
+      "title_en": "Vy · Laughing behind hand",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.10",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Mắt sao lấp lánh",
+      "title_en": "Vy · Sparkling star eyes",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.11",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Mắt tim, tay ôm má",
+      "title_en": "Vy · Heart eyes, hands on cheeks",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.12",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Đắc ý hất cằm",
+      "title_en": "Vy · Smug chin lift",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.13",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Nháy mắt + chữ V",
+      "title_en": "Vy · Wink + V sign",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.14",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Vỗ tay phấn khích",
+      "title_en": "Vy · Excited clapping",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.15",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Há miệng ngạc nhiên",
+      "title_en": "Vy · Surprised open mouth",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.16",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Há hốc sốc",
+      "title_en": "Vy · Jaw-drop shock",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.17",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Hoá đá 石化",
+      "title_en": "Vy · Turned to stone 石化",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.18",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Mắt lồi",
+      "title_en": "Vy · Bulging eyes",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.19",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Phụng phịu sắp khóc",
+      "title_en": "Vy · Pouting, about to cry",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.20",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Khóc thác 宽面条泪",
+      "title_en": "Vy · Waterfall tears 宽面条泪",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.21",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Dỗi bĩu môi",
+      "title_en": "Vy · Sulking pout",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.22",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Phồng má 鼓腮",
+      "title_en": "Vy · Puffed cheeks 鼓腮",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.23",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Gân giận, nắm đấm",
+      "title_en": "Vy · Anger vein, clenched fist",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.24",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Khoanh tay quay đi",
+      "title_en": "Vy · Arms crossed, turned away",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.25",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Đỏ mặt ngượng",
+      "title_en": "Vy · Blushing, embarrassed",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.26",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Cười gượng, giọt mồ hôi",
+      "title_en": "Vy · Awkward smile, sweat drop",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.27",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Ôm mặt facepalm",
+      "title_en": "Vy · Facepalm",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.28",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Gãi đầu cười trừ",
+      "title_en": "Vy · Scratching head, sheepish",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.29",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Suy nghĩ, tay chống cằm",
+      "title_en": "Vy · Thinking, hand on chin",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.30",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Lú, nghiêng đầu",
+      "title_en": "Vy · Confused, head tilt",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.31",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Mắt xoáy chóng mặt",
+      "title_en": "Vy · Spiral dizzy eyes",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.32",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Bóng đèn ý tưởng",
+      "title_en": "Vy · Idea light bulb",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.33",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Quyết tâm, mắt lửa",
+      "title_en": "Vy · Determined, fiery eyes",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.34",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Sợ run, mặt xanh",
+      "title_en": "Vy · Trembling, pale face",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.35",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Chán, mắt lờ đờ",
+      "title_en": "Vy · Bored, half-lidded eyes",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.36",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Ngáp buồn ngủ",
+      "title_en": "Vy · Sleepy yawn",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.37",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Nhún vai",
+      "title_en": "Vy · Shrug",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.38",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Chỉ sang bên",
+      "title_en": "Vy · Pointing aside",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.39",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Ngón cái + cười",
+      "title_en": "Vy · Thumbs up + smile",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.expr.40",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Ký hiệu OK",
+      "title_en": "Vy · OK sign",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.01",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Đứng chờ thả lỏng",
+      "title_en": "Vy · Relaxed idle",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.02",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Chỉ tay trái",
+      "title_en": "Vy · Pointing left",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.03",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Chỉ tay phải",
+      "title_en": "Vy · Pointing right",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.04",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Vẫy chào",
+      "title_en": "Vy · Waving hello",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.05",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Khoanh tay",
+      "title_en": "Vy · Arms crossed",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.06",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Chống nạnh",
+      "title_en": "Vy · Hands on hips",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.07",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Ngồi ghế",
+      "title_en": "Vy · Sitting in chair",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.08",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Ngồi gõ máy tính",
+      "title_en": "Vy · Typing at computer",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.09",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Cầm điện thoại",
+      "title_en": "Vy · Holding phone",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.10",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Cầm tài liệu",
+      "title_en": "Vy · Holding document",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.11",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Đi bộ · bước 1",
+      "title_en": "Vy · Walking · step 1",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.12",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Đi bộ · bước 2",
+      "title_en": "Vy · Walking · step 2",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.13",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Chạy",
+      "title_en": "Vy · Running",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.14",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Nhảy ăn mừng",
+      "title_en": "Vy · Jumping for joy",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.15",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Vấp ngã",
+      "title_en": "Vy · Tripping",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.16",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Núp sau đồ vật",
+      "title_en": "Vy · Hiding behind object",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.17",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Ôm đầu hoảng",
+      "title_en": "Vy · Panic, hands on head",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.18",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Quỳ cầu xin",
+      "title_en": "Vy · Kneeling, begging",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.19",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Chắp tay cảm ơn",
+      "title_en": "Vy · Hands together, thanks",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "vy.pose.20",
+      "group_code": "NB-02",
+      "title_vi": "Vy · Ngủ gật",
+      "title_en": "Vy · Dozing off",
+      "added_in": "v1",
+      "subject_rev": "vy@r1"
+    },
+    {
+      "code": "ryan.id.01",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Mẫu gốc toàn thân",
+      "title_en": "Ryan · Base design, full body",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.id.02",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Xoay · chính diện",
+      "title_en": "Ryan · Turnaround · front",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.id.03",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Xoay · 3/4",
+      "title_en": "Ryan · Turnaround · three-quarter",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.id.04",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Xoay · nghiêng",
+      "title_en": "Ryan · Turnaround · side",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.id.05",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Xoay · sau lưng",
+      "title_en": "Ryan · Turnaround · back",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.01",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Cười mỉm, miệng khép",
+      "title_en": "Ryan · Soft smile, mouth closed",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.02",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Khẩu hình a",
+      "title_en": "Ryan · Mouth shape a",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.03",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Khẩu hình á (mở to)",
+      "title_en": "Ryan · Mouth shape ah (wide open)",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.04",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Khẩu hình o",
+      "title_en": "Ryan · Mouth shape o",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.05",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Khẩu hình e/i",
+      "title_en": "Ryan · Mouth shape e/i",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.06",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Khẩu hình m/b/p",
+      "title_en": "Ryan · Mouth shape m/b/p",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.07",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Cười tít mắt ^_^",
+      "title_en": "Ryan · Eyes-closed grin ^_^",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.08",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Cười lăn, nước mắt vui",
+      "title_en": "Ryan · Rolling laugh, happy tears",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.09",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Cười che miệng",
+      "title_en": "Ryan · Laughing behind hand",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.10",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Mắt sao lấp lánh",
+      "title_en": "Ryan · Sparkling star eyes",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.11",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Mắt tim, tay ôm má",
+      "title_en": "Ryan · Heart eyes, hands on cheeks",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.12",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Đắc ý hất cằm",
+      "title_en": "Ryan · Smug chin lift",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.13",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Nháy mắt + chữ V",
+      "title_en": "Ryan · Wink + V sign",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.14",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Vỗ tay phấn khích",
+      "title_en": "Ryan · Excited clapping",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.15",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Há miệng ngạc nhiên",
+      "title_en": "Ryan · Surprised open mouth",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.16",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Há hốc sốc",
+      "title_en": "Ryan · Jaw-drop shock",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.17",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Hoá đá 石化",
+      "title_en": "Ryan · Turned to stone 石化",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.18",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Mắt lồi",
+      "title_en": "Ryan · Bulging eyes",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.19",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Phụng phịu sắp khóc",
+      "title_en": "Ryan · Pouting, about to cry",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.20",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Khóc thác 宽面条泪",
+      "title_en": "Ryan · Waterfall tears 宽面条泪",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.21",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Dỗi bĩu môi",
+      "title_en": "Ryan · Sulking pout",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.22",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Phồng má 鼓腮",
+      "title_en": "Ryan · Puffed cheeks 鼓腮",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.23",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Gân giận, nắm đấm",
+      "title_en": "Ryan · Anger vein, clenched fist",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.24",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Khoanh tay quay đi",
+      "title_en": "Ryan · Arms crossed, turned away",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.25",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Đỏ mặt ngượng",
+      "title_en": "Ryan · Blushing, embarrassed",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.26",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Cười gượng, giọt mồ hôi",
+      "title_en": "Ryan · Awkward smile, sweat drop",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.27",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Ôm mặt facepalm",
+      "title_en": "Ryan · Facepalm",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.28",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Gãi đầu cười trừ",
+      "title_en": "Ryan · Scratching head, sheepish",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.29",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Suy nghĩ, tay chống cằm",
+      "title_en": "Ryan · Thinking, hand on chin",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.30",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Lú, nghiêng đầu",
+      "title_en": "Ryan · Confused, head tilt",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.31",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Mắt xoáy chóng mặt",
+      "title_en": "Ryan · Spiral dizzy eyes",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.32",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Bóng đèn ý tưởng",
+      "title_en": "Ryan · Idea light bulb",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.33",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Quyết tâm, mắt lửa",
+      "title_en": "Ryan · Determined, fiery eyes",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.34",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Sợ run, mặt xanh",
+      "title_en": "Ryan · Trembling, pale face",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.35",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Chán, mắt lờ đờ",
+      "title_en": "Ryan · Bored, half-lidded eyes",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.36",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Ngáp buồn ngủ",
+      "title_en": "Ryan · Sleepy yawn",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.37",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Nhún vai",
+      "title_en": "Ryan · Shrug",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.38",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Chỉ sang bên",
+      "title_en": "Ryan · Pointing aside",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.39",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Ngón cái + cười",
+      "title_en": "Ryan · Thumbs up + smile",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.expr.40",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Ký hiệu OK",
+      "title_en": "Ryan · OK sign",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.01",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Đứng chờ thả lỏng",
+      "title_en": "Ryan · Relaxed idle",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.02",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Chỉ tay trái",
+      "title_en": "Ryan · Pointing left",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.03",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Chỉ tay phải",
+      "title_en": "Ryan · Pointing right",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.04",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Vẫy chào",
+      "title_en": "Ryan · Waving hello",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.05",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Khoanh tay",
+      "title_en": "Ryan · Arms crossed",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.06",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Chống nạnh",
+      "title_en": "Ryan · Hands on hips",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.07",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Ngồi ghế",
+      "title_en": "Ryan · Sitting in chair",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.08",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Ngồi gõ máy tính",
+      "title_en": "Ryan · Typing at computer",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.09",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Cầm điện thoại",
+      "title_en": "Ryan · Holding phone",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.10",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Cầm tài liệu",
+      "title_en": "Ryan · Holding document",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.11",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Đi bộ · bước 1",
+      "title_en": "Ryan · Walking · step 1",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.12",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Đi bộ · bước 2",
+      "title_en": "Ryan · Walking · step 2",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.13",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Chạy",
+      "title_en": "Ryan · Running",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.14",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Nhảy ăn mừng",
+      "title_en": "Ryan · Jumping for joy",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.15",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Vấp ngã",
+      "title_en": "Ryan · Tripping",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.16",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Núp sau đồ vật",
+      "title_en": "Ryan · Hiding behind object",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.17",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Ôm đầu hoảng",
+      "title_en": "Ryan · Panic, hands on head",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.18",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Quỳ cầu xin",
+      "title_en": "Ryan · Kneeling, begging",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.19",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Chắp tay cảm ơn",
+      "title_en": "Ryan · Hands together, thanks",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "ryan.pose.20",
+      "group_code": "NB-03",
+      "title_vi": "Ryan · Ngủ gật",
+      "title_en": "Ryan · Dozing off",
+      "added_in": "v1",
+      "subject_rev": "ryan@r1"
+    },
+    {
+      "code": "scene.office.wide-day",
+      "group_code": "NB-04",
+      "title_vi": "Văn phòng · Toàn cảnh · ngày",
+      "title_en": "Office · Wide · day",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.office.angle-1",
+      "group_code": "NB-04",
+      "title_vi": "Văn phòng · Góc máy 1",
+      "title_en": "Office · Angle 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.office.angle-2",
+      "group_code": "NB-04",
+      "title_vi": "Văn phòng · Góc máy 2",
+      "title_en": "Office · Angle 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.office.close-1",
+      "group_code": "NB-04",
+      "title_vi": "Văn phòng · Cận 1",
+      "title_en": "Office · Close-up 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.office.close-2",
+      "group_code": "NB-04",
+      "title_vi": "Văn phòng · Cận 2",
+      "title_en": "Office · Close-up 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.office.fg-1",
+      "group_code": "NB-04",
+      "title_vi": "Văn phòng · Tiền cảnh 1",
+      "title_en": "Office · Foreground 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.office.fg-2",
+      "group_code": "NB-04",
+      "title_vi": "Văn phòng · Tiền cảnh 2",
+      "title_en": "Office · Foreground 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.office.wide-night",
+      "group_code": "NB-04",
+      "title_vi": "Văn phòng · Toàn cảnh · đêm",
+      "title_en": "Office · Wide · night",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.office.angle-1-night",
+      "group_code": "NB-04",
+      "title_vi": "Văn phòng · Góc máy 1 · đêm",
+      "title_en": "Office · Angle 1 · night",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.meeting.wide-day",
+      "group_code": "NB-04",
+      "title_vi": "Phòng họp · Toàn cảnh · ngày",
+      "title_en": "Meeting room · Wide · day",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.meeting.angle-1",
+      "group_code": "NB-04",
+      "title_vi": "Phòng họp · Góc máy 1",
+      "title_en": "Meeting room · Angle 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.meeting.angle-2",
+      "group_code": "NB-04",
+      "title_vi": "Phòng họp · Góc máy 2",
+      "title_en": "Meeting room · Angle 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.meeting.close-1",
+      "group_code": "NB-04",
+      "title_vi": "Phòng họp · Cận 1",
+      "title_en": "Meeting room · Close-up 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.meeting.close-2",
+      "group_code": "NB-04",
+      "title_vi": "Phòng họp · Cận 2",
+      "title_en": "Meeting room · Close-up 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.meeting.fg-1",
+      "group_code": "NB-04",
+      "title_vi": "Phòng họp · Tiền cảnh 1",
+      "title_en": "Meeting room · Foreground 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.meeting.fg-2",
+      "group_code": "NB-04",
+      "title_vi": "Phòng họp · Tiền cảnh 2",
+      "title_en": "Meeting room · Foreground 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.meeting.wide-night",
+      "group_code": "NB-04",
+      "title_vi": "Phòng họp · Toàn cảnh · đêm",
+      "title_en": "Meeting room · Wide · night",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.meeting.angle-1-night",
+      "group_code": "NB-04",
+      "title_vi": "Phòng họp · Góc máy 1 · đêm",
+      "title_en": "Meeting room · Angle 1 · night",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.boss.wide-day",
+      "group_code": "NB-04",
+      "title_vi": "Phòng sếp · Toàn cảnh · ngày",
+      "title_en": "Boss's office · Wide · day",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.boss.angle-1",
+      "group_code": "NB-04",
+      "title_vi": "Phòng sếp · Góc máy 1",
+      "title_en": "Boss's office · Angle 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.boss.angle-2",
+      "group_code": "NB-04",
+      "title_vi": "Phòng sếp · Góc máy 2",
+      "title_en": "Boss's office · Angle 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.boss.close-1",
+      "group_code": "NB-04",
+      "title_vi": "Phòng sếp · Cận 1",
+      "title_en": "Boss's office · Close-up 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.boss.close-2",
+      "group_code": "NB-04",
+      "title_vi": "Phòng sếp · Cận 2",
+      "title_en": "Boss's office · Close-up 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.boss.fg-1",
+      "group_code": "NB-04",
+      "title_vi": "Phòng sếp · Tiền cảnh 1",
+      "title_en": "Boss's office · Foreground 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.boss.fg-2",
+      "group_code": "NB-04",
+      "title_vi": "Phòng sếp · Tiền cảnh 2",
+      "title_en": "Boss's office · Foreground 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.boss.wide-night",
+      "group_code": "NB-04",
+      "title_vi": "Phòng sếp · Toàn cảnh · đêm",
+      "title_en": "Boss's office · Wide · night",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.boss.angle-1-night",
+      "group_code": "NB-04",
+      "title_vi": "Phòng sếp · Góc máy 1 · đêm",
+      "title_en": "Boss's office · Angle 1 · night",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.home.wide-day",
+      "group_code": "NB-04",
+      "title_vi": "Nhà · Toàn cảnh · ngày",
+      "title_en": "Home · Wide · day",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.home.angle-1",
+      "group_code": "NB-04",
+      "title_vi": "Nhà · Góc máy 1",
+      "title_en": "Home · Angle 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.home.angle-2",
+      "group_code": "NB-04",
+      "title_vi": "Nhà · Góc máy 2",
+      "title_en": "Home · Angle 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.home.close-1",
+      "group_code": "NB-04",
+      "title_vi": "Nhà · Cận 1",
+      "title_en": "Home · Close-up 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.home.close-2",
+      "group_code": "NB-04",
+      "title_vi": "Nhà · Cận 2",
+      "title_en": "Home · Close-up 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.home.fg-1",
+      "group_code": "NB-04",
+      "title_vi": "Nhà · Tiền cảnh 1",
+      "title_en": "Home · Foreground 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.home.fg-2",
+      "group_code": "NB-04",
+      "title_vi": "Nhà · Tiền cảnh 2",
+      "title_en": "Home · Foreground 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.home.wide-night",
+      "group_code": "NB-04",
+      "title_vi": "Nhà · Toàn cảnh · đêm",
+      "title_en": "Home · Wide · night",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.home.angle-1-night",
+      "group_code": "NB-04",
+      "title_vi": "Nhà · Góc máy 1 · đêm",
+      "title_en": "Home · Angle 1 · night",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.cafe.wide-day",
+      "group_code": "NB-04",
+      "title_vi": "Quán cà phê · Toàn cảnh · ngày",
+      "title_en": "Café · Wide · day",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.cafe.angle-1",
+      "group_code": "NB-04",
+      "title_vi": "Quán cà phê · Góc máy 1",
+      "title_en": "Café · Angle 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.cafe.angle-2",
+      "group_code": "NB-04",
+      "title_vi": "Quán cà phê · Góc máy 2",
+      "title_en": "Café · Angle 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.cafe.close-1",
+      "group_code": "NB-04",
+      "title_vi": "Quán cà phê · Cận 1",
+      "title_en": "Café · Close-up 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.cafe.close-2",
+      "group_code": "NB-04",
+      "title_vi": "Quán cà phê · Cận 2",
+      "title_en": "Café · Close-up 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.cafe.fg-1",
+      "group_code": "NB-04",
+      "title_vi": "Quán cà phê · Tiền cảnh 1",
+      "title_en": "Café · Foreground 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.cafe.fg-2",
+      "group_code": "NB-04",
+      "title_vi": "Quán cà phê · Tiền cảnh 2",
+      "title_en": "Café · Foreground 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.cafe.wide-night",
+      "group_code": "NB-04",
+      "title_vi": "Quán cà phê · Toàn cảnh · đêm",
+      "title_en": "Café · Wide · night",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.cafe.angle-1-night",
+      "group_code": "NB-04",
+      "title_vi": "Quán cà phê · Góc máy 1 · đêm",
+      "title_en": "Café · Angle 1 · night",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.street.wide-day",
+      "group_code": "NB-04",
+      "title_vi": "Đường phố · Toàn cảnh · ngày",
+      "title_en": "Street · Wide · day",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.street.angle-1",
+      "group_code": "NB-04",
+      "title_vi": "Đường phố · Góc máy 1",
+      "title_en": "Street · Angle 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.street.angle-2",
+      "group_code": "NB-04",
+      "title_vi": "Đường phố · Góc máy 2",
+      "title_en": "Street · Angle 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.street.close-1",
+      "group_code": "NB-04",
+      "title_vi": "Đường phố · Cận 1",
+      "title_en": "Street · Close-up 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.street.close-2",
+      "group_code": "NB-04",
+      "title_vi": "Đường phố · Cận 2",
+      "title_en": "Street · Close-up 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.street.fg-1",
+      "group_code": "NB-04",
+      "title_vi": "Đường phố · Tiền cảnh 1",
+      "title_en": "Street · Foreground 1",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.street.fg-2",
+      "group_code": "NB-04",
+      "title_vi": "Đường phố · Tiền cảnh 2",
+      "title_en": "Street · Foreground 2",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.street.wide-night",
+      "group_code": "NB-04",
+      "title_vi": "Đường phố · Toàn cảnh · đêm",
+      "title_en": "Street · Wide · night",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.street.angle-1-night",
+      "group_code": "NB-04",
+      "title_vi": "Đường phố · Góc máy 1 · đêm",
+      "title_en": "Street · Angle 1 · night",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.abstract.title",
+      "group_code": "NB-04",
+      "title_vi": "Nền trừu tượng · tiêu đề",
+      "title_en": "Abstract background · title",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "scene.abstract.explain",
+      "group_code": "NB-04",
+      "title_vi": "Nền trừu tượng · giải thích",
+      "title_en": "Abstract background · explainer",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.tech.01",
+      "group_code": "NB-05",
+      "title_vi": "Máy tính xách tay",
+      "title_en": "Laptop",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.tech.02",
+      "group_code": "NB-05",
+      "title_vi": "Điện thoại",
+      "title_en": "Smartphone",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.tech.03",
+      "group_code": "NB-05",
+      "title_vi": "Màn hình máy tính",
+      "title_en": "Desktop monitor",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.tech.04",
+      "group_code": "NB-05",
+      "title_vi": "Bàn phím",
+      "title_en": "Keyboard",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.tech.05",
+      "group_code": "NB-05",
+      "title_vi": "Chuột máy tính",
+      "title_en": "Computer mouse",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.tech.06",
+      "group_code": "NB-05",
+      "title_vi": "Tai nghe",
+      "title_en": "Headphones",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.tech.07",
+      "group_code": "NB-05",
+      "title_vi": "Robot AI",
+      "title_en": "AI robot",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.tech.08",
+      "group_code": "NB-05",
+      "title_vi": "Chip xử lý",
+      "title_en": "Processor chip",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.tech.09",
+      "group_code": "NB-05",
+      "title_vi": "Tủ máy chủ",
+      "title_en": "Server rack",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.tech.10",
+      "group_code": "NB-05",
+      "title_vi": "Đám mây dữ liệu",
+      "title_en": "Data cloud",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.tech.11",
+      "group_code": "NB-05",
+      "title_vi": "Máy tính bảng",
+      "title_en": "Tablet",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.tech.12",
+      "group_code": "NB-05",
+      "title_vi": "Đồng hồ thông minh",
+      "title_en": "Smartwatch",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.office.01",
+      "group_code": "NB-05",
+      "title_vi": "Chồng tài liệu",
+      "title_en": "Document stack",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.office.02",
+      "group_code": "NB-05",
+      "title_vi": "Bìa hồ sơ",
+      "title_en": "File folder",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.office.03",
+      "group_code": "NB-05",
+      "title_vi": "Bút",
+      "title_en": "Pen",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.office.04",
+      "group_code": "NB-05",
+      "title_vi": "Sổ tay",
+      "title_en": "Notebook",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.office.05",
+      "group_code": "NB-05",
+      "title_vi": "Giấy nhớ",
+      "title_en": "Sticky notes",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.office.06",
+      "group_code": "NB-05",
+      "title_vi": "Lịch để bàn",
+      "title_en": "Desk calendar",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.office.07",
+      "group_code": "NB-05",
+      "title_vi": "Cốc cà phê",
+      "title_en": "Coffee mug",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.office.08",
+      "group_code": "NB-05",
+      "title_vi": "Cặp công sở",
+      "title_en": "Briefcase",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.office.09",
+      "group_code": "NB-05",
+      "title_vi": "Thẻ nhân viên",
+      "title_en": "Staff ID badge",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.office.10",
+      "group_code": "NB-05",
+      "title_vi": "Bảng trắng",
+      "title_en": "Whiteboard",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.money.01",
+      "group_code": "NB-05",
+      "title_vi": "Đồng xu",
+      "title_en": "Coin",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.money.02",
+      "group_code": "NB-05",
+      "title_vi": "Cọc tiền",
+      "title_en": "Stack of cash",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.money.03",
+      "group_code": "NB-05",
+      "title_vi": "Ví",
+      "title_en": "Wallet",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.money.04",
+      "group_code": "NB-05",
+      "title_vi": "Thẻ ngân hàng",
+      "title_en": "Bank card",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.money.05",
+      "group_code": "NB-05",
+      "title_vi": "Heo đất",
+      "title_en": "Piggy bank",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.money.06",
+      "group_code": "NB-05",
+      "title_vi": "Túi tiền",
+      "title_en": "Money bag",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.money.07",
+      "group_code": "NB-05",
+      "title_vi": "Biểu đồ đi lên",
+      "title_en": "Rising chart",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.money.08",
+      "group_code": "NB-05",
+      "title_vi": "Hoá đơn",
+      "title_en": "Receipt",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.food.01",
+      "group_code": "NB-05",
+      "title_vi": "Trà sữa",
+      "title_en": "Bubble tea",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.food.02",
+      "group_code": "NB-05",
+      "title_vi": "Bánh mì",
+      "title_en": "Banh mi",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.food.03",
+      "group_code": "NB-05",
+      "title_vi": "Tô phở",
+      "title_en": "Pho bowl",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.food.04",
+      "group_code": "NB-05",
+      "title_vi": "Cà phê sữa đá",
+      "title_en": "Iced milk coffee",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.food.05",
+      "group_code": "NB-05",
+      "title_vi": "Hộp cơm",
+      "title_en": "Lunch box",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.food.06",
+      "group_code": "NB-05",
+      "title_vi": "Bánh ngọt",
+      "title_en": "Cake slice",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.food.07",
+      "group_code": "NB-05",
+      "title_vi": "Đĩa trái cây",
+      "title_en": "Fruit plate",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.food.08",
+      "group_code": "NB-05",
+      "title_vi": "Ly nước",
+      "title_en": "Glass of water",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.home.01",
+      "group_code": "NB-05",
+      "title_vi": "Ghế sofa",
+      "title_en": "Sofa",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.home.02",
+      "group_code": "NB-05",
+      "title_vi": "Gối",
+      "title_en": "Pillow",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.home.03",
+      "group_code": "NB-05",
+      "title_vi": "Đèn bàn",
+      "title_en": "Desk lamp",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.home.04",
+      "group_code": "NB-05",
+      "title_vi": "Chậu cây",
+      "title_en": "Potted plant",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.home.05",
+      "group_code": "NB-05",
+      "title_vi": "Đồng hồ báo thức",
+      "title_en": "Alarm clock",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.home.06",
+      "group_code": "NB-05",
+      "title_vi": "Giường",
+      "title_en": "Bed",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.home.07",
+      "group_code": "NB-05",
+      "title_vi": "Tivi",
+      "title_en": "TV",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.home.08",
+      "group_code": "NB-05",
+      "title_vi": "Chùm chìa khoá",
+      "title_en": "Key ring",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.idea.01",
+      "group_code": "NB-05",
+      "title_vi": "Bóng đèn ý tưởng",
+      "title_en": "Idea light bulb",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.idea.02",
+      "group_code": "NB-05",
+      "title_vi": "Bánh răng",
+      "title_en": "Gear",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.idea.03",
+      "group_code": "NB-05",
+      "title_vi": "Kính lúp",
+      "title_en": "Magnifying glass",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.idea.04",
+      "group_code": "NB-05",
+      "title_vi": "Cúp",
+      "title_en": "Trophy",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.idea.05",
+      "group_code": "NB-05",
+      "title_vi": "Khiên",
+      "title_en": "Shield",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.idea.06",
+      "group_code": "NB-05",
+      "title_vi": "Ổ khoá",
+      "title_en": "Padlock",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.idea.07",
+      "group_code": "NB-05",
+      "title_vi": "Tên lửa",
+      "title_en": "Rocket",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.idea.08",
+      "group_code": "NB-05",
+      "title_vi": "Bia mục tiêu",
+      "title_en": "Target",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.sign.01",
+      "group_code": "NB-05",
+      "title_vi": "Biển cấm",
+      "title_en": "No-entry sign",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.sign.02",
+      "group_code": "NB-05",
+      "title_vi": "Biển cảnh báo",
+      "title_en": "Warning sign",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.sign.03",
+      "group_code": "NB-05",
+      "title_vi": "Mũi tên lên",
+      "title_en": "Arrow up",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.sign.04",
+      "group_code": "NB-05",
+      "title_vi": "Mũi tên xuống",
+      "title_en": "Arrow down",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.sign.05",
+      "group_code": "NB-05",
+      "title_vi": "Mũi tên rẽ",
+      "title_en": "Turn arrow",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "prop.sign.06",
+      "group_code": "NB-05",
+      "title_vi": "Cờ đích",
+      "title_en": "Finish flag",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.01",
+      "group_code": "NB-06",
+      "title_vi": "Giọt mồ hôi",
+      "title_en": "Sweat drop",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.02",
+      "group_code": "NB-06",
+      "title_vi": "Gân giận",
+      "title_en": "Anger vein",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.03",
+      "group_code": "NB-06",
+      "title_vi": "Lấp lánh",
+      "title_en": "Sparkles",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.04",
+      "group_code": "NB-06",
+      "title_vi": "Ba trái tim",
+      "title_en": "Three hearts",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.05",
+      "group_code": "NB-06",
+      "title_vi": "Dấu hỏi",
+      "title_en": "Question mark",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.06",
+      "group_code": "NB-06",
+      "title_vi": "Dấu than",
+      "title_en": "Exclamation mark",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.07",
+      "group_code": "NB-06",
+      "title_vi": "Dấu ?!",
+      "title_en": "Interrobang ?!",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.08",
+      "group_code": "NB-06",
+      "title_vi": "Vạch má hồng",
+      "title_en": "Blush lines",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.09",
+      "group_code": "NB-06",
+      "title_vi": "Vạch tối 黑线",
+      "title_en": "Gloom lines 黑线",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.10",
+      "group_code": "NB-06",
+      "title_vi": "Tia sốc",
+      "title_en": "Shock lines",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.11",
+      "group_code": "NB-06",
+      "title_vi": "Xoáy chóng mặt",
+      "title_en": "Dizzy spiral",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.12",
+      "group_code": "NB-06",
+      "title_vi": "Hai dòng nước mắt",
+      "title_en": "Twin tear streams",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.13",
+      "group_code": "NB-06",
+      "title_vi": "Khói giận",
+      "title_en": "Anger steam",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.14",
+      "group_code": "NB-06",
+      "title_vi": "Zzz",
+      "title_en": "Zzz",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.15",
+      "group_code": "NB-06",
+      "title_vi": "Nốt nhạc",
+      "title_en": "Music notes",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.16",
+      "group_code": "NB-06",
+      "title_vi": "Bóng đèn",
+      "title_en": "Light bulb",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.17",
+      "group_code": "NB-06",
+      "title_vi": "Dấu X đỏ",
+      "title_en": "Red X",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.18",
+      "group_code": "NB-06",
+      "title_vi": "Dấu ✓ xanh",
+      "title_en": "Green check",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.19",
+      "group_code": "NB-06",
+      "title_vi": "Ngón cái",
+      "title_en": "Thumbs up",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.manpu.20",
+      "group_code": "NB-06",
+      "title_vi": "Vạch tốc độ",
+      "title_en": "Speed lines",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.text.01",
+      "group_code": "NB-06",
+      "title_vi": "Chữ nổi «Bùm!»",
+      "title_en": "Pop text «Bùm!» (Boom!)",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.text.02",
+      "group_code": "NB-06",
+      "title_vi": "Chữ nổi «Hả?!»",
+      "title_en": "Pop text «Hả?!» (Huh?!)",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.text.03",
+      "group_code": "NB-06",
+      "title_vi": "Chữ nổi «Ủa?»",
+      "title_en": "Pop text «Ủa?» (Wait, what?)",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.text.04",
+      "group_code": "NB-06",
+      "title_vi": "Chữ nổi «Wow»",
+      "title_en": "Pop text «Wow»",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.text.05",
+      "group_code": "NB-06",
+      "title_vi": "Chữ nổi «Toang»",
+      "title_en": "Pop text «Toang» (Busted)",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.text.06",
+      "group_code": "NB-06",
+      "title_vi": "Chữ nổi «Đỉnh!»",
+      "title_en": "Pop text «Đỉnh!» (Awesome!)",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.text.07",
+      "group_code": "NB-06",
+      "title_vi": "Chữ nổi «Xong!»",
+      "title_en": "Pop text «Xong!» (Done!)",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.text.08",
+      "group_code": "NB-06",
+      "title_vi": "Chữ nổi «Ơ kìa»",
+      "title_en": "Pop text «Ơ kìa» (Hey, look)",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.text.09",
+      "group_code": "NB-06",
+      "title_vi": "Chữ nổi «Cứu!»",
+      "title_en": "Pop text «Cứu!» (Help!)",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "fx.text.10",
+      "group_code": "NB-06",
+      "title_vi": "Chữ nổi «Yeah!»",
+      "title_en": "Pop text «Yeah!»",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "ui.chat.01",
+      "group_code": "NB-07",
+      "title_vi": "Bong bóng chat gửi",
+      "title_en": "Sent chat bubble",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "ui.chat.02",
+      "group_code": "NB-07",
+      "title_vi": "Bong bóng chat nhận",
+      "title_en": "Received chat bubble",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "ui.chat.03",
+      "group_code": "NB-07",
+      "title_vi": "Khung chat AI",
+      "title_en": "AI chat window",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "ui.phone.01",
+      "group_code": "NB-07",
+      "title_vi": "Màn hình khoá điện thoại",
+      "title_en": "Phone lock screen",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "ui.phone.02",
+      "group_code": "NB-07",
+      "title_vi": "Màn hình ứng dụng",
+      "title_en": "Phone app screen",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "ui.browser.01",
+      "group_code": "NB-07",
+      "title_vi": "Cửa sổ trình duyệt",
+      "title_en": "Browser window",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "ui.browser.02",
+      "group_code": "NB-07",
+      "title_vi": "Trang kết quả tìm kiếm",
+      "title_en": "Search results page",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "ui.notify.01",
+      "group_code": "NB-07",
+      "title_vi": "Thông báo đẩy",
+      "title_en": "Push notification",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "ui.notify.02",
+      "group_code": "NB-07",
+      "title_vi": "Huy hiệu tin mới",
+      "title_en": "New message badge",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "ui.dialog.01",
+      "group_code": "NB-07",
+      "title_vi": "Hộp báo lỗi",
+      "title_en": "Error dialog",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "ui.dialog.02",
+      "group_code": "NB-07",
+      "title_vi": "Hộp thành công",
+      "title_en": "Success dialog",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "ui.chart.01",
+      "group_code": "NB-07",
+      "title_vi": "Biểu đồ cột",
+      "title_en": "Bar chart",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "ui.chart.02",
+      "group_code": "NB-07",
+      "title_vi": "Biểu đồ đường",
+      "title_en": "Line chart",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "ui.terminal.01",
+      "group_code": "NB-07",
+      "title_vi": "Cửa sổ dòng lệnh",
+      "title_en": "Terminal window",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "ui.social.01",
+      "group_code": "NB-07",
+      "title_vi": "Thẻ bài đăng mạng xã hội",
+      "title_en": "Social post card",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.whoosh.01",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng vút 01",
+      "title_en": "Whoosh 01",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.whoosh.02",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng vút 02",
+      "title_en": "Whoosh 02",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.whoosh.03",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng vút 03",
+      "title_en": "Whoosh 03",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.whoosh.04",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng vút 04",
+      "title_en": "Whoosh 04",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.whoosh.05",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng vút 05",
+      "title_en": "Whoosh 05",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.whoosh.06",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng vút 06",
+      "title_en": "Whoosh 06",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.whoosh.07",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng vút 07",
+      "title_en": "Whoosh 07",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.whoosh.08",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng vút 08",
+      "title_en": "Whoosh 08",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.whoosh.09",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng vút 09",
+      "title_en": "Whoosh 09",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.whoosh.10",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng vút 10",
+      "title_en": "Whoosh 10",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.pop.01",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng bụp 01",
+      "title_en": "Pop 01",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.pop.02",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng bụp 02",
+      "title_en": "Pop 02",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.pop.03",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng bụp 03",
+      "title_en": "Pop 03",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.pop.04",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng bụp 04",
+      "title_en": "Pop 04",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.pop.05",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng bụp 05",
+      "title_en": "Pop 05",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.pop.06",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng bụp 06",
+      "title_en": "Pop 06",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.pop.07",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng bụp 07",
+      "title_en": "Pop 07",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.pop.08",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng bụp 08",
+      "title_en": "Pop 08",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.impact.01",
+      "group_code": "NB-08",
+      "title_vi": "Va chạm 01",
+      "title_en": "Impact 01",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.impact.02",
+      "group_code": "NB-08",
+      "title_vi": "Va chạm 02",
+      "title_en": "Impact 02",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.impact.03",
+      "group_code": "NB-08",
+      "title_vi": "Va chạm 03",
+      "title_en": "Impact 03",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.impact.04",
+      "group_code": "NB-08",
+      "title_vi": "Va chạm 04",
+      "title_en": "Impact 04",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.impact.05",
+      "group_code": "NB-08",
+      "title_vi": "Va chạm 05",
+      "title_en": "Impact 05",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.impact.06",
+      "group_code": "NB-08",
+      "title_vi": "Va chạm 06",
+      "title_en": "Impact 06",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.impact.07",
+      "group_code": "NB-08",
+      "title_vi": "Va chạm 07",
+      "title_en": "Impact 07",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.impact.08",
+      "group_code": "NB-08",
+      "title_vi": "Va chạm 08",
+      "title_en": "Impact 08",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ui.01",
+      "group_code": "NB-08",
+      "title_vi": "Bấm chuột",
+      "title_en": "Mouse click",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ui.02",
+      "group_code": "NB-08",
+      "title_vi": "Chạm nút",
+      "title_en": "Button tap",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ui.03",
+      "group_code": "NB-08",
+      "title_vi": "Thông báo",
+      "title_en": "Notification",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ui.04",
+      "group_code": "NB-08",
+      "title_vi": "Tin nhắn đến",
+      "title_en": "Message received",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ui.05",
+      "group_code": "NB-08",
+      "title_vi": "Gõ phím ngắn",
+      "title_en": "Short typing",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ui.06",
+      "group_code": "NB-08",
+      "title_vi": "Gõ phím dài",
+      "title_en": "Long typing",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ui.07",
+      "group_code": "NB-08",
+      "title_vi": "Bật",
+      "title_en": "Toggle on",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ui.08",
+      "group_code": "NB-08",
+      "title_vi": "Tắt",
+      "title_en": "Toggle off",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ui.09",
+      "group_code": "NB-08",
+      "title_vi": "Báo lỗi",
+      "title_en": "Error beep",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ui.10",
+      "group_code": "NB-08",
+      "title_vi": "Thành công",
+      "title_en": "Success chime",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.comic.01",
+      "group_code": "NB-08",
+      "title_vi": "Boing",
+      "title_en": "Boing",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.comic.02",
+      "group_code": "NB-08",
+      "title_vi": "Trượt chân",
+      "title_en": "Slip",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.comic.03",
+      "group_code": "NB-08",
+      "title_vi": "Trống chốt câu",
+      "title_en": "Rimshot",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.comic.04",
+      "group_code": "NB-08",
+      "title_vi": "Kèn xìu",
+      "title_en": "Sad trombone",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.comic.05",
+      "group_code": "NB-08",
+      "title_vi": "Chạy vụt",
+      "title_en": "Cartoon dash",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.comic.06",
+      "group_code": "NB-08",
+      "title_vi": "Rơi vèo",
+      "title_en": "Falling whistle",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.comic.07",
+      "group_code": "NB-08",
+      "title_vi": "Cốc đầu",
+      "title_en": "Bonk",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.comic.08",
+      "group_code": "NB-08",
+      "title_vi": "Chớp mắt",
+      "title_en": "Eye blink",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.comic.09",
+      "group_code": "NB-08",
+      "title_vi": "Cười đóng hộp",
+      "title_en": "Canned laugh",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.comic.10",
+      "group_code": "NB-08",
+      "title_vi": "Dế kêu im lặng",
+      "title_en": "Crickets",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.sting.01",
+      "group_code": "NB-08",
+      "title_vi": "Ting",
+      "title_en": "Ting",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.sting.02",
+      "group_code": "NB-08",
+      "title_vi": "Sốc",
+      "title_en": "Shock sting",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.sting.03",
+      "group_code": "NB-08",
+      "title_vi": "Buồn",
+      "title_en": "Sad sting",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.sting.04",
+      "group_code": "NB-08",
+      "title_vi": "Hồi hộp",
+      "title_en": "Suspense sting",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.sting.05",
+      "group_code": "NB-08",
+      "title_vi": "Lộ diện",
+      "title_en": "Reveal sting",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.sting.06",
+      "group_code": "NB-08",
+      "title_vi": "Chiến thắng",
+      "title_en": "Victory sting",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.sting.07",
+      "group_code": "NB-08",
+      "title_vi": "Thất bại",
+      "title_en": "Fail sting",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.sting.08",
+      "group_code": "NB-08",
+      "title_vi": "Ý tưởng",
+      "title_en": "Idea sting",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ambience.01",
+      "group_code": "NB-08",
+      "title_vi": "Nền văn phòng",
+      "title_en": "Office ambience",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ambience.02",
+      "group_code": "NB-08",
+      "title_vi": "Nền quán cà phê",
+      "title_en": "Café ambience",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ambience.03",
+      "group_code": "NB-08",
+      "title_vi": "Nền đường phố",
+      "title_en": "Street ambience",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ambience.04",
+      "group_code": "NB-08",
+      "title_vi": "Nền nhà ban đêm",
+      "title_en": "Home at night ambience",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ambience.05",
+      "group_code": "NB-08",
+      "title_vi": "Nền phòng họp",
+      "title_en": "Meeting room ambience",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.sfx.ambience.06",
+      "group_code": "NB-08",
+      "title_vi": "Tiếng mưa",
+      "title_en": "Rain ambience",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.bgm.01",
+      "group_code": "NB-08",
+      "title_vi": "Nhạc nền · mở đầu tò mò",
+      "title_en": "Music · curious opening",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.bgm.02",
+      "group_code": "NB-08",
+      "title_vi": "Nhạc nền · giải thích nhẹ",
+      "title_en": "Music · light explainer",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.bgm.03",
+      "group_code": "NB-08",
+      "title_vi": "Nhạc nền · giải thích nhịp vừa",
+      "title_en": "Music · mid-tempo explainer",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.bgm.04",
+      "group_code": "NB-08",
+      "title_vi": "Nhạc nền · căng dần",
+      "title_en": "Music · building tension",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.bgm.05",
+      "group_code": "NB-08",
+      "title_vi": "Nhạc nền · cao trào",
+      "title_en": "Music · climax",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.bgm.06",
+      "group_code": "NB-08",
+      "title_vi": "Nhạc nền · hài nghịch",
+      "title_en": "Music · playful comedy",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.bgm.07",
+      "group_code": "NB-08",
+      "title_vi": "Nhạc nền · hài khoa trương",
+      "title_en": "Music · over-the-top comedy",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.bgm.08",
+      "group_code": "NB-08",
+      "title_vi": "Nhạc nền · tủi buồn",
+      "title_en": "Music · sad",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.bgm.09",
+      "group_code": "NB-08",
+      "title_vi": "Nhạc nền · bí ẩn",
+      "title_en": "Music · mystery",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.bgm.10",
+      "group_code": "NB-08",
+      "title_vi": "Nhạc nền · ấm áp",
+      "title_en": "Music · warm",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.bgm.11",
+      "group_code": "NB-08",
+      "title_vi": "Nhạc nền · kết vui",
+      "title_en": "Music · happy ending",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.bgm.12",
+      "group_code": "NB-08",
+      "title_vi": "Nhạc nền · kết lắng",
+      "title_en": "Music · calm ending",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.brand.01",
+      "group_code": "NB-08",
+      "title_vi": "Âm logo kênh",
+      "title_en": "Channel logo sting",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.brand.02",
+      "group_code": "NB-08",
+      "title_vi": "Âm chuyển đoạn",
+      "title_en": "Segment transition",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.brand.03",
+      "group_code": "NB-08",
+      "title_vi": "Âm kết kênh",
+      "title_en": "Channel outro",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.voice.nhi",
+      "group_code": "NB-08",
+      "title_vi": "Giọng Nhi",
+      "title_en": "Nhi's voice",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.voice.vy",
+      "group_code": "NB-08",
+      "title_vi": "Giọng Vy",
+      "title_en": "Vy's voice",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "audio.voice.ryan",
+      "group_code": "NB-08",
+      "title_vi": "Giọng Ryan",
+      "title_en": "Ryan's voice",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.trans.01",
+      "group_code": "NB-09",
+      "title_vi": "Chuyển cảnh 01",
+      "title_en": "Transition 01",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.trans.02",
+      "group_code": "NB-09",
+      "title_vi": "Chuyển cảnh 02",
+      "title_en": "Transition 02",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.trans.03",
+      "group_code": "NB-09",
+      "title_vi": "Chuyển cảnh 03",
+      "title_en": "Transition 03",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.trans.04",
+      "group_code": "NB-09",
+      "title_vi": "Chuyển cảnh 04",
+      "title_en": "Transition 04",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.trans.05",
+      "group_code": "NB-09",
+      "title_vi": "Chuyển cảnh 05",
+      "title_en": "Transition 05",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.trans.06",
+      "group_code": "NB-09",
+      "title_vi": "Chuyển cảnh 06",
+      "title_en": "Transition 06",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.trans.07",
+      "group_code": "NB-09",
+      "title_vi": "Chuyển cảnh 07",
+      "title_en": "Transition 07",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.trans.08",
+      "group_code": "NB-09",
+      "title_vi": "Chuyển cảnh 08",
+      "title_en": "Transition 08",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.title.01",
+      "group_code": "NB-09",
+      "title_vi": "Tiêu đề động 01",
+      "title_en": "Animated title 01",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.title.02",
+      "group_code": "NB-09",
+      "title_vi": "Tiêu đề động 02",
+      "title_en": "Animated title 02",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.title.03",
+      "group_code": "NB-09",
+      "title_vi": "Tiêu đề động 03",
+      "title_en": "Animated title 03",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.title.04",
+      "group_code": "NB-09",
+      "title_vi": "Tiêu đề động 04",
+      "title_en": "Animated title 04",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.title.05",
+      "group_code": "NB-09",
+      "title_vi": "Tiêu đề động 05",
+      "title_en": "Animated title 05",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.title.06",
+      "group_code": "NB-09",
+      "title_vi": "Tiêu đề động 06",
+      "title_en": "Animated title 06",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.lower.01",
+      "group_code": "NB-09",
+      "title_vi": "Thanh tên 01",
+      "title_en": "Lower third 01",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.lower.02",
+      "group_code": "NB-09",
+      "title_vi": "Thanh tên 02",
+      "title_en": "Lower third 02",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.lower.03",
+      "group_code": "NB-09",
+      "title_vi": "Thanh tên 03",
+      "title_en": "Lower third 03",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.sub.01",
+      "group_code": "NB-09",
+      "title_vi": "Kiểu phụ đề 01",
+      "title_en": "Subtitle style 01",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.sub.02",
+      "group_code": "NB-09",
+      "title_vi": "Kiểu phụ đề 02",
+      "title_en": "Subtitle style 02",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "motion.sub.03",
+      "group_code": "NB-09",
+      "title_vi": "Kiểu phụ đề 03",
+      "title_en": "Subtitle style 03",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "font.display",
+      "group_code": "NB-10",
+      "title_vi": "Chữ tiêu đề",
+      "title_en": "Display font",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "font.body",
+      "group_code": "NB-10",
+      "title_vi": "Chữ phụ đề",
+      "title_en": "Body & subtitle font",
+      "added_in": "v1",
+      "subject_rev": null
+    },
+    {
+      "code": "font.comic",
+      "group_code": "NB-10",
+      "title_vi": "Chữ nổi",
+      "title_en": "Comic lettering font",
+      "added_in": "v1",
+      "subject_rev": null
+    }
+  ]
+}
