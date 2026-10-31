@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sao lưu Gen-Studio rồi đẩy bản mới nhất lên bucket Cloud Storage. © 2026 Gen Labs — All rights reserved.
-# Dùng service account của VM (metadata), không cần gcloud. Giữ 7 bản trên máy; bucket tự xoá bản > 30 ngày.
+# Dùng service account của VM (metadata), không cần gcloud. Giữ 2 bản trên máy (kho lớn dần — 7 bản sẽ tràn ổ); bucket giữ 30 ngày.
 # Biến: GS_HOME (thư mục cài), GS_BUCKET (gs://…). Lỗi ⇒ thoát ≠ 0 (cron ghi /var/log/gs-backup.log).
 set -euo pipefail
 : "${GS_HOME:?thiếu GS_HOME}" "${GS_BUCKET:?thiếu GS_BUCKET}"
@@ -16,4 +16,4 @@ TOKEN="$(curl -fsS -H 'Metadata-Flavor: Google' \
 curl -fsS -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/gzip' --data-binary "@$f" \
   "https://storage.googleapis.com/upload/storage/v1/b/$B/o?uploadType=media&name=backups/$(basename "$f")" >/dev/null
 echo "✓ đã đẩy $(basename "$f") ($(du -h "$f" | cut -f1)) → $GS_BUCKET/backups/"
-ls -1t data/backups/gen-studio-*.tar.gz | tail -n +8 | xargs -r rm -f
+ls -1t data/backups/gen-studio-*.tar.gz | tail -n +3 | xargs -r rm -f
