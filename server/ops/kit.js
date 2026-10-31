@@ -195,8 +195,11 @@ function register(op, ctx) {
 
     // review Gen (0.3.0-B, mục 1): tiền điều kiện "còn ≥1 tiêu chí M fail" áp dụng cho CẢ nhánh blocked (kể cả gọi lại
     // idempotent trên submission ĐÃ ở "blocked") — như nhánh thường, không có ngoại lệ.
-    const latest = latestByCriterion('SELECT criterion, level, detail FROM asset_checks WHERE submission_id=? ORDER BY created_at, id', sub.id);
-    const failed = [...latest.values()].filter((r) => r.level === 'fail');
+    // bổ sung cổng M1 (cortex, mục b): CHỈ xét severity='M' (bắt buộc, đo được) và GEN-FMT (định dạng/magic bytes —
+    // luôn chặn bất kể severity có ghi hay không) khi quyết định rework tự động; H/M* fail KHÔNG tự động bounce —
+    // đó là "cần Ryan xác nhận bằng mắt" (verdict 'review' của gói E), không phải lỗi máy đo chắc chắn.
+    const latest = latestByCriterion('SELECT criterion, severity, level, detail FROM asset_checks WHERE submission_id=? ORDER BY created_at, id', sub.id);
+    const failed = [...latest.values()].filter((r) => r.level === 'fail' && (r.severity === 'M' || r.criterion === 'GEN-FMT'));
     if (!failed.length) throw err('invalid', 'Không có tiêu chí M nào đang "fail" trên lần nộp này — không trả về làm lại được.', null);
 
     // review #5: lần 3 (hoặc gọi lại sau khi đã blocked) ⇒ idempotent — tìm đề xuất proposed sẵn có, không tạo thêm;

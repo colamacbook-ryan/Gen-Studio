@@ -179,7 +179,7 @@ test('submission.auto_rework: cần còn tiêu chí M fail; đếm chuỗi liên
     const a1 = putAsset(t, o);
     const gen = agent(['assets.review'], 'AG-GEN');
 
-    const fail = (sub, runId) => t.write(gen, 'submission.record_checks', { submission: sub.display_id, run_id: runId, results: [{ criterion: 'CH-02', level: 'fail', detail: 'nền sai màu' }] });
+    const fail = (sub, runId) => t.write(gen, 'submission.record_checks', { submission: sub.display_id, run_id: runId, results: [{ criterion: 'CH-02', severity: 'M', level: 'fail', detail: 'nền sai màu' }] });
 
     const sub1 = submissionRow(t, { asset: a1 });
     // chưa có kết quả fail ⇒ từ chối
@@ -219,6 +219,28 @@ test('submission.auto_rework: cần còn tiêu chí M fail; đếm chuỗi liên
   } finally { t.clean(); }
 });
 
+test("0.3.0-B (bổ sung cổng M1, cortex, mục b): auto_rework CHỈ xét severity='M' (và GEN-FMT) — H/M* fail không tự bounce", () => {
+  const t = tmpDb();
+  try {
+    const o = owner(t.db);
+    t.write(o, 'kit.sync', {});
+    const a1 = putAsset(t, o);
+    const gen = agent(['assets.review'], 'AG-GEN3');
+    const sub = submissionRow(t, { asset: a1, kitSlot: 'nhi.expr.01' });
+    // CH-04 (M*) và CH-09 (H) đều 'fail' nhưng KHÔNG phải severity M, không phải GEN-FMT ⇒ auto_rework vẫn từ chối
+    t.write(gen, 'submission.record_checks', { submission: sub.display_id, run_id: 'r1', results: [
+      { criterion: 'CH-04', severity: 'M*', level: 'fail' }, { criterion: 'CH-09', severity: 'H', level: 'fail' },
+    ] });
+    assert.throws(() => t.write(gen, 'submission.auto_rework', { submission: sub.display_id }), /không có tiêu chí/i);
+    // GEN-FMT fail ⇒ auto_rework vẫn chạy dù severity không khai (định dạng sai luôn chặn bất kể severity)
+    t.write(gen, 'submission.record_checks', { submission: sub.display_id, run_id: 'r2', results: [{ criterion: 'GEN-FMT', level: 'fail' }] });
+    const out = t.write(gen, 'submission.auto_rework', { submission: sub.display_id });
+    assert.equal(out.state, 'rework');
+    assert.ok(out.decision_reason.includes('GEN-FMT'));
+    assert.ok(!out.decision_reason.includes('CH-04') && !out.decision_reason.includes('CH-09'), 'lý do không lẫn tiêu chí H/M*');
+  } finally { t.clean(); }
+});
+
 test('submission.auto_rework → suggestion.apply: Ryan áp dụng đề xuất rework_blocked thì submission thật sự đổi state', () => {
   const t = tmpDb();
   try {
@@ -226,7 +248,7 @@ test('submission.auto_rework → suggestion.apply: Ryan áp dụng đề xuất 
     t.write(o, 'kit.sync', {});
     const a1 = putAsset(t, o);
     const gen = agent(['assets.review'], 'AG-GEN');
-    const fail = (sub, runId) => t.write(gen, 'submission.record_checks', { submission: sub.display_id, run_id: runId, results: [{ criterion: 'CH-02', level: 'fail' }] });
+    const fail = (sub, runId) => t.write(gen, 'submission.record_checks', { submission: sub.display_id, run_id: runId, results: [{ criterion: 'CH-02', severity: 'M', level: 'fail' }] });
     let prev = null, sub;
     for (let i = 0; i < 3; i++) {
       sub = submissionRow(t, { asset: a1, previous: prev });
