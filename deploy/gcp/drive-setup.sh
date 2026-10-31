@@ -28,7 +28,7 @@ Type=oneshot
 User=$U
 Environment="GS_DRIVE_DEST=$DEST"
 Environment="GS_DRIVE_FOLDER=$FOLDER"
-ExecStart=$D/drive-sync.sh
+ExecStart=/bin/sh -c '$D/drive-sync.sh || $D/alert.sh "gs-drive-sync hỏng"'
 EOF
 
 cat > /etc/systemd/system/gs-drive-sync.timer <<'EOF'

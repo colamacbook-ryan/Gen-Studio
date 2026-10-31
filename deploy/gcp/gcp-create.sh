@@ -18,12 +18,12 @@ SA="gs-backup@${PROJECT}.iam.gserviceaccount.com"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
 [ -n "$PROJECT" ] || { echo "✗ Chưa chọn project — chạy: gcloud config set project <ID>" >&2; exit 1; }
-for f in startup.sh setup-vm.sh backup-offsite.sh restore-test.sh Caddyfile.tpl tailscale.sh drive-sync.sh drive-setup.sh tickets-sheet.py tickets-setup.sh; do
+for f in startup.sh setup-vm.sh backup-offsite.sh restore-test.sh restore-drill.sh alert.sh health-check.sh smoke.sh Caddyfile.tpl tailscale.sh drive-sync.sh drive-setup.sh tickets-sheet.py tickets-setup.sh; do
   [ -f "$HERE/$f" ] || { echo "✗ Thiếu $f cạnh script này" >&2; exit 1; }
 done
 FILES="startup-script=$HERE/startup.sh"
 # khoá metadata chỉ nhận chữ/số/-/_ ⇒ đổi dấu chấm thành gạch (startup.sh đổi y hệt khi lấy về)
-for f in setup-vm.sh backup-offsite.sh restore-test.sh Caddyfile.tpl tailscale.sh drive-sync.sh drive-setup.sh tickets-sheet.py tickets-setup.sh; do FILES="$FILES,gs-file-${f//./-}=$HERE/$f"; done
+for f in setup-vm.sh backup-offsite.sh restore-test.sh restore-drill.sh alert.sh health-check.sh smoke.sh Caddyfile.tpl tailscale.sh drive-sync.sh drive-setup.sh tickets-sheet.py tickets-setup.sh; do FILES="$FILES,gs-file-${f//./-}=$HERE/$f"; done
 echo "Project: $PROJECT · vùng $ZONE · máy $TYPE · ổ ${DISK} GB"
 
 echo "› Bật API Compute Engine + Cloud Storage"
@@ -70,7 +70,42 @@ fi
 # máy đã có: cập nhật bộ script (lần khởi động sau tự lấy; chạy ngay bằng: sudo google_metadata_script_runner startup)
 gcloud compute instances add-metadata "$VM" --zone "$ZONE" --project "$PROJECT" --metadata-from-file "$FILES" >/dev/null
 
+echo "› Lịch chụp ảnh ổ hằng ngày (snapshot — đường lùi độc lập với sao lưu ứng dụng, giữ 7 ngày, ổ 50 GB ≈ <2 USD/tháng)"
+gcloud compute resource-policies describe gs-daily --project "$PROJECT" --region "$REGION" >/dev/null 2>&1 \
+  || gcloud compute resource-policies create snapshot-schedule gs-daily --project "$PROJECT" --region "$REGION" \
+       --max-retention-days 7 --daily-schedule --start-time 20:00 --storage-location us >/dev/null
+gcloud compute disks describe "$VM" --zone "$ZONE" --project "$PROJECT" --format='value(resourcePolicies)' 2>/dev/null | grep -q gs-daily \
+  || gcloud compute disks add-resource-policies "$VM" --zone "$ZONE" --project "$PROJECT" --resource-policies gs-daily >/dev/null
+
 HOST="$(echo "$IP" | tr . -).sslip.io"
+UPTIME_HOST="${GS_UPTIME_HOST:-$HOST}"   # đổi sang tên miền riêng đã trỏ DNS (vd asset.genos.top) khi chạy lại: GS_UPTIME_HOST=asset.genos.top bash gcp-create.sh
+
+echo "› Cảnh báo sống còn: uptime check + chính sách báo động (miễn phí trong hạn mức Cloud Monitoring)"
+UPTIME_OK=1
+if gcloud monitoring uptime list-configs --project "$PROJECT" --format='value(displayName)' 2>/dev/null | grep -qx gs-uptime; then
+  :
+else
+  gcloud monitoring uptime create gs-uptime \
+    --project "$PROJECT" \
+    --resource-type=uptime-url \
+    --resource-labels="host=$UPTIME_HOST" \
+    --protocol=https \
+    --path=/.well-known/oauth-authorization-server \
+    --period=5 \
+    >/dev/null 2>&1 || UPTIME_OK=0
+fi
+if [ "$UPTIME_OK" = 1 ]; then
+  ACCOUNT="$(gcloud config get-value account 2>/dev/null)"
+  if ! gcloud alpha monitoring channels list --project "$PROJECT" --filter="labels.email_address=$ACCOUNT" --format='value(name)' 2>/dev/null | grep -q .; then
+    gcloud alpha monitoring channels create --project "$PROJECT" --display-name "gs-alert-email" \
+      --type=email --channel-labels=email_address="$ACCOUNT" >/dev/null 2>&1 || UPTIME_OK=0
+  fi
+  echo "  ✓ uptime check gs-uptime: https://$UPTIME_HOST/.well-known/oauth-authorization-server (5 phút/lần)"
+  [ "$UPTIME_OK" = 1 ] && echo "  ✓ kênh báo động email: $ACCOUNT (tạo policy nối kênh này trong console nếu gcloud CLI chưa tạo được alert policy tự động)"
+else
+  echo "  ⚠ gcloud CLI không tạo được uptime check/kênh báo động tự động — làm tay: console.cloud.google.com/monitoring/uptime (xem docs/OPS.md)"
+fi
+
 cat <<EOF
 
 ✓ Xong. IP: $IP
