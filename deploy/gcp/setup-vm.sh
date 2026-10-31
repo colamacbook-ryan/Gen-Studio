@@ -75,7 +75,7 @@ if [ "$WORKSHOP" = 1 ]; then
 fi
 
 # 2. mã nguồn Gen-Studio prod từ git (clone lần đầu, fetch+pull khi đã có) — token KHÔNG lưu vào remote URL hay đĩa
-read -rsp "Dán token GitHub (đọc repo Gen-Studio$([ "$WORKSHOP" = 1 ] && echo /Second-Brain)), Enter: " TOK; echo
+read -rsp "Dán token GitHub (đọc repo Gen-Studio$([ "$WORKSHOP" = 1 ] && echo /Second-Brain)), Enter: " TOK || TOK=""; echo   # EOF (chạy không tty) = không token
 # repo public (từ 31/10) ⇒ Enter trống là được; token chỉ cần khi repo riêng tư
 [ -n "$TOK" ] || echo "  (không token — clone công khai)"
 AUTHHDR=""; [ -n "$TOK" ] && AUTHHDR="AUTHORIZATION: bearer $TOK"   # rỗng ⇒ git không gửi header
