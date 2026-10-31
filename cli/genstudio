@@ -31,6 +31,8 @@ genstudio <lệnh>
                          nâng cao: cấp token tay cho agent ngoài (hiện một lần); CLI không duyệt được quyền agent
   agent-login            đăng nhập Claude Code cho agent nội bộ (chính chủ, một lần, trên máy chủ)
   voice status|pull      giọng offline trên máy (không cần khoá): xem trạng thái · tải model (~1 GB) và bật dịch vụ
+  check <file> --slot <mã ô> [--ref <file>] [--json]
+                         máy kiểm thường trực Bộ Neo (STANDARD-KIT-v1): kích thước/nền/âm thanh/định dạng — không cần DB/khởi động studio
 U
 }
 
@@ -116,6 +118,9 @@ case "$cmd" in
         else echo "○ dịch vụ giọng offline chưa chạy — genstudio voice pull"; fi ;;
       *) echo "Dùng: genstudio voice status|pull" >&2; exit 2 ;;
     esac ;;
+  check)
+    # Máy kiểm độc lập (server/checks/) — không cần DB/container studio chạy, chỉ cần node + ffmpeg trên PATH.
+    exec node "$HOME_DIR/cli/check-kit.js" "$@" ;;
   help|-h|--help) usage ;;
   *) usage >&2; exit 2 ;;
 esac
