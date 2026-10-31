@@ -105,6 +105,10 @@ class Report {
     this.checks = { run: 0, errors: 0 };
     this.approvedWithMFail = []; // [{mr, file, kit_slot, failed:[criterion]}] — "approved" nhưng còn tiêu chí M fail
     this.errors = [];
+    // review opus PR #38 mục 1/3 [chặn/major]: lỗi CẤU HÌNH (đường dẫn sai, --source rỗng bất thường…) — KHÁC lỗi
+    // từng file (file hỏng, magic bytes sai…). `--allow-errors` chỉ được bỏ qua lỗi từng file; lỗi cấu hình luôn
+    // thoát khác 0 để `|| alert.sh` của systemd timer bắt được, không bị `--allow-errors` của cron làm im lặng.
+    this.configErrors = [];
   }
 }
 
@@ -186,16 +190,20 @@ async function importInboxFolder(write, inboxRoot, dirName, slotsById, groups, r
         source_kind: 'muse', redistribution: 'in-product-only', commercial_ok: 1,
       });
       if (metaRes.changed) report.metaChanged++;
-
-      // C.2 (cortex CNS-M1-18): nhập kho ghi asset_rights — Muse/Meta, chờ điều khoản Meta (DB-GK-0.1 §5/§8).
-      const attestRes = write(CLI_ACTOR, 'asset.attest_import', {
-        asset: asset.display_id, basis: 'licensed', note: `Meta-Muse-Output · ${mrId} · chờ điều khoản Meta`,
-      });
-      if (!attestRes.deduped) report.rightsAttested++;
     } catch (e) {
       if (isSvgRejected(e)) { report.skipped.push({ source: `inbox/${dirName}`, file: f.name, reason: e.message }); continue; }
       report.errors.push(`${dirName}/${f.name}: ${e.message}`); continue;
     }
+
+    // review opus PR #38 mục 7 [minor]: TÁCH try riêng cho attest_import — trước đây lỗi ở attest (vd hiếm gặp
+    // "chưa có owner") làm MẤT CẢ asset.put/asset.meta ĐÃ THÀNH CÔNG ở trên (catch chung `continue` bỏ luôn
+    // submission.import + máy kiểm bên dưới). Attest hỏng vẫn ghi lỗi, nhưng asset + lần nộp + máy kiểm vẫn tiếp tục.
+    try {
+      const attestRes = write(CLI_ACTOR, 'asset.attest_import', {
+        asset: asset.display_id, basis: 'licensed', note: `Meta-Muse-Output · ${mrId} · chờ điều khoản Meta`,
+      });
+      if (!attestRes.deduped) report.rightsAttested++;
+    } catch (e) { report.errors.push(`asset_rights ${dirName}/${f.name}: ${e.message}`); }
 
     if (!map.code) continue; // không có ô ⇒ không có lần nộp/máy kiểm (chỉ asset ở trên)
 
@@ -265,28 +273,33 @@ async function importCatalog(write, libDir, slotsById, groups, report, { dryRun 
       if (reason) { report.errors.push(`catalog ${e.id}: ${reason}`); continue; }
     }
 
+    let asset, sourceKind;
     try {
-      const asset = write(SYS_ACTOR, 'asset.put', { kind, bytes, mime: mimeOfExt, source: 'upload', meta: { import: { catalog_id: e.id } } });
+      asset = write(SYS_ACTOR, 'asset.put', { kind, bytes, mime: mimeOfExt, source: 'upload', meta: { import: { catalog_id: e.id } } });
       if (asset.deduped) report.deduped++; else report.createdAssets++;
 
-      const sourceKind = sourceKindOfLicense(e.license);
+      sourceKind = sourceKindOfLicense(e.license);
       const metaRes = write(CLI_ACTOR, 'asset.meta', {
         asset: asset.display_id, kit_slot: map.code || undefined,
         source_kind: sourceKind, redistribution: e.redistribution === 'free' ? 'ok' : e.redistribution,
         quality: e.quality, commercial_ok: e.commercial_ok ? 1 : 0, subject: subjectFromTags(e.tags),
       });
       if (metaRes.changed) report.metaChanged++;
+    } catch (err) {
+      if (isSvgRejected(err)) { report.skipped.push({ source: 'catalog', file: e.id, reason: err.message }); continue; }
+      report.errors.push(`catalog ${e.id}: ${err.message}`); continue;
+    }
 
+    // review opus PR #38 mục 7 [minor]: tách try riêng cho attest (xem ghi chú ở importInboxFolder) — lỗi attest
+    // không được xoá mất asset.put/asset.meta đã ghi thành công.
+    try {
       // C.2 (cortex CNS-M1-18): catalog.json là dữ liệu đã duyệt sẵn (license/source_url có kiểm) — attest
       // thẳng theo license đã khai (DB-GK-0.1 §8), khác nhánh Muse (meta.json tự khai, "chờ điều khoản Meta").
       const attestRes = write(CLI_ACTOR, 'asset.attest_import', {
         asset: asset.display_id, basis: basisOfSourceKind(sourceKind), note: `${e.license || '?'} · ${e.source_url || e.source || e.id}`,
       });
       if (!attestRes.deduped) report.rightsAttested++;
-    } catch (err) {
-      if (isSvgRejected(err)) { report.skipped.push({ source: 'catalog', file: e.id, reason: err.message }); continue; }
-      report.errors.push(`catalog ${e.id}: ${err.message}`);
-    }
+    } catch (err) { report.errors.push(`asset_rights catalog ${e.id}: ${err.message}`); }
   }
 }
 
@@ -301,19 +314,29 @@ async function runImport({ write, db, libDir = LIB, dryRun = false, only = null,
   const report = new Report();
 
   const inboxRoot = source || path.join(libDir, 'inbox');
-  const inboxDirs = fs.existsSync(inboxRoot)
+  const inboxRootExists = fs.existsSync(inboxRoot);
+  const inboxDirs = inboxRootExists
     ? fs.readdirSync(inboxRoot, { withFileTypes: true }).filter((d) => d.isDirectory() && /^MR-\d{3}/.test(d.name)).map((d) => d.name).filter((n) => !only || n.startsWith(only))
     : [];
+  // review opus PR #38 mục 1 [chặn]: --source trỏ sai thư mục (vd thiếu `03_Hoan-thanh/`) quét ra 0 thư mục MR
+  // và trước đây thoát êm mã 0 — timer gs-import im lặng không nhập gì suốt. 0 thư mục ⇒ lỗi thật (report.errors),
+  // không phải "rỗng hợp lệ"; chỉ áp khi dùng `--source` (thư mục `library/inbox/` mặc định có thể rỗng hợp lệ).
+  if (source && inboxDirs.length === 0) {
+    report.configErrors.push(`--source ${source}: không thấy thư mục MR-xxx nào${inboxRootExists ? '' : ' (đường dẫn không tồn tại)'} — kiểm đường dẫn (hàng Drive nằm ở <thư mục>/03_Hoan-thanh/<MR>/, không phải thẳng ở gốc).`);
+  }
   for (const d of inboxDirs) await importInboxFolder(write, inboxRoot, d, slotsById, groups, report, { dryRun });
   if (!only && !source) await importCatalog(write, libDir, slotsById, groups, report, { dryRun });
 
   if (!dryRun && db) {
     // C.2 (DB-GK-0.1 §13, cortex CNS-M1-09): MỘT công thức «ô đạt» — đọc thẳng `v_kit_coverage` (migrations/0011),
     // không tự tính lại (trước đây ưu tiên lần nộp 'approved' bất kỳ, không phải định nghĩa ô đạt của STANDARD §5).
-    const rows = db.all('SELECT code, asset_id, checks_level, state FROM v_kit_coverage WHERE workspace_id=?', db.ws);
+    const rows = db.all('SELECT code, asset_id, checks_level, state, competing FROM v_kit_coverage WHERE workspace_id=?', db.ws);
     const status = {};
     for (const r of rows) status[r.code] = r.asset_id ? { asset_id: r.asset_id, state: r.state, checks_level: r.checks_level || null } : null;
     report.kitStatus = { generated_at: new Date().toISOString(), slots: status };
+    // review opus PR #38 mục 6 [major]: ô "đạt" nhưng còn lần nộp MỞ (đường B, Muse qua MCP) đang chờ xem xét —
+    // state ưu tiên "đạt" che mất việc này; báo riêng để Ryan không tưởng nhầm đã xong hẳn.
+    report.coveredWithCompeting = rows.filter((r) => r.state === 'đạt' && r.competing > 0).map((r) => ({ code: r.code, competing: r.competing }));
   }
   report.groups = groups;
   return report;
@@ -343,7 +366,15 @@ function printReport(report, { dryRun } = {}) {
     console.log(`\nCẢNH BÁO: ${report.approvedWithMFail.length} ô "approved" theo quyết định Ryan nhưng MÁY KIỂM còn tiêu chí M fail — KHO CHƯA CERTIFY ĐƯỢC cho tới khi làm lại/miễn tiêu chí:`);
     for (const w of report.approvedWithMFail) console.log(`  - ${w.mr}/${w.file} (${w.kit_slot}): ${w.failed.join(', ')}`);
   }
+  if (report.coveredWithCompeting && report.coveredWithCompeting.length) {
+    console.log(`\nLƯU Ý: ${report.coveredWithCompeting.length} ô đã "đạt" nhưng còn lần nộp MỞ (đường MCP) đang chờ xem xét — không tự ẩn, Ryan xem ở A4:`);
+    for (const w of report.coveredWithCompeting) console.log(`  - ${w.code}: ${w.competing} lần nộp đang mở`);
+  }
   if (report.errors.length) { console.log(`Lỗi (${report.errors.length}):`); for (const e of report.errors) console.log(`  - ${e}`); }
+  if (report.configErrors.length) {
+    console.log(`\n✗ LỖI CẤU HÌNH (${report.configErrors.length}) — KHÔNG bỏ qua được bằng --allow-errors:`);
+    for (const e of report.configErrors) console.log(`  - ${e}`);
+  }
 }
 
 async function main() {
@@ -388,6 +419,9 @@ async function main() {
       console.error(`\n✗ Có ${report.errors.length} lỗi — dừng với exit 1 (dùng --allow-errors để bỏ qua).`);
       process.exitCode = 1;
     }
+    // review opus PR #38 mục 1/3: lỗi cấu hình (vd --source trỏ sai đường dẫn, quét ra 0 thư mục MR) luôn thoát
+    // khác 0, KỂ CẢ có --allow-errors — đây không phải lỗi "từng file" được phép bỏ qua để cron chạy tiếp.
+    if (report.configErrors.length) process.exitCode = 1;
   } finally { db.close(); }
 }
 
