@@ -19,10 +19,21 @@ done
 if [ "$ok" = 1 ]; then echo "✓ /api/health nội bộ → 200"; else echo "✗ /api/health nội bộ → $code (cần 200)"; fail=1; fi
 
 if [ -n "$PUBLIC_URL" ]; then
-  code_ui="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$PUBLIC_URL/")"
+  # retry 3 lần (set -e + curl lỗi mạng thoáng qua không được làm cả smoke fail oan — rollback 1 bản tốt vì 1 lần nghẽn mạng là tệ)
+  code_ui=000
+  for _ in 1 2 3; do
+    code_ui="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$PUBLIC_URL/" || echo 000)"
+    [ "$code_ui" = 401 ] && break
+    sleep 2
+  done
   if [ "$code_ui" = 401 ]; then echo "✓ / qua Caddy → 401 (sau mật khẩu cổng)"; else echo "✗ / qua Caddy → $code_ui (cần 401)"; fail=1; fi
 
-  code_mcp="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -X GET "$PUBLIC_URL/mcp")"
+  code_mcp=000
+  for _ in 1 2 3; do
+    code_mcp="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -X GET "$PUBLIC_URL/mcp" || echo 000)"
+    [ "$code_mcp" = 405 ] && break
+    sleep 2
+  done
   if [ "$code_mcp" = 405 ]; then echo "✓ GET /mcp → 405 (chỉ nhận POST)"; else echo "✗ GET /mcp → $code_mcp (cần 405)"; fail=1; fi
 else
   echo "… GS_PUBLIC_URL trống — bỏ qua kiểm Caddy (máy dev/local không có Caddy)"
