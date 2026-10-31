@@ -47,8 +47,13 @@ SSH: `timeout 60 gcloud compute ssh gen-studio --zone us-west1-b --project gen-s
 - `cd /opt/gen-studio && sudo -u genstudio ./cli/genstudio update`:
   1. Sao lưu dữ liệu (`do_backup`) 2. Đánh dấu commit hiện tại bằng tag `pre-update-<timestamp>` 3. `git pull --ff-only` 4. `docker compose
      build && up -d` 5. Chờ `/api/health` 200 6. `deploy/gcp/smoke.sh` (health nội bộ 200, `/` qua Caddy 401, `GET /mcp` 405).
-  - Bất kỳ bước 4–6 fail ⇒ **tự động gọi `genstudio rollback <tag>`** (checkout lại commit cũ, build, up, kiểm health).
-  - Đã kiểm chạy thật trên VM 31/10/2026: `update` đạt toàn bộ (smoke 3/3 ✓), `rollback` thủ công về tag cũ cũng đạt (health 200).
+  - Bất kỳ bước 4–6 fail ⇒ **tự động gọi `genstudio rollback <tag>`** — `rollback` dùng `git reset --hard <tag>` (không `checkout` rời
+    nhánh): đưa HEAD nhánh hiện tại về đúng commit cũ, xoá sạch file mới hơn tag đó, giữ nguyên `data/` (không theo dõi git); vẫn ở trên
+    nhánh nên lần `update` kế tiếp `git pull --ff-only` chạy bình thường (không kẹt detached HEAD).
+  - `update`/`rollback`/`backup`/`restore` dùng chung khoá (`flock`) — chạy tay lúc cron sao lưu đang chạy sẽ tự đợi tới 120s rồi báo lỗi
+    nếu vẫn bận, không chạy chồng.
+  - Đã kiểm chạy thật trên VM 31/10/2026 (và kiểm lại sau review GĐ1): `update` đạt toàn bộ (smoke 3/3 ✓), `rollback` về tag cũ đạt (HEAD
+    đúng tag, file mới bị xoá, health 200).
   - **Lưu ý:** `data/` KHÔNG tự rollback theo mã nguồn — nếu migration DB đã chạy và cần lùi dữ liệu, dùng bản sao lưu tạo ở bước 1:
     `genstudio restore data/backups/<tên lúc đó>.tar.gz`.
 - Rollback tay (không qua update trước đó): `genstudio rollback [tag]` — bỏ trống `tag` thì tự lấy `pre-update-*` mới nhất.
@@ -73,11 +78,25 @@ SSH: `timeout 60 gcloud compute ssh gen-studio --zone us-west1-b --project gen-s
 | `gs-health.timer` | mỗi 15 phút | `/var/log/gs-health.log` |
 | `gs-drive-sync.timer` | mỗi 5 phút | `/var/log/gs-drive-sync.log` |
 | `gs-tickets-sync.timer` | mỗi 10 phút | `/var/log/gs-tickets.log` |
-| Cảnh báo hỏng (mọi việc trên) | theo sự kiện | `/var/log/gs-alert.log` + cờ `/opt/gs-deploy/ALERT` nếu chưa cấu hình Telegram |
+| Cảnh báo hỏng (mọi việc trên) | theo sự kiện | `/var/log/gs-alert.log` + cờ `/var/lib/gs-ops/ALERT` nếu chưa cấu hình Telegram |
 | Xem tất cả timer | — | `systemctl list-timers \| grep gs-` |
-- Bật cảnh báo Telegram: điền `GS_ALERT_TG_TOKEN`/`GS_ALERT_TG_CHAT` vào `/opt/gs-deploy/alert.env` (600, tạo bot qua @BotFather).
+- Bật cảnh báo Telegram: điền `GS_ALERT_TG_TOKEN`/`GS_ALERT_TG_CHAT` vào `/opt/gs-deploy/alert.env` (root:gs-ops 640, tạo bot qua @BotFather).
+- `alert.sh` được gọi bởi cả tiến trình root (gs-health) lẫn không-root (cron/systemd `User=genstudio`: backup-offsite, restore-test,
+  drive-sync, tickets-sync) ⇒ quyền đọc `alert.env`/ghi log/cờ dựa vào **group `gs-ops`** (không phải chỉ root): `setup-vm.sh` tự thêm
+  `genstudio` + `gsdev` vào nhóm này. Thêm user khác cần gọi alert: `usermod -aG gs-ops <user>`.
+- `health-check.sh` có dedup — mỗi loại lỗi (health/đĩa/RAM/container) chỉ gửi Telegram lại sau **6 giờ** kể từ lần báo trước (trạng thái ở
+  `/var/lib/gs-ops/last-alert-*`), tránh spam mỗi 15 phút khi lỗi còn treo. Container "Restarting" chỉ báo khi thấy **2 lần kiểm liên
+  tiếp** (30 phút) — 1 lần là bình thường lúc `genstudio update` đang dựng lại container.
 - Uptime check GCP: `gs-uptime` (5 phút/lần, `https://asset.genos.top/.well-known/oauth-authorization-server`) + chính sách báo động
-  `gs-uptime-down` nối email tài khoản gcloud hiện tại (Console → Monitoring → Alerting nếu cần đổi kênh).
+  `gs-uptime-down` (REDUCE_COUNT_TRUE, ngưỡng "số lần qua < 1", đợi 300s mới báo) nối email tài khoản gcloud hiện tại.
+  Kênh email mới tạo có thể ở trạng thái **chưa xác minh** — `gcp-create.sh` tự kiểm và in cảnh báo nếu vậy; nếu thấy cảnh báo đó, Ryan
+  vào `console.cloud.google.com/monitoring/alerting/notifications` bấm xác minh email (nếu không, cảnh báo có thể không tới nơi dù policy
+  đã đúng).
+- Khoá đồng thời: `genstudio backup/update/rollback/restore` dùng `flock` chung một file (`data/.gs-ops.lock`) — cron `backup-offsite.sh`
+  (gọi `genstudio backup` bên trong) và thao tác tay không chạy chồng nhau, tránh dừng/khởi động studio đạp lên nhau.
+- Bản sao lưu chụp trước khi `update` đặt tên `pre-update-<lúc>.tar.gz` (khác mẫu `gen-studio-*.tar.gz`) ⇒ **không** bị prune nội bộ (giữ
+  2 bản mới nhất) của `backup-offsite.sh` xoá theo — vẫn còn đó để `genstudio restore` nếu `rollback` mã xong mà dữ liệu cũng cần lùi. Các
+  bản này không tự dọn — dọn tay định kỳ (`rm data/backups/pre-update-*.tar.gz` các bản cũ) nếu đĩa căng.
 
 ## 9. Đường hầm MCP shell cấp cứu
 - Chỉ `127.0.0.1:7777` trên VM, dùng khi Claude Code hết quota. Token: `sudo cat /opt/gs-deploy/shell-token`.
