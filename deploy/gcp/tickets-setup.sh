@@ -28,7 +28,7 @@ After=network-online.target
 [Service]
 Type=oneshot
 User=$U
-ExecStart=$VENV/bin/python $D/tickets-sheet.py sync
+ExecStart=/bin/sh -c '$VENV/bin/python $D/tickets-sheet.py sync || $D/alert.sh "gs-tickets-sync hỏng"'
 StandardOutput=append:$LOG
 StandardError=append:$LOG
 EOF
