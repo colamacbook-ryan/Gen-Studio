@@ -25,7 +25,9 @@ echo "  bản mới nhất: $NAME (lưu lúc $UPDATED)"
 
 T="$(mktemp -d)"
 cleanup() {
-  (cd "$T/stage" 2>/dev/null && docker compose -p "$PROJECT" down -v --remove-orphans >/dev/null 2>&1) || true
+  # --rmi local: xoá luôn image build riêng cho đợt diễn tập (tag :drill) — không để tồn đọng ổ đĩa qua mỗi lần chạy
+  (cd "$T/stage" 2>/dev/null && docker compose -p "$PROJECT" down -v --rmi local --remove-orphans >/dev/null 2>&1) || true
+  docker image rm -f gen-studio/studio:drill gen-studio/agent:drill >/dev/null 2>&1 || true
   rm -rf "$T"
 }
 trap cleanup EXIT
