@@ -11,6 +11,7 @@ VENV="$D/venv"
 LOG=/var/log/gs-tickets.log
 
 command -v python3 >/dev/null 2>&1 || { echo "✗ Thiếu python3" >&2; exit 1; }
+python3 -c "import ensurepip" >/dev/null 2>&1 || { echo "› Cài python3-venv"; apt-get update -qq && apt-get install -yqq python3-venv >/dev/null; }
 [ -x "$VENV/bin/python" ] || { echo "› Tạo venv $VENV"; python3 -m venv "$VENV"; }
 "$VENV/bin/pip" install --quiet --upgrade pip
 "$VENV/bin/pip" install --quiet google-auth google-api-python-client
