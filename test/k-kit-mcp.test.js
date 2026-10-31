@@ -205,3 +205,21 @@ test('0.3.0-B (review Gen, mục 3 [nên]): submit không nộp được vào ô
     assert.ok(!okSub.json.result.isError, JSON.stringify(okSub.json.result));
   } finally { await b.clean(); }
 });
+
+test('0.3.0-B (review Gen, mục 4 [nên], IDOR): kit_submit với upload_session của agent khác (đã done) bị từ chối, không đọc trộm được nội dung', async (t) => {
+  const b = await bootTmp();
+  try {
+    b.app.ctx.write(CLI, 'kit.sync', {});
+    const museA = await museToken(b.app.ctx);
+    const museB = await museToken(b.app.ctx);
+    const startA = await mcpCall(b.base, museA.token, 'kit_upload_chunk', { action: 'start', kit_slot: 'audio.sfx.whoosh.02', declared_mime: 'audio/wav' });
+    const session = startA.json.result.structuredContent.session;
+    await mcpCall(b.base, museA.token, 'kit_upload_chunk', { action: 'chunk', session, index: 0, data_base64: Buffer.from('bi-mat-cua-A').toString('base64') });
+    await mcpCall(b.base, museA.token, 'kit_upload_chunk', { action: 'finish', session });
+
+    // B dùng session của A (state='done') — phải bị từ chối, không lấy được nội dung của A
+    const stolen = await mcpCall(b.base, museB.token, 'kit_submit', { kit_slot: 'audio.sfx.whoosh.02', upload_session: session });
+    assert.ok(stolen.json.result.isError, 'agent B không dùng được upload_session của agent A');
+    assert.equal(stolen.json.result.structuredContent.error.code, 'not_found');
+  } finally { await b.clean(); }
+});

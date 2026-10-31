@@ -72,9 +72,12 @@ function tools(ctx) {
         let buf, tmpToClean = null;
         if (a.upload_session) {
           // kit_upload_chunk(action=finish) có thể đã đóng phiên trước đó — chỉ finish lại nếu còn "open" (tránh lỗi "đã done").
+          // review Gen (0.3.0-B, mục 4 [nên], IDOR): kiểm agent_id NGAY ở đây cho CẢ HAI nhánh (trước chỉ nhánh
+          // 'open' đi qua write('upload.finish') — op đó tự kiểm chủ; nhánh state≠'open' trước đây dùng thẳng `row`
+          // không kiểm, cho phép đọc/nộp bằng phiên tải của agent khác nếu đoán/dò được id phiên — IDOR.
           const row = db.get('SELECT * FROM upload_sessions WHERE workspace_id=? AND id=?', db.ws, a.upload_session);
-          const fin = row && row.state === 'open' ? write(actorOf(c), 'upload.finish', { session: a.upload_session }) : row;
-          if (!fin) throw fail('not_found', 'Không tìm thấy phiên tải.', { session: a.upload_session });
+          if (!row || row.agent_id !== c.agent.id) throw fail('not_found', 'Không tìm thấy phiên tải.', { session: a.upload_session });
+          const fin = row.state === 'open' ? write(actorOf(c), 'upload.finish', { session: a.upload_session }) : row;
           buf = fs.readFileSync(fin.tmp_path);
           tmpToClean = fin.tmp_path;
           if (!a.declared_mime && fin.declared_mime) a.declared_mime = fin.declared_mime;
