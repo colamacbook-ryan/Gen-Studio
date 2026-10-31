@@ -1,0 +1,67 @@
+{
+  "request": "MR-045",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "nhi-3d-turnaround-sheet-3840x2160.png",
+      "kind": "image",
+      "role": "preview",
+      "duration_s": null,
+      "width": 3840,
+      "height": 2160,
+      "notes": ""
+    },
+    {
+      "name": "nhi-3d-view-front.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1328,
+      "height": 1904,
+      "notes": ""
+    },
+    {
+      "name": "nhi-3d-view-three-quarter.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1328,
+      "height": 1904,
+      "notes": ""
+    },
+    {
+      "name": "nhi-3d-view-side.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1328,
+      "height": 1904,
+      "notes": ""
+    },
+    {
+      "name": "nhi-3d-view-back.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1328,
+      "height": 1904,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse Image",
+  "prompt_used": "Premium stylized 3D animation style like a modern animated feature film (soft clay-like shading, subsurface skin, smooth rounded forms, big expressive eyes, soft global illumination, warm cozy color palette, gentle depth of field), matching library/style/ref-3d-ryan-01.jpg. Character turnaround sheet of the SAME character (nhi) from the approved design: front, three-quarter, side, back views, identical proportions and outfit, neutral pose, plain light-grey background, no text.",
+  "attempts": 1,
+  "self_check": {
+    "dung_mau": true,
+    "khong_chu": true,
+    "khung_dau_cuoi_trung": true,
+    "nen_phang": true
+  },
+  "issues": [
+    "Used MR-044 variant A, as ticket allows when Ryan has not chosen a variant. 4 separate views generated individually from variant A, each 1328x1904, plain light-grey background, no text: front, three-quarter, side profile, back. All share the same face, glasses, buns, teal hoodie, beige skirt and proportions. The 3840x2160 sheet is a 2x2 composite of exactly those 4 separate views, each resized to 1080 height and centred in its 1920x1080 cell (no new generation, no text)."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}

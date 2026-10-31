@@ -1,0 +1,94 @@
+{
+  "request": "MR-061",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "boing.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.7,
+      "width": null,
+      "height": null,
+      "notes": "boing nặng, lò xo"
+    },
+    {
+      "name": "slide-whistle-up.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.898,
+      "width": null,
+      "height": null,
+      "notes": "còi trượt lên"
+    },
+    {
+      "name": "slide-whistle-down.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.898,
+      "width": null,
+      "height": null,
+      "notes": "còi trượt xuống"
+    },
+    {
+      "name": "record-scratch.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.6,
+      "width": null,
+      "height": null,
+      "notes": "xước đĩa"
+    },
+    {
+      "name": "aww-audience.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 1.2,
+      "width": null,
+      "height": null,
+      "notes": "aww — pad ấm tổng hợp, không phải thu khán giả thật"
+    },
+    {
+      "name": "laugh-track.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 1.4,
+      "width": null,
+      "height": null,
+      "notes": "cười — chuỗi burst tổng hợp, không phải thu khán giả thật"
+    },
+    {
+      "name": "ding-idea.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.8,
+      "width": null,
+      "height": null,
+      "notes": "ding bóng đèn ý tưởng"
+    },
+    {
+      "name": "gasp-stinger.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.9,
+      "width": null,
+      "height": null,
+      "notes": "gasp nhạc, hơi thở + hợp âm"
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse (programmatic synthesis, numpy + ffmpeg)",
+  "prompt_used": "Character reaction sound kit for comedic/emotional beats in a family-friendly animated explainer: cartoon boing (weighty), slide whistle up, slide whistle down, record scratch, 'aww' small studio audience (clean, warm), short laugh track small audience, 'ding!' idea lightbulb, gasp stinger (musical). Polished, not cheap. Synthesized programmatically; audience sounds are musical/noise approximations, not recordings of a real audience.",
+  "attempts": 1,
+  "self_check": {
+    "nghe_chuyen_nghiep": true,
+    "khong_on_nen": true,
+    "moi_am_ro_cam_xuc": true,
+    "khong_giai_dieu_co_san": true
+  },
+  "issues": [
+    "aww-audience and laugh-track are synthesized approximations, not recordings of a real studio audience; Gen may want to replace them with recorded audience sounds if a real audience feel is required."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30T07:50:00Z"
+}

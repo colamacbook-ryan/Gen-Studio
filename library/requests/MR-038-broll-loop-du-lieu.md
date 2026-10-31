@@ -2,8 +2,8 @@
 id: MR-038
 priority: P4
 kind: broll
-status: todo
-assignee: ""
+status: review
+assignee: "muse"
 output: library/inbox/MR-038-broll-loop-du-lieu/
 ---
 # MR-038 · Nền động lặp — loop-du-lieu
@@ -20,9 +20,9 @@ Premium stylized 3D animation style like a modern animated feature film (soft cl
 MP4 H.264 1920×1080, 30 fps, 6–10 giây, không tiếng, lặp liền
 
 ## Tiêu chí đạt (tự kiểm trước khi nộp)
-- [ ] Lặp không thấy chỗ nối
-- [ ] Êm, không gây rối mắt
-- [ ] Cùng phong cách
+- [x] Lặp không thấy chỗ nối
+- [x] Êm, không gây rối mắt
+- [x] Cùng phong cách
 
 ## Nộp
 Đặt file vào thư mục `output` ở trên + `meta.json` (xem `library/MUSE.md` §4). Đổi `status` thành `review`.

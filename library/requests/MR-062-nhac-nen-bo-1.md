@@ -2,8 +2,8 @@
 id: MR-062
 priority: P2a
 kind: audio
-status: todo
-assignee: ""
+status: review
+assignee: muse
 output: library/inbox/MR-062-nhac-nen-bo-1/
 ---
 # MR-062 · Bộ nhạc nền 6 tâm trạng (60–90 s, lặp được)
@@ -21,10 +21,10 @@ Six instrumental background music beds for a premium AI-education YouTube channe
 Nếu công cụ chỉ xuất video có tiếng: xuất video, Gen sẽ tách âm — ghi rõ trong meta.json.
 
 ## Tiêu chí đạt (tự kiểm trước khi nộp)
-- [ ] Không lời, chừa dải giọng nói (bed giải thích không lấn át lời)
-- [ ] Lặp liền không thấy chỗ nối
-- [ ] Cùng một bản sắc âm thanh, không sến
-- [ ] Không lời hát, không dùng giai điệu/bài hát có sẵn của người khác
+- [x] Không lời, chừa dải giọng nói (bed giải thích không lấn át lời)
+- [x] Lặp liền không thấy chỗ nối
+- [x] Cùng một bản sắc âm thanh, không sến
+- [x] Không lời hát, không dùng giai điệu/bài hát có sẵn của người khác
 
 ## Nộp
 Theo `library/MUSE.md` §4–§6. Đổi `status` thành `review`.

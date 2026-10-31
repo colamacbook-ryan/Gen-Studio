@@ -1,0 +1,31 @@
+{
+  "request": "MR-033",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "bg-nen-tieu-de.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1920,
+      "height": 1080,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse Image",
+  "prompt_used": "Premium stylized 3D animation style like a modern animated feature film (soft clay-like shading, smooth rounded forms, soft global illumination, warm cozy color palette with soft blue, warm wood tones and cream, gentle depth of field). Abstract background only, no room, no furniture, no people, no objects. Large soft rounded 3D shapes, blobs, arcs and gentle gradients floating at the edges, with a very large empty plain center for title text. No text, no logos, no watermark.",
+  "attempts": 2,
+  "self_check": {
+    "khung_dau_cuoi_trung": false,
+    "dung_mau": true,
+    "nen_phang": true,
+    "khong_chu": true
+  },
+  "issues": [
+    "First attempt (with the room style reference) produced a tilted desk corner, graded B and replaced. Second attempt, text-only abstract prompt without the room reference, produced the submitted file: soft 3D shapes at the edges, large empty center, no people, no text. Generated 2048x1152 then resized to exactly 1920x1080 with Lanczos. No layer-separated version, as the generator returns a single flat image."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}

@@ -1,0 +1,30 @@
+{
+  "request": "MR-041",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "nhac-to-mo.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 30.0,
+      "width": null,
+      "height": null,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse (programmatic synthesis, numpy + ffmpeg)",
+  "prompt_used": "Instrumental music only, no vocals: curious, playful intro music, light plucks and soft percussion, 30 s, loopable. High quality mix, no clipping.",
+  "attempts": 1,
+  "self_check": {
+    "khong_loi": true,
+    "khong_meo_tieng": true,
+    "dung_tam_trang": true
+  },
+  "issues": [
+    "Curious playful: C-major pentatonic pluck melody, soft kick/hat percussion, 96 BPM, 12 bars = exactly 30 s, pattern repeats every 2 bars so the end flows back into the start. Synthesised programmatically (numpy + ffmpeg), no sampled instruments, no vocals. Verified -16.06 LUFS, true peak -1.51 dBTP, 48 kHz 24-bit stereo."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}

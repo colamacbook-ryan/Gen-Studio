@@ -2,8 +2,8 @@
 id: MR-055
 priority: P0
 kind: character-design
-status: todo
-assignee: ""
+status: review
+assignee: "muse"
 output: library/inbox/MR-055-ryan-3d-khung-clip/
 ---
 # MR-055 · Ryan — khung tư thế trung tính cho clip 16:9
@@ -23,11 +23,12 @@ Premium stylized 3D animation style like a modern animated feature film (soft cl
 PNG 1920×1080 nền xanh phẳng + 1 bản toàn thân 1920×1080
 
 ## Tiêu chí đạt (tự kiểm trước khi nộp)
-- [ ] Giống avatar mẫu
-- [ ] Nền xanh tuyệt đối phẳng
+- [x] Giống avatar mẫu
+- [x] Nền xanh tuyệt đối phẳng
 
 ## Nộp
 Đặt file vào `output` + `meta.json` (xem `library/MUSE.md` §4). Đổi `status` thành `review`.
 **Cổng duyệt:** Ryan duyệt thiết kế trước khi làm clip.
 
 > GEN-REWORK: khung đầu/cuối clip phải MỞ CẢ HAI MẮT, mặt trung tính (bản nộp nháy mắt). Tỉ lệ thân phải khớp ảnh xoay MR-053 (bản toàn thân nộp có đầu nhỏ, thân to). Giữ nền xanh phẳng.
+> MUSE-NOP: khung clip lam lai mo ca hai mat, mat trung tinh, khong nhay mat, ti le than khop anh xoay MR-053, thay ban wink cu trong PR #26.

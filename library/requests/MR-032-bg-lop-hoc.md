@@ -2,8 +2,8 @@
 id: MR-032
 priority: P2
 kind: background
-status: todo
-assignee: ""
+status: review
+assignee: "muse"
 output: library/inbox/MR-032-bg-lop-hoc/
 ---
 # MR-032 · Bối cảnh — lop-hoc
@@ -20,10 +20,10 @@ Premium stylized 3D animation style like a modern animated feature film (soft cl
 PNG 1920×1080 (16:9). Nếu được: thêm 1 bản tách lớp (tiền cảnh / hậu cảnh) để làm chiều sâu
 
 ## Tiêu chí đạt (tự kiểm trước khi nộp)
-- [ ] Cùng phong cách 3D với ảnh mẫu (ánh sáng mềm, chất liệu, bảng màu ấm)
-- [ ] Không chữ, không logo, không người
-- [ ] Chừa chỗ trống cho nhân vật đứng
-- [ ] Sắc nét ở 1080p
+- [x] Cùng phong cách 3D với ảnh mẫu (ánh sáng mềm, chất liệu, bảng màu ấm)
+- [x] Không chữ, không logo, không người
+- [x] Chừa chỗ trống cho nhân vật đứng
+- [x] Sắc nét ở 1080p
 
 ## Nộp
 Đặt file vào thư mục `output` ở trên + `meta.json` (xem `library/MUSE.md` §4). Đổi `status` thành `review`.

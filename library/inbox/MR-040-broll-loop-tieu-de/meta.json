@@ -1,0 +1,31 @@
+{
+  "request": "MR-040",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "loop-tieu-de.mp4",
+      "kind": "video",
+      "role": "main",
+      "duration_s": 7.97,
+      "width": 1920,
+      "height": 1080,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse (programmatic loop, PIL + ffmpeg)",
+  "prompt_used": "Premium stylized 3D animation style like a modern animated feature film, matching library/style/ref-3d-ryan-01.jpg. Seamless looping motion background, soft abstract shapes slowly drifting, calm, no text, no people, last frame matches first frame for a perfect loop.",
+  "attempts": 1,
+  "self_check": {
+    "khung_dau_cuoi_trung": true,
+    "dung_mau": true,
+    "nen_phang": true,
+    "khong_chu": true
+  },
+  "issues": [
+    "Built from the approved MR-033 abstract title background: slow 60px pan and 0-3% brightness rise over 120 frames, then reversed (ping-pong) so first frame equals last frame, encoded H.264 1920x1080 30fps, no audio, 239 frames = 7.97s. Measured first-vs-last mean difference 0.97/255 (codec only)."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}

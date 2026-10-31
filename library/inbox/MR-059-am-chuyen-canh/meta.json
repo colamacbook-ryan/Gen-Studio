@@ -1,0 +1,94 @@
+{
+  "request": "MR-059",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "swish-light-01.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.6,
+      "width": null,
+      "height": null,
+      "notes": "swish nhẹ 1"
+    },
+    {
+      "name": "swish-light-02.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 0.6,
+      "width": null,
+      "height": null,
+      "notes": "swish nhẹ 2"
+    },
+    {
+      "name": "whoosh-medium-01.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 1.0,
+      "width": null,
+      "height": null,
+      "notes": "whoosh vừa + đuôi tông 1"
+    },
+    {
+      "name": "whoosh-medium-02.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 1.0,
+      "width": null,
+      "height": null,
+      "notes": "whoosh vừa + đuôi tông 2"
+    },
+    {
+      "name": "impact-whoosh-01.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 1.2,
+      "width": null,
+      "height": null,
+      "notes": "impact-whoosh mạnh, sub drop 1"
+    },
+    {
+      "name": "impact-whoosh-02.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 1.2,
+      "width": null,
+      "height": null,
+      "notes": "impact-whoosh mạnh, sub drop 2"
+    },
+    {
+      "name": "riser-hit.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 2.0,
+      "width": null,
+      "height": null,
+      "notes": "riser 2 s vào hit"
+    },
+    {
+      "name": "reverse-swell.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 1.5,
+      "width": null,
+      "height": null,
+      "notes": "reverse swell 1.5 s"
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse (programmatic synthesis, numpy + ffmpeg)",
+  "prompt_used": "Set of 8 short transition stings for motion-graphics scene changes, same sonic palette as the channel logo: 2 light swish, 2 medium whoosh with tonal tail, 2 heavy cinematic impact-whoosh with sub drop, 1 riser into hit (2 s), 1 reverse swell (1.5 s). Clean, punchy, premium. Synthesized programmatically with filtered noise, tonal tails and sub drops, original sounds.",
+  "attempts": 1,
+  "self_check": {
+    "du_3_muc": true,
+    "khong_re_khong_clip": true,
+    "cung_chat_am": true,
+    "khong_giai_dieu_co_san": true
+  },
+  "issues": [
+    "Synthesized programmatically; two medium whooshes and two impacts share the same synthesis recipe with different noise seeds, so they are similar by design."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30T07:40:00Z"
+}

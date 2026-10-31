@@ -1,0 +1,30 @@
+{
+  "request": "MR-043",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "nhac-cong-so.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 60.0,
+      "width": null,
+      "height": null,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse (programmatic synthesis, numpy + ffmpeg)",
+  "prompt_used": "Instrumental music only, no vocals: upbeat modern corporate background music, warm, not cheesy, 60 s. High quality mix, no clipping.",
+  "attempts": 1,
+  "self_check": {
+    "khong_loi": true,
+    "khong_meo_tieng": true,
+    "dung_tam_trang": true
+  },
+  "issues": [
+    "Upbeat corporate: warm chord pads (C-G-Am-F) with gentle pluck melody, soft kick/hat, 120 BPM, 30 bars = exactly 60 s, pattern repeats. Synthesised programmatically (numpy + ffmpeg), no sampled instruments, no vocals. Verified -16.80 LUFS (slightly below the -16 target; gain was not raised further to keep true peak at -1.49 dBTP), 48 kHz 24-bit stereo."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}

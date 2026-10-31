@@ -1,0 +1,31 @@
+{
+  "request": "MR-056",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "ryan-studio-angle.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1920,
+      "height": 1080,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse Image",
+  "prompt_used": "Premium stylized 3D animation style like a modern animated feature film (soft clay-like shading, subsurface skin, smooth rounded forms, big expressive eyes, soft global illumination, warm cozy color palette, gentle depth of field), matching library/style/ref-3d-ryan-01.jpg. Cozy modern home-studio set for the host, matching the room in the reference (warm wood, soft blue cabinets, plants, monitor, warm lamp light), camera framing for a talking-head host, empty chair/space in the center for the host to be composited, no people, no text.",
+  "attempts": 1,
+  "self_check": {
+    "dung_mau": true,
+    "khong_chu": true,
+    "khung_dau_cuoi_trung": true,
+    "nen_phang": true
+  },
+  "issues": [
+    "Generated 2048x1152 (16:9) then resized to exactly 1920x1080 with Lanczos, no distortion. No layer separation file: the generator returns a single flat image, so the optional foreground/background split could not be produced as separate layers. Scene matches the reference room: warm wood, soft blue cabinets, plants, monitor, warm lamp light, empty armchair in the centre foreground for the host, no people, no text."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}

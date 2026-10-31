@@ -1,0 +1,31 @@
+{
+  "request": "MR-051",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "vy-clip-frame.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 1920,
+      "height": 1080,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse Image",
+  "prompt_used": "Premium stylized 3D animation style like a modern animated feature film (soft clay-like shading, subsurface skin, smooth rounded forms, big expressive eyes, soft global illumination, warm cozy color palette, gentle depth of field). The SAME approved character Vy as in the reference: woman about 24, brown high ponytail with a yellow polka-dot bow, coral cardigan over a white collared shirt, blue pleated skirt, staff ID badge, bright amber eyes, friendly smile. Standing in a neutral relaxed pose, medium-full shot, centered, facing camera, on a solid flat chroma green #00B140 background, even soft lighting with no shadow cast on the background. This frame will be used as the first AND last frame of every animation clip.",
+  "attempts": 1,
+  "self_check": {
+    "dung_mau": true,
+    "khong_chu": true,
+    "khung_dau_cuoi_trung": true,
+    "nen_phang": true
+  },
+  "issues": [
+    "Used MR-046 variant A, as ticket allows when Ryan has not chosen a design. Generated 2048x1152 (16:9) then resized to exactly 1920x1080 with Lanczos, no distortion. Character centred, full body, neutral relaxed pose, flat green background measured about (4,165,60) at the corner, close to but not exactly #00B140 (0,177,64), no shadow on background, no text."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}

@@ -2,8 +2,8 @@
 id: MR-058
 priority: P2a
 kind: audio
-status: todo
-assignee: ""
+status: review
+assignee: muse
 output: library/inbox/MR-058-am-intro-outro/
 ---
 # MR-058 · Nhạc mở đầu 6 s + kết 8 s dựa trên logo âm thanh
@@ -21,10 +21,10 @@ WAV 48 kHz 24-bit stereo; loudness tích hợp −16 LUFS, true peak ≤ −1 dB
 Nếu công cụ chỉ xuất video có tiếng: xuất video, Gen sẽ tách âm — ghi rõ trong meta.json.
 
 ## Tiêu chí đạt (tự kiểm trước khi nộp)
-- [ ] Cùng chất với logo âm thanh
-- [ ] Kết thúc gọn, không cụt
-- [ ] Không lời
-- [ ] Không lời hát, không dùng giai điệu/bài hát có sẵn của người khác
+- [x] Cùng chất với logo âm thanh
+- [x] Kết thúc gọn, không cụt
+- [x] Không lời
+- [x] Không lời hát, không dùng giai điệu/bài hát có sẵn của người khác
 
 ## Nộp
 Theo `library/MUSE.md` §4–§6. Đổi `status` thành `review`.

@@ -1,0 +1,31 @@
+{
+  "request": "MR-037",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "thumb-vy-hao-hung.png",
+      "kind": "image",
+      "role": "main",
+      "duration_s": null,
+      "width": 2048,
+      "height": 2048,
+      "notes": ""
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse Image",
+  "prompt_used": "Premium stylized 3D animation style like a modern animated feature film. Big close-up (head and shoulders) of the SAME character Vy as in the reference: woman about 24, brown high ponytail with a yellow polka-dot bow, coral cardigan over a white collared shirt, bright amber eyes. Exaggerated YouTube-thumbnail expression: excited, sparkling eyes, pointing at the viewer. On-model, solid flat chroma green #00B140 background, crisp outline, no text.",
+  "attempts": 1,
+  "self_check": {
+    "khung_dau_cuoi_trung": false,
+    "dung_mau": true,
+    "nen_phang": true,
+    "khong_chu": true
+  },
+  "issues": [
+    "Used MR-046 variant A. Original 1200x1920 padded centered with its own green (1,169,58) to exactly 2048x2048, no distortion. Green close to but not exactly #00B140. Expression strong and readable at small size, no text."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30"
+}

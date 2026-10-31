@@ -1,0 +1,40 @@
+{
+  "request": "MR-058",
+  "status": "submitted",
+  "quality": "A",
+  "files": [
+    {
+      "name": "intro-6s.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 6.0,
+      "width": null,
+      "height": null,
+      "notes": "intro xây năng lượng rồi đáp vào logo C-E-G-C"
+    },
+    {
+      "name": "outro-8s.wav",
+      "kind": "audio",
+      "role": "main",
+      "duration_s": 8.0,
+      "width": null,
+      "height": null,
+      "notes": "outro ấm, motif chậm, fade 2 s cuối chừa chỗ thẻ subscribe"
+    }
+  ],
+  "tool": "Meta Muse",
+  "model": "Muse (programmatic synthesis, numpy + ffmpeg)",
+  "prompt_used": "Intro sting (6 s) and outro sting (8 s) built from the channel's sonic logo motif (MR-057 v1 C-E-G-C): intro builds energy and lands on the logo; outro is warm and resolving with room for a 'subscribe' card. No vocals, premium modern production. Synthesized programmatically with original motif.",
+  "attempts": 1,
+  "self_check": {
+    "cung_chat_logo": true,
+    "ket_thuc_gon": true,
+    "khong_loi": true,
+    "khong_giai_dieu_co_san": true
+  },
+  "issues": [
+    "Synthesized programmatically, timbre simpler than a studio performance."
+  ],
+  "license": "Meta-Muse-Output",
+  "created": "2026-10-30T07:35:00Z"
+}

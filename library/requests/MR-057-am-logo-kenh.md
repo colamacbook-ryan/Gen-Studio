@@ -2,8 +2,8 @@
 id: MR-057
 priority: P2a
 kind: audio
-status: todo
-assignee: ""
+status: review
+assignee: muse
 output: library/inbox/MR-057-am-logo-kenh/
 ---
 # MR-057 · Logo âm thanh của kênh (sound logo 2–3 s)
@@ -21,10 +21,10 @@ WAV 48 kHz 24-bit stereo, mỗi phương án 2–3 s, đỉnh −1 dBFS, có đu
 Nếu công cụ chỉ xuất video có tiếng: xuất video, Gen sẽ tách âm — ghi rõ trong meta.json.
 
 ## Tiêu chí đạt (tự kiểm trước khi nộp)
-- [ ] Dễ nhớ ngay lần nghe đầu
-- [ ] Sang, không sến, không giống nhạc quảng cáo rẻ
-- [ ] Không lời, không méo
-- [ ] Không lời hát, không dùng giai điệu/bài hát có sẵn của người khác
+- [x] Dễ nhớ ngay lần nghe đầu
+- [x] Sang, không sến, không giống nhạc quảng cáo rẻ
+- [x] Không lời, không méo
+- [x] Không lời hát, không dùng giai điệu/bài hát có sẵn của người khác
 
 ## Nộp
 Theo `library/MUSE.md` §4–§6. Đổi `status` thành `review`.
