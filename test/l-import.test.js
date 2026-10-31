@@ -337,6 +337,90 @@ test('submission.import: chống đụng ô — ô đang bị MỘT AGENT MCP gi
   } finally { t.clean(); }
 });
 
+// review opus PR #38 mục 5 [major]: asset.meta (gắn kit_slot) cũng phải chống đụng ô như submission.import —
+// trước đây chỉ submission.import chặn.
+test('asset.meta: chống đụng ô — gắn kit_slot vào ô đang bị claim sống bị chặn; ô không claim hoặc gán lại ô cũ vẫn chạy', () => {
+  const t = tmpDb(); owner(t.db);
+  try {
+    t.write(CLI_ACTOR, 'kit.sync', {});
+    const ag = t.write(CLI_ACTOR, 'agent.create', { name: 'Muse test', scopes: ['assets.submit'] });
+    const agentActor = { type: 'agent', id: ag.agent.id, scopes: ['assets.submit'], entry: 'mcp' };
+    t.write(agentActor, 'kit.claim', { kit_slot: 'prop.tech.05' });
+
+    const asset = t.write(SYS_ACTOR, 'asset.put', { kind: 'image', bytes: png(0x55), mime: 'image/png', source: 'upload' });
+    assert.throws(() => t.write(CLI_ACTOR, 'asset.meta', { asset: asset.display_id, kit_slot: 'prop.tech.05' }),
+      /đang được agent.*giữ/);
+
+    // ô không claim: gán được bình thường.
+    const r1 = t.write(CLI_ACTOR, 'asset.meta', { asset: asset.display_id, kit_slot: 'prop.tech.06' });
+    assert.equal(r1.changed, true);
+    // gán LẠI đúng ô đã có (idempotent, không đổi gì) — không bị chặn dù ô đó đang claim bởi agent khác.
+    t.write(agentActor, 'kit.claim', { kit_slot: 'prop.tech.06' });
+    const r2 = t.write(CLI_ACTOR, 'asset.meta', { asset: asset.display_id, kit_slot: 'prop.tech.06' });
+    assert.equal(r2.changed, false);
+  } finally { t.clean(); }
+});
+
+// review opus PR #38 mục 9 [minor]: claim HẾT HẠN (claim_expires_at đã qua) không còn "sống" — không chặn.
+test('chống đụng ô: claim đã HẾT HẠN không chặn submission.import lẫn asset.meta', () => {
+  const t = tmpDb(); owner(t.db);
+  try {
+    t.write(CLI_ACTOR, 'kit.sync', {});
+    const ag = t.write(CLI_ACTOR, 'agent.create', { name: 'Muse test', scopes: ['assets.submit'] });
+    // dựng thẳng claim đã hết hạn (claim_expires_at ở quá khứ) — không đi qua kit.claim (luôn đặt hạn tương lai).
+    t.db.run("UPDATE kit_slots SET claimed_by=?, claimed_at=?, claim_expires_at=? WHERE workspace_id=? AND code=?",
+      ag.agent.id, '2020-01-01T00:00:00.000Z', '2020-01-01T02:00:00.000Z', t.db.ws, 'prop.tech.07');
+
+    const asset = t.write(SYS_ACTOR, 'asset.put', { kind: 'image', bytes: png(0x66), mime: 'image/png', source: 'upload' });
+    const sub = t.write(CLI_ACTOR, 'submission.import', { asset: asset.display_id, kit_slot: 'prop.tech.07', state: 'submitted' });
+    assert.equal(sub.deduped, false);
+
+    const asset2 = t.write(SYS_ACTOR, 'asset.put', { kind: 'image', bytes: png(0x67), mime: 'image/png', source: 'upload' });
+    const meta = t.write(CLI_ACTOR, 'asset.meta', { asset: asset2.display_id, kit_slot: 'prop.tech.07' });
+    assert.equal(meta.changed, true);
+  } finally { t.clean(); }
+});
+
+// review opus PR #38 mục 1/3 [chặn/major]: --source trỏ sai đường dẫn (quét ra 0 thư mục MR) là LỖI CẤU HÌNH —
+// khác lỗi từng file, KHÔNG được --allow-errors nuốt mất (xem main() trong cli/import-kit.js).
+test('runImport --source trỏ sai đường dẫn (0 thư mục MR): báo report.configErrors, không lẫn với report.errors', async () => {
+  const t = tmpDb(); owner(t.db);
+  const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-import-empty-'));
+  try {
+    const report = await runImport({ write: t.write, db: t.db, source: emptyDir });
+    assert.equal(report.configErrors.length, 1);
+    assert.match(report.configErrors[0], /không thấy thư mục MR-xxx nào/);
+    assert.deepEqual(report.errors, []);
+  } finally { t.clean(); fs.rmSync(emptyDir, { recursive: true, force: true }); }
+});
+
+// review opus PR #38 mục 6 [major]: ô "đạt" nhưng còn lần nộp MỞ (đường MCP) không được state "đạt" che mất.
+test('v_kit_coverage.competing: ô đã "đạt" vẫn đếm được lần nộp MCP đang mở cho cùng ô', () => {
+  const t = tmpDb(); const o = owner(t.db);
+  try {
+    t.write(CLI_ACTOR, 'kit.sync', {});
+    const asset = t.write(o, 'asset.put', { kind: 'image', bytes: png(0x70), mime: 'image/png', source: 'upload' });
+    t.write(CLI_ACTOR, 'asset.meta', { asset: asset.display_id, kit_slot: 'fx.manpu.02', quality: 'A' });
+    t.write(CLI_ACTOR, 'asset.attest_import', { asset: asset.display_id, basis: 'own_product', note: 'test' });
+    const { requiredCriteria } = require('../server/kit-criteria.js');
+    const required = requiredCriteria('fx.manpu.02');
+    const results = required.m.map((criterion) => ({ criterion, level: 'ok', severity: 'M' }));
+    t.write(SYS_ACTOR, 'submission.record_checks', { asset: asset.display_id, run_id: 'r1', results });
+    t.write(o, 'kit.certify', { asset: asset.display_id, h_ticks: required.mh });
+    assert.equal(t.db.get("SELECT state, competing FROM v_kit_coverage WHERE code='fx.manpu.02'").state, 'đạt');
+    assert.equal(t.db.get("SELECT competing FROM v_kit_coverage WHERE code='fx.manpu.02'").competing, 0);
+
+    // một lần nộp MCP khác vẫn đang "submitted" cho CÙNG ô (vd Muse nộp bản cải tiến) — "đạt" không được che nó.
+    const ag = t.write(CLI_ACTOR, 'agent.create', { name: 'Muse test', scopes: ['assets.submit'] });
+    const asset2 = t.write(SYS_ACTOR, 'asset.put', { kind: 'image', bytes: png(0x71), mime: 'image/png', source: 'upload' });
+    t.db.insertRow('asset_submissions', { agent_id: ag.agent.id, kit_slot: 'fx.manpu.02', asset_id: asset2.id, previous_id: null, attempt: 1, state: 'submitted' }, { prefix: 'SB' });
+
+    const row = t.db.get("SELECT state, competing FROM v_kit_coverage WHERE code='fx.manpu.02'");
+    assert.equal(row.state, 'đạt');
+    assert.equal(row.competing, 1);
+  } finally { t.clean(); }
+});
+
 test('submission.set_state: chỉ sửa lần nộp do import tạo (agent_id IS NULL) và chỉ từ "submitted"', () => {
   const t = tmpDb(); owner(t.db);
   try {
