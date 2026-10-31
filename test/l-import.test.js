@@ -8,7 +8,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { tmpDb } = require('./a-helpers');
+const { tmpDb, owner } = require('./a-helpers');
 const { runImport } = require('../cli/import-kit.js');
 
 const PNG_SIG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -54,7 +54,7 @@ function buildFixtureLib() {
 }
 
 test('runImport: 5 file (4 tạo asset mới gồm cả không-ánh-xạ, 1 trùng hash, 1 không ánh xạ không có lần nộp) → số liệu đúng; MR-044 approved; ryan.* không bao giờ public_ok; không lỗi', async () => {
-  const t = tmpDb();
+  const t = tmpDb(); owner(t.db);
   const libDir = buildFixtureLib();
   try {
     const report = await runImport({ write: t.write, db: t.db, libDir });
@@ -97,9 +97,13 @@ test('runImport: 5 file (4 tạo asset mới gồm cả không-ánh-xạ, 1 trù
     assert.equal(ryanAsset.public_ok, 0);
     assert.throws(() => t.db.run('UPDATE assets SET public_ok=1 WHERE id=?', ryanAsset.id), /CHECK/i);
 
-    // kit-status.json: ô có hàng ⇒ ưu tiên lần nộp approved, lọc đúng workspace_id (review mục 6).
+    // kit-status.json: MỘT công thức duy nhất — v_kit_coverage (migrations/0011, STANDARD-KIT-v1 §5). Nhập kho
+    // (lần nộp "approved" theo quyết định Ryan 31/10) KHÔNG tự đủ điều kiện "đạt": quality vẫn null (Ryan đặt
+    // khi duyệt/chứng nhận — CNS-M1-07) nên ô rơi về "thiếu" dù đã có asset gắn ô (view vẫn trỏ asset_id để
+    // Ryan/Gen có đường vào xếp hạng + chứng nhận — asset_id chỉ mang tính tham khảo, KHÔNG quyết định state).
     assert.ok(report.kitStatus);
-    assert.equal(report.kitStatus.slots['nhi.id.01'].state, 'approved');
+    assert.equal(report.kitStatus.slots['nhi.id.01'].state, 'thiếu');
+    assert.ok(report.kitStatus.slots['nhi.id.01'].asset_id);
     assert.equal(report.kitStatus.slots['nhi.pose.01'], null); // ô chưa có hàng
 
     // chạy lại = 0 thay đổi (idempotent: asset.put dedup theo sha256, asset.meta/submission.import tự so khớp).
@@ -114,7 +118,7 @@ test('runImport: 5 file (4 tạo asset mới gồm cả không-ánh-xạ, 1 trù
 });
 
 test('runImport: MR-047 → "review" (submitted + đề xuất SG- cho Ryan, không tự duyệt)', async () => {
-  const t = tmpDb();
+  const t = tmpDb(); owner(t.db);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-import-lib2-'));
   try {
     fs.mkdirSync(path.join(dir, 'inbox/MR-047-vy-3d-xoay'), { recursive: true });
@@ -136,7 +140,7 @@ test('runImport: MR-047 → "review" (submitted + đề xuất SG- cho Ryan, kh�
 });
 
 test('runImport: nhánh catalog.json — mục stored=git hợp lệ → asset mới + ô có hàng; mục stored=remote/type không hỗ trợ → unmapped, không lỗi', async () => {
-  const t = tmpDb();
+  const t = tmpDb(); owner(t.db);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-import-catalog-'));
   try {
     fs.mkdirSync(path.join(dir, 'visual'), { recursive: true });
@@ -191,8 +195,21 @@ test('kit-map.mapFile: mẫu <subject>-NN-slug.ext (vd nhi-21-sulking.png) ⇒ n
   assert.equal(sheet.code, null);
 });
 
+// Gen (bổ sung cổng C.2, mục 1): docs/MUSE-CONNECT.md dặn Muse nộp `<mã ô>.<ext>` (vd `nhi.expr.08.png`) — MỘT
+// quy ước; kit-map.js nhận cả dạng CHUẨN này và dạng CŨ `nhi-NN-slug.png` (giữ tương thích hàng đã nộp trước đó).
+test('kit-map.mapFile: tên file CHUẨN = mã ô (docs/MUSE-CONNECT.md) được nhận trực tiếp, kể cả nhóm fx/audio nhiều đoạn', () => {
+  const { mapFile } = require('../server/kit-map.js');
+  assert.equal(mapFile({ mrId: null, filename: 'nhi.expr.08.png' }).code, 'nhi.expr.08');
+  assert.equal(mapFile({ mrId: null, filename: 'fx.manpu.03.png' }).code, 'fx.manpu.03');
+  assert.equal(mapFile({ mrId: null, filename: 'audio.sfx.pop.03.wav' }).code, 'audio.sfx.pop.03');
+  // mã ô không tồn tại (dù đúng ngữ pháp) ⇒ vẫn unmapped, không khớp nhầm quy tắc nào khác.
+  assert.equal(mapFile({ mrId: null, filename: 'nhi.expr.99.png' }).code, null);
+  // dạng CŨ vẫn chạy song song (giữ tương thích).
+  assert.equal(mapFile({ mrId: null, filename: 'nhi-08-laughing.png' }).code, 'nhi.expr.08');
+});
+
 test('runImport (dry-run) trên library/ thật của repo: ≥ 15 ô đã ánh xạ được (sau khi thêm override MR-045/053)', async () => {
-  const t = tmpDb();
+  const t = tmpDb(); owner(t.db);
   try {
     const report = await runImport({ write: t.write, db: t.db, dryRun: true }); // libDir mặc định = library/ thật
     let totalHas = 0;
@@ -203,8 +220,8 @@ test('runImport (dry-run) trên library/ thật của repo: ≥ 15 ô đã ánh 
   } finally { t.clean(); }
 });
 
-test('runImport --source <dir>: nguồn ngoài library/ (vd Drive) chứa thẳng MR-xxx-*/, không có meta.json ⇒ tự dựng danh sách file, bỏ qua máy kiểm, không gọi catalog.json', async () => {
-  const t = tmpDb();
+test('runImport --source <dir>: nguồn ngoài library/ (vd Drive) chứa thẳng MR-xxx-*/, không có meta.json ⇒ tự dựng danh sách file, VẪN chạy máy kiểm (cortex CNS-M1-10/Gen bổ sung C.2 mục 3), không gọi catalog.json', async () => {
+  const t = tmpDb(); owner(t.db);
   const src = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-import-drive-'));
   try {
     fs.mkdirSync(path.join(src, 'MR-063-nhi-bieu-cam-v2'), { recursive: true });
@@ -215,7 +232,213 @@ test('runImport --source <dir>: nguồn ngoài library/ (vd Drive) chứa thẳn
     assert.deepEqual(report.errors, []);
     assert.equal(report.createdAssets, 1);
     assert.ok(report.bySlotGroup['NB-01'].has('nhi.expr.07'));
-    assert.equal(report.checks.run, 0); // synthesizeMeta ⇒ bỏ qua máy kiểm (thiếu self_check/role đáng tin)
+    assert.equal(report.checks.run, 1); // C.2: LUÔN chạy máy kiểm dù synthesizeMeta (không còn bỏ qua nhánh Drive)
     assert.equal(report.submissions.pending, 1); // MR-063 chưa có trong DECISIONS ⇒ 'pending' (submitted)
   } finally { t.clean(); fs.rmSync(src, { recursive: true, force: true }); }
+});
+
+const CLI_ACTOR = { type: 'cli', entry: 'cli' };
+const SYS_ACTOR = { type: 'system', entry: 'cli' };
+
+test('v_kit_coverage: "đạt" đúng 5 điều STANDARD-KIT-v1 §5 (quality A + asset_rights attested + kit_certs khớp major/subject_rev hiện hành); thiếu một điều thì không đạt', () => {
+  const t = tmpDb(); const o = owner(t.db);
+  try {
+    t.write(CLI_ACTOR, 'kit.sync', {});
+    const asset = t.write(o, 'asset.put', { kind: 'image', bytes: png(0x10), mime: 'image/png', source: 'upload' });
+    t.write(CLI_ACTOR, 'asset.meta', { asset: asset.display_id, kit_slot: 'fx.manpu.01' });
+    // chưa quality='A' ⇒ chưa đạt (điều 1)
+    assert.equal(t.db.get("SELECT state FROM v_kit_coverage WHERE code='fx.manpu.01'").state, 'thiếu');
+
+    t.write(CLI_ACTOR, 'asset.meta', { asset: asset.display_id, quality: 'A' });
+    // có hạng A nhưng CHƯA attest asset_rights ⇒ vẫn chưa đạt (điều 2) — và chưa kit_certs nên vẫn "chờ duyệt", không "đạt"
+    assert.equal(t.db.get("SELECT state FROM v_kit_coverage WHERE code='fx.manpu.01'").state, 'chờ duyệt');
+
+    t.write(CLI_ACTOR, 'asset.attest_import', { asset: asset.display_id, basis: 'own_product', note: 'test' });
+    assert.equal(t.db.get("SELECT state FROM v_kit_coverage WHERE code='fx.manpu.01'").state, 'chờ duyệt'); // vẫn chưa kit_certs (điều 3-4)
+
+    const { requiredCriteria } = require('../server/kit-criteria.js');
+    const required = requiredCriteria('fx.manpu.01');
+    const results = required.m.map((criterion) => ({ criterion, level: 'ok', severity: 'M' }));
+    t.write(SYS_ACTOR, 'submission.record_checks', { asset: asset.display_id, run_id: 'r1', results });
+    t.write(o, 'kit.certify', { asset: asset.display_id, h_ticks: required.mh });
+
+    const row = t.db.get("SELECT * FROM v_kit_coverage WHERE code='fx.manpu.01'");
+    assert.equal(row.state, 'đạt');
+    assert.equal(row.asset_id, asset.display_id);
+  } finally { t.clean(); }
+});
+
+test('asset.attest_import: ghi asset_rights (CNS-M1-18) idempotent theo asset — chạy lại không ghi chồng hàng thứ hai', () => {
+  const t = tmpDb(); owner(t.db);
+  try {
+    const asset = t.write(SYS_ACTOR, 'asset.put', { kind: 'image', bytes: png(0x11), mime: 'image/png', source: 'upload' });
+    const r1 = t.write(CLI_ACTOR, 'asset.attest_import', { asset: asset.display_id, basis: 'licensed', note: 'Meta-Muse-Output · MR-999 · chờ điều khoản Meta' });
+    assert.equal(r1.deduped, false);
+    const r2 = t.write(CLI_ACTOR, 'asset.attest_import', { asset: asset.display_id, basis: 'licensed', note: 'lần hai' });
+    assert.equal(r2.deduped, true);
+    assert.equal(t.db.get('SELECT COUNT(*) n FROM asset_rights WHERE asset_id=?', asset.id).n, 1);
+  } finally { t.clean(); }
+});
+
+test('nhập kho: SVG bên thứ ba bị svgOk từ chối ⇒ report.skipped (không phải lỗi) — exit 0, không vào report.errors', async () => {
+  const t = tmpDb(); owner(t.db);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-import-svg-'));
+  try {
+    // <script> bị svgOk từ chối (server/write.js SVG_TAGS không có 'script').
+    const badSvg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
+    fs.writeFileSync(path.join(dir, 'catalog.json'), JSON.stringify({
+      entries: [{ id: 'ui.bad.svg', type: 'illustration', title: 'SVG xấu', tags: [], path: 'bad.svg', stored: 'git',
+        source: 'test', license: 'CC0-1.0', commercial_ok: true, redistribution: 'free', quality: 'A', added: '2026-10-31', cost_usd: 0 }],
+    }));
+    fs.writeFileSync(path.join(dir, 'bad.svg'), badSvg);
+
+    const report = await runImport({ write: t.write, db: t.db, libDir: dir });
+    assert.deepEqual(report.errors, []); // KHÔNG phải lỗi — exit 0
+    assert.equal(report.skipped.length, 1);
+    assert.equal(report.skipped[0].file, 'ui.bad.svg');
+    assert.match(report.skipped[0].reason, /SVG chứa thành phần không được phép/);
+  } finally { t.clean(); fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('nhập kho: magic bytes audio/video sai nội dung (PNG đổi đuôi .wav) ⇒ báo lỗi TRƯỚC asset.put, không tạo asset giả', async () => {
+  const t = tmpDb(); owner(t.db);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-import-magic-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'inbox/MR-900-audio-gia'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'inbox/MR-900-audio-gia/audio.sfx.pop.01.wav'), png(0x22)); // PNG thật, đuôi .wav giả
+    fs.writeFileSync(path.join(dir, 'inbox/MR-900-audio-gia/meta.json'), JSON.stringify({
+      request: 'MR-900', status: 'submitted', quality: 'A',
+      files: [{ name: 'audio.sfx.pop.01.wav', kind: 'audio', role: 'main' }],
+      tool: 'test', prompt_used: 'đủ 10 ký tự', attempts: 1, self_check: {}, issues: [], license: 'Meta-Muse-Output', created: '2026-10-30',
+    }));
+
+    const report = await runImport({ write: t.write, db: t.db, libDir: dir });
+    assert.equal(report.createdAssets, 0); // chặn TRƯỚC asset.put — không tạo asset giả danh audio
+    assert.equal(report.errors.length, 1);
+    assert.match(report.errors[0], /magic bytes không khớp/);
+  } finally { t.clean(); fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('submission.import: chống đụng ô — ô đang bị MỘT AGENT MCP giữ claim sống (kit.claim) thì nhập kho (CLI) phải chờ, không chen vào', () => {
+  const t = tmpDb(); owner(t.db);
+  try {
+    t.write(CLI_ACTOR, 'kit.sync', {});
+    const ag = t.write(CLI_ACTOR, 'agent.create', { name: 'Muse test', scopes: ['assets.submit'] });
+    const agentActor = { type: 'agent', id: ag.agent.id, scopes: ['assets.submit'], entry: 'mcp' };
+    t.write(agentActor, 'kit.claim', { kit_slot: 'prop.tech.01' });
+
+    const asset = t.write(SYS_ACTOR, 'asset.put', { kind: 'image', bytes: png(0x33), mime: 'image/png', source: 'upload' });
+    assert.throws(() => t.write(CLI_ACTOR, 'submission.import', { asset: asset.display_id, kit_slot: 'prop.tech.01', state: 'submitted' }),
+      /đang được agent.*giữ/);
+
+    // ô KHÔNG bị claim (khác) thì nhập kho vẫn chạy bình thường.
+    const ok = t.write(CLI_ACTOR, 'submission.import', { asset: asset.display_id, kit_slot: 'prop.tech.02', state: 'submitted' });
+    assert.equal(ok.deduped, false);
+  } finally { t.clean(); }
+});
+
+// review opus PR #38 mục 5 [major]: asset.meta (gắn kit_slot) cũng phải chống đụng ô như submission.import —
+// trước đây chỉ submission.import chặn.
+test('asset.meta: chống đụng ô — gắn kit_slot vào ô đang bị claim sống bị chặn; ô không claim hoặc gán lại ô cũ vẫn chạy', () => {
+  const t = tmpDb(); owner(t.db);
+  try {
+    t.write(CLI_ACTOR, 'kit.sync', {});
+    const ag = t.write(CLI_ACTOR, 'agent.create', { name: 'Muse test', scopes: ['assets.submit'] });
+    const agentActor = { type: 'agent', id: ag.agent.id, scopes: ['assets.submit'], entry: 'mcp' };
+    t.write(agentActor, 'kit.claim', { kit_slot: 'prop.tech.05' });
+
+    const asset = t.write(SYS_ACTOR, 'asset.put', { kind: 'image', bytes: png(0x55), mime: 'image/png', source: 'upload' });
+    assert.throws(() => t.write(CLI_ACTOR, 'asset.meta', { asset: asset.display_id, kit_slot: 'prop.tech.05' }),
+      /đang được agent.*giữ/);
+
+    // ô không claim: gán được bình thường.
+    const r1 = t.write(CLI_ACTOR, 'asset.meta', { asset: asset.display_id, kit_slot: 'prop.tech.06' });
+    assert.equal(r1.changed, true);
+    // gán LẠI đúng ô đã có (idempotent, không đổi gì) — không bị chặn dù ô đó đang claim bởi agent khác.
+    t.write(agentActor, 'kit.claim', { kit_slot: 'prop.tech.06' });
+    const r2 = t.write(CLI_ACTOR, 'asset.meta', { asset: asset.display_id, kit_slot: 'prop.tech.06' });
+    assert.equal(r2.changed, false);
+  } finally { t.clean(); }
+});
+
+// review opus PR #38 mục 9 [minor]: claim HẾT HẠN (claim_expires_at đã qua) không còn "sống" — không chặn.
+test('chống đụng ô: claim đã HẾT HẠN không chặn submission.import lẫn asset.meta', () => {
+  const t = tmpDb(); owner(t.db);
+  try {
+    t.write(CLI_ACTOR, 'kit.sync', {});
+    const ag = t.write(CLI_ACTOR, 'agent.create', { name: 'Muse test', scopes: ['assets.submit'] });
+    // dựng thẳng claim đã hết hạn (claim_expires_at ở quá khứ) — không đi qua kit.claim (luôn đặt hạn tương lai).
+    t.db.run("UPDATE kit_slots SET claimed_by=?, claimed_at=?, claim_expires_at=? WHERE workspace_id=? AND code=?",
+      ag.agent.id, '2020-01-01T00:00:00.000Z', '2020-01-01T02:00:00.000Z', t.db.ws, 'prop.tech.07');
+
+    const asset = t.write(SYS_ACTOR, 'asset.put', { kind: 'image', bytes: png(0x66), mime: 'image/png', source: 'upload' });
+    const sub = t.write(CLI_ACTOR, 'submission.import', { asset: asset.display_id, kit_slot: 'prop.tech.07', state: 'submitted' });
+    assert.equal(sub.deduped, false);
+
+    const asset2 = t.write(SYS_ACTOR, 'asset.put', { kind: 'image', bytes: png(0x67), mime: 'image/png', source: 'upload' });
+    const meta = t.write(CLI_ACTOR, 'asset.meta', { asset: asset2.display_id, kit_slot: 'prop.tech.07' });
+    assert.equal(meta.changed, true);
+  } finally { t.clean(); }
+});
+
+// review opus PR #38 mục 1/3 [chặn/major]: --source trỏ sai đường dẫn (quét ra 0 thư mục MR) là LỖI CẤU HÌNH —
+// khác lỗi từng file, KHÔNG được --allow-errors nuốt mất (xem main() trong cli/import-kit.js).
+test('runImport --source trỏ sai đường dẫn (0 thư mục MR): báo report.configErrors, không lẫn với report.errors', async () => {
+  const t = tmpDb(); owner(t.db);
+  const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-import-empty-'));
+  try {
+    const report = await runImport({ write: t.write, db: t.db, source: emptyDir });
+    assert.equal(report.configErrors.length, 1);
+    assert.match(report.configErrors[0], /không thấy thư mục MR-xxx nào/);
+    assert.deepEqual(report.errors, []);
+  } finally { t.clean(); fs.rmSync(emptyDir, { recursive: true, force: true }); }
+});
+
+// review opus PR #38 mục 6 [major]: ô "đạt" nhưng còn lần nộp MỞ (đường MCP) không được state "đạt" che mất.
+test('v_kit_coverage.competing: ô đã "đạt" vẫn đếm được lần nộp MCP đang mở cho cùng ô', () => {
+  const t = tmpDb(); const o = owner(t.db);
+  try {
+    t.write(CLI_ACTOR, 'kit.sync', {});
+    const asset = t.write(o, 'asset.put', { kind: 'image', bytes: png(0x70), mime: 'image/png', source: 'upload' });
+    t.write(CLI_ACTOR, 'asset.meta', { asset: asset.display_id, kit_slot: 'fx.manpu.02', quality: 'A' });
+    t.write(CLI_ACTOR, 'asset.attest_import', { asset: asset.display_id, basis: 'own_product', note: 'test' });
+    const { requiredCriteria } = require('../server/kit-criteria.js');
+    const required = requiredCriteria('fx.manpu.02');
+    const results = required.m.map((criterion) => ({ criterion, level: 'ok', severity: 'M' }));
+    t.write(SYS_ACTOR, 'submission.record_checks', { asset: asset.display_id, run_id: 'r1', results });
+    t.write(o, 'kit.certify', { asset: asset.display_id, h_ticks: required.mh });
+    assert.equal(t.db.get("SELECT state, competing FROM v_kit_coverage WHERE code='fx.manpu.02'").state, 'đạt');
+    assert.equal(t.db.get("SELECT competing FROM v_kit_coverage WHERE code='fx.manpu.02'").competing, 0);
+
+    // một lần nộp MCP khác vẫn đang "submitted" cho CÙNG ô (vd Muse nộp bản cải tiến) — "đạt" không được che nó.
+    const ag = t.write(CLI_ACTOR, 'agent.create', { name: 'Muse test', scopes: ['assets.submit'] });
+    const asset2 = t.write(SYS_ACTOR, 'asset.put', { kind: 'image', bytes: png(0x71), mime: 'image/png', source: 'upload' });
+    t.db.insertRow('asset_submissions', { agent_id: ag.agent.id, kit_slot: 'fx.manpu.02', asset_id: asset2.id, previous_id: null, attempt: 1, state: 'submitted' }, { prefix: 'SB' });
+
+    const row = t.db.get("SELECT state, competing FROM v_kit_coverage WHERE code='fx.manpu.02'");
+    assert.equal(row.state, 'đạt');
+    assert.equal(row.competing, 1);
+  } finally { t.clean(); }
+});
+
+test('submission.set_state: chỉ sửa lần nộp do import tạo (agent_id IS NULL) và chỉ từ "submitted"', () => {
+  const t = tmpDb(); owner(t.db);
+  try {
+    t.write(CLI_ACTOR, 'kit.sync', {});
+    const asset = t.write(SYS_ACTOR, 'asset.put', { kind: 'image', bytes: png(0x44), mime: 'image/png', source: 'upload' });
+    const sub = t.write(CLI_ACTOR, 'submission.import', { asset: asset.display_id, kit_slot: 'prop.tech.03', state: 'submitted' });
+    t.write(CLI_ACTOR, 'submission.set_state', { submission: sub.display_id, state: 'approved', decision_kind: 'owner', decided_actor: 'ryan' });
+    // đã rời "submitted" ⇒ set_state lần nữa bị chặn (chỉ đổi được TỪ submitted).
+    assert.throws(() => t.write(CLI_ACTOR, 'submission.set_state', { submission: sub.display_id, state: 'rework', decision_reason: 'đủ 10 ký tự test' }),
+      /chỉ đổi được từ "submitted"/);
+
+    // lần nộp CÓ agent_id (tạo qua MCP — ngoài phạm vi submission.import) ⇒ set_state của import từ chối hoàn toàn,
+    // kể cả khi còn "submitted" (dựng thẳng một hàng agent_id khác NULL để mô phỏng, không qua submission.import).
+    const ag = t.write(CLI_ACTOR, 'agent.create', { name: 'Muse test 2', scopes: ['assets.submit'] });
+    const mcpSub = t.db.insertRow('asset_submissions', {
+      agent_id: ag.agent.id, kit_slot: 'prop.tech.04', asset_id: asset.id, previous_id: null, attempt: 1, state: 'submitted',
+    }, { prefix: 'SB' });
+    assert.throws(() => t.write(CLI_ACTOR, 'submission.set_state', { submission: mcpSub.display_id, state: 'rework', decision_reason: 'đủ 10 ký tự test' }),
+      /do import tạo/);
+  } finally { t.clean(); }
 });

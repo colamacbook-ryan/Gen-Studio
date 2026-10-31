@@ -32,6 +32,12 @@ const KIT_KIND = { 'image/png': 'image', 'image/jpeg': 'image', 'image/webp': 'i
   'font/woff2': 'manifest', 'font/woff': 'manifest', 'font/ttf': 'manifest', 'font/otf': 'manifest', 'application/json': 'manifest' };
 const SEVERITIES = ['M', 'M*', 'H'];
 
+// claimLive(slot, now) — ô có đang bị MỘT agent MCP giữ sống không (kit_slots.claimed_by/claim_expires_at,
+// kit.claim, hết hạn 2h). Review opus PR #38 mục 8 [minor]: tách ra module-level (trước đây định nghĩa lại
+// trong register() của kit.js VÀ copy một bản khác trong server/ops/import.js — sửa một chỗ, quên chỗ kia) để
+// import.js (asset.meta, submission.import — "chống đụng ô") dùng chung đúng MỘT định nghĩa.
+function claimLive(slot, now) { return !!(slot && slot.claimed_by && slot.claim_expires_at && slot.claim_expires_at > now); }
+
 // assets.subject suy ra từ tiền tố kit_slot (DB-GK-0.1 §4.1): nhi./vy./ryan.* và audio.voice.<x>
 function deriveSubject(code) {
   const m = /^(nhi|vy|ryan)\./.exec(code);
@@ -319,8 +325,6 @@ function register(op, ctx) {
     if (slot.retired_in) throw err('invalid', `Ô "${code}" đã retired (${slot.retired_in}).`, { kit_slot: code });
     return slot;
   };
-  const claimLive = (slot, now) => !!(slot.claimed_by && slot.claim_expires_at && slot.claim_expires_at > now);
-
   // ---- kit.claim — nhận ô ⇒ "Đang làm", khoá theo agent, hết hạn 2 h (SPEC-GK-0.1 Muse.claim) ----
   op('kit.claim', 'assetsSubmit', (c) => {
     const slot = liveSlot(c.p.kit_slot);
@@ -473,4 +477,4 @@ function register(op, ctx) {
 
 function nonEmptyStr(s) { return typeof s === 'string' && s.trim().length > 0; }
 
-module.exports = { register, OWNER: '0.3.0-A', deriveSubject };
+module.exports = { register, OWNER: '0.3.0-A', deriveSubject, claimLive };
