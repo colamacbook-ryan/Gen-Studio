@@ -223,3 +223,31 @@ test('0.3.0-B (review Gen, mục 4 [nên], IDOR): kit_submit với upload_sessio
     assert.equal(stolen.json.result.structuredContent.error.code, 'not_found');
   } finally { await b.clean(); }
 });
+
+test('0.3.0-B (review Gen, mục 5 [nên]): upload.start giới hạn ≤3 phiên mở/agent; phiên quá hạn 24h tự dọn (unlink + aborted)', async (t) => {
+  const b = await bootTmp();
+  try {
+    b.app.ctx.write(CLI, 'kit.sync', {});
+    const muse = await museToken(b.app.ctx);
+    const starts = [];
+    for (let i = 0; i < 3; i++) {
+      const r = await mcpCall(b.base, muse.token, 'kit_upload_chunk', { action: 'start', kit_slot: 'audio.sfx.whoosh.03', declared_mime: 'audio/wav' });
+      assert.ok(!r.json.result.isError, JSON.stringify(r.json.result));
+      starts.push(r.json.result.structuredContent.session);
+    }
+    const r4 = await mcpCall(b.base, muse.token, 'kit_upload_chunk', { action: 'start', kit_slot: 'audio.sfx.whoosh.03', declared_mime: 'audio/wav' });
+    assert.ok(r4.json.result.isError, 'phiên thứ 4 bị chặn (trần 3 phiên mở/agent)');
+    assert.equal(r4.json.result.structuredContent.error.code, 'conflict');
+
+    // ép phiên đầu tiên "quá hạn 24h" rồi gọi start lần nữa — phiên cũ bị dọn (unlink + aborted), trần được nhả ra
+    const old = new Date(Date.now() - 25 * 3600e3).toISOString();
+    b.app.ctx.db.run('UPDATE upload_sessions SET created_at=? WHERE id=?', old, starts[0]);
+    const tmpPathRow = b.app.ctx.db.get('SELECT tmp_path FROM upload_sessions WHERE id=?', starts[0]);
+    assert.ok(require('node:fs').existsSync(tmpPathRow.tmp_path), 'tệp tạm tồn tại trước khi dọn');
+
+    const r5 = await mcpCall(b.base, muse.token, 'kit_upload_chunk', { action: 'start', kit_slot: 'audio.sfx.whoosh.03', declared_mime: 'audio/wav' });
+    assert.ok(!r5.json.result.isError, 'phiên cũ đã dọn ⇒ mở phiên mới được');
+    assert.equal(b.app.ctx.db.get('SELECT state FROM upload_sessions WHERE id=?', starts[0]).state, 'aborted');
+    assert.equal(require('node:fs').existsSync(tmpPathRow.tmp_path), false, 'tệp tạm bị unlink khi dọn');
+  } finally { await b.clean(); }
+});

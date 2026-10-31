@@ -347,8 +347,25 @@ function register(op, ctx) {
     if (row.agent_id !== agentId) throw err('forbidden', 'Phiên tải thuộc agent khác.', { session: id });
     return row;
   };
+  const SESSION_TTL_MS = 24 * 3600e3;
+  const MAX_OPEN_SESSIONS = 3;
+  // review Gen (0.3.0-B, mục 5 [nên]): upload.start trước đây không giới hạn số phiên/agent lẫn TTL — một agent (hay
+  // bug lặp) có thể mở vô hạn phiên 'open', mỗi phiên giữ tới 50 MB đĩa mãi mãi. Dọn phiên quá hạn 24h CỦA AGENT GỌI
+  // (unlink tệp tạm + đánh 'aborted') ngay mỗi lần upload.start — "timer khi start", không cần job/queue riêng — rồi
+  // mới đếm trần ≤3 phiên 'open' đồng thời/agent.
+  const pruneStaleSessions = (agentId) => {
+    const cutoff = new Date(Date.now() - SESSION_TTL_MS).toISOString();
+    const stale = db.all("SELECT * FROM upload_sessions WHERE workspace_id=? AND agent_id=? AND state='open' AND created_at<?", ws(), agentId, cutoff);
+    for (const s of stale) {
+      try { fs.unlinkSync(s.tmp_path); } catch { /* tệp đã mất — vẫn đánh dấu aborted */ }
+      db.run("UPDATE upload_sessions SET state='aborted', updated_at=? WHERE id=?", db.now(), s.id);
+    }
+  };
   op('upload.start', 'assetsSubmit', (c) => {
     const slot = liveSlot(c.p.kit_slot);
+    pruneStaleSessions(c.a.id);
+    const openCount = db.get("SELECT COUNT(*) AS n FROM upload_sessions WHERE workspace_id=? AND agent_id=? AND state='open'", ws(), c.a.id).n;
+    if (openCount >= MAX_OPEN_SESSIONS) throw err('conflict', `Đã có ${openCount} phiên tải đang mở (tối đa ${MAX_OPEN_SESSIONS}) — đóng bớt bằng upload.finish hoặc chờ hết hạn 24h.`, { open: openCount, max: MAX_OPEN_SESSIONS });
     const dir = path.join(db.dataDir, 'tmp', 'uploads');
     fs.mkdirSync(dir, { recursive: true });
     const row = db.insertRow('upload_sessions', { agent_id: c.a.id, kit_slot: slot.code, declared_mime: c.p.declared_mime || null, tmp_path: 'pending', received_bytes: 0, next_chunk: 0, state: 'open' });
