@@ -239,6 +239,27 @@ test('submission.auto_rework → suggestion.apply: Ryan áp dụng đề xuất 
     t.write(o, 'suggestion.apply', { suggestion: sg.display_id });
     assert.equal(t.db.get('SELECT state, decision_kind FROM asset_submissions WHERE id=?', sub.id).state, 'rework');
     assert.equal(t.db.get('SELECT decision_kind FROM asset_submissions WHERE id=?', sub.id).decision_kind, 'owner');
+    // bổ sung cổng M1 (cortex): suggestion.apply ghi decided_by = id Ryan (owner), không chỉ decided_actor (chuỗi tự do)
+    assert.equal(t.db.get('SELECT decided_by FROM asset_submissions WHERE id=?', sub.id).decided_by, o.id);
+  } finally { t.clean(); }
+});
+
+test('0.3.0-B (bổ sung cổng M1, cortex): CHECK "chỉ owner mới đặt approved/rejected" — migration 0010; suggestion.apply(approve) ghi decided_by, decision_kind auto không bao giờ approved/rejected', () => {
+  const t = tmpDb();
+  try {
+    const o = owner(t.db);
+    t.write(o, 'kit.sync', {});
+    const a1 = putAsset(t, o);
+    const sub = submissionRow(t, { asset: a1 });
+    // CHECK chặn ở tầng DB: state='approved' nhưng decision_kind khác 'owner' (NULL hoặc 'auto')
+    assert.throws(() => t.db.run("UPDATE asset_submissions SET state='approved' WHERE id=?", sub.id), /CHECK/);
+    assert.throws(() => t.db.run("UPDATE asset_submissions SET state='approved', decision_kind='auto' WHERE id=?", sub.id), /CHECK/);
+    // đúng luồng: Gen đề xuất approve → Ryan suggestion.apply ⇒ decision_kind='owner', decided_by=Ryan, CHECK qua
+    const gen = agent(['assets.review'], 'AG-GEN2');
+    const sg = t.write(gen, 'submission.propose', { submission: sub.display_id, verdict: 'approve', reason: 'Đạt mọi tiêu chí.' });
+    t.write(o, 'suggestion.apply', { suggestion: sg.display_id });
+    const row = t.db.get('SELECT state, decision_kind, decided_by FROM asset_submissions WHERE id=?', sub.id);
+    assert.equal(row.state, 'approved'); assert.equal(row.decision_kind, 'owner'); assert.equal(row.decided_by, o.id);
   } finally { t.clean(); }
 });
 

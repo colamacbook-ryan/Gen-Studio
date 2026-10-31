@@ -244,7 +244,10 @@ function register(op, ctx) {
       const nextState = diff.verdict === 'approve' ? 'approved' : diff.verdict === 'reject' ? 'rejected'
         : (diff.verdict === 'rework' || diff.verdict === 'rework_blocked') ? 'rework' : null;
       if (!nextState) return undefined;
-      db.update('asset_submissions', sub.id, { state: nextState, decision_kind: 'owner', decided_actor: c.by, decision_reason: reason });
+      // bổ sung cổng M1 (cortex, trùng hướng review #36): decided_by = ai THỰC SỰ bấm quyết (user.id) — CHECK mới ở
+      // migration 0010 đòi state approved/rejected chỉ đi kèm decision_kind='owner'; actor gọi suggestion.apply luôn
+      // là user (op 'ownerUi' ở write.js), nên c.a.id chính là id Ryan.
+      db.update('asset_submissions', sub.id, { state: nextState, decision_kind: 'owner', decided_actor: c.by, decided_by: c.a.id, decision_reason: reason });
       return { submission: sub.display_id, state: nextState };
     },
   });
