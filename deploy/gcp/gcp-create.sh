@@ -102,14 +102,24 @@ if [ "$UPTIME_OK" = 1 ]; then
       --type=email --channel-labels=email_address="$ACCOUNT" --format='value(name)' 2>/dev/null)" || UPTIME_OK=0
   fi
   echo "  ✓ uptime check gs-uptime: https://$UPTIME_HOST/.well-known/oauth-authorization-server (5 phút/lần)"
-  if [ -n "$CHANNEL" ] && ! gcloud alpha monitoring policies list --project "$PROJECT" --filter='displayName="gs-uptime-down"' --format='value(name)' 2>/dev/null | grep -q .; then
+  if [ -n "$CHANNEL" ]; then
+    VSTATUS="$(gcloud beta monitoring channels describe "$CHANNEL" --project "$PROJECT" --format='value(verificationStatus)' 2>/dev/null)"
+    if [ -n "$VSTATUS" ] && [ "$VSTATUS" != "VERIFIED" ]; then
+      echo "  ⚠ kênh email $ACCOUNT chưa xác minh (verificationStatus=$VSTATUS) — vào console.cloud.google.com/monitoring/alerting/notifications, bấm xác minh email (xem docs/OPS.md)"
+    fi
+    # REDUCE_COUNT_TRUE (không phải FALSE): đếm số lần check_passed=true trong cửa sổ — bắn cảnh báo khi số đó < 1
+    # (tức TOÀN BỘ lần kiểm trong cửa sổ đều fail). Dùng REDUCE_COUNT_FALSE + "< 1" (bản cũ, SAI) sẽ bắn khi đang khoẻ
+    # và im khi chết — ngược hoàn toàn. duration=300s: đợi 1 chu kỳ kiểm (5') mới báo, tránh báo giả vì 1 lần trễ mạng.
+    # Policy cũ (nếu còn, có thể mang cấu hình sai) bị xoá rồi tạo lại — tránh 2 policy trùng tên chồng nhau.
+    OLD="$(gcloud alpha monitoring policies list --project "$PROJECT" --filter='displayName="gs-uptime-down"' --format='value(name)' 2>/dev/null)"
+    [ -n "$OLD" ] && echo "$OLD" | while read -r p; do [ -n "$p" ] && gcloud alpha monitoring policies delete "$p" --project "$PROJECT" --quiet >/dev/null 2>&1; done
     gcloud alpha monitoring policies create --project "$PROJECT" \
       --display-name "gs-uptime-down" --notification-channels="$CHANNEL" \
       --condition-display-name="gs-uptime check failing" \
       --condition-filter='metric.type="monitoring.googleapis.com/uptime_check/check_passed" AND resource.type="uptime_url"' \
-      --aggregation='{"alignmentPeriod":"300s","perSeriesAligner":"ALIGN_NEXT_OLDER","crossSeriesReducer":"REDUCE_COUNT_FALSE","groupByFields":["resource.label.host"]}' \
-      --if='< 1' --duration=0s --trigger-count=1 --combiner=OR >/dev/null 2>&1 \
-      && echo "  ✓ chính sách báo động gs-uptime-down → email $ACCOUNT" \
+      --aggregation='{"alignmentPeriod":"300s","perSeriesAligner":"ALIGN_NEXT_OLDER","crossSeriesReducer":"REDUCE_COUNT_TRUE","groupByFields":["resource.label.host"]}' \
+      --if='< 1' --duration=300s --trigger-count=1 --combiner=OR >/dev/null 2>&1 \
+      && echo "  ✓ chính sách báo động gs-uptime-down → email $ACCOUNT (REDUCE_COUNT_TRUE, duration 300s)" \
       || echo "  ⚠ chưa tạo được chính sách báo động tự động — nối tay trong console (xem docs/OPS.md)"
   fi
 else
