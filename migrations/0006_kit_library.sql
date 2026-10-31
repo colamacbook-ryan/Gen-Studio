@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS asset_submissions (
   asset_id TEXT REFERENCES assets(id),          -- tệp đang xét (gói A: 1 tệp/lần nộp, đơn giản hoá submission_files)
   previous_id TEXT REFERENCES asset_submissions(id),  -- chuỗi làm lại
   attempt INTEGER NOT NULL DEFAULT 1,
-  state TEXT NOT NULL DEFAULT 'submitted' CHECK (state IN ('submitted','approved','rework','rejected')),
+  state TEXT NOT NULL DEFAULT 'submitted' CHECK (state IN ('submitted','approved','rework','rejected','blocked')),  -- 'blocked' = lần trả về tự động thứ 3, chờ Ryan quyết (review #5)
   checks_level TEXT CHECK (checks_level IS NULL OR checks_level IN ('ok','warn','fail')),
   decision_kind TEXT CHECK (decision_kind IS NULL OR decision_kind IN ('owner','auto')),
   decided_actor TEXT, decision_reason TEXT,
@@ -100,8 +100,9 @@ CREATE TABLE IF NOT EXISTS asset_checks (
   submission_id TEXT REFERENCES asset_submissions(id),
   asset_id TEXT REFERENCES assets(id),
   criterion TEXT NOT NULL,                      -- mã STANDARD-KIT-v1 (CH-01…FO-04) hoặc GEN-FMT/GEN-SPEC
+  severity TEXT CHECK (severity IS NULL OR severity IN ('M','M*','H')),  -- mức bắt buộc của tiêu chí (server/kit-criteria.js); NULL = chưa biết (hàng cũ/ghi tay)
   kit_ver TEXT NOT NULL DEFAULT 'KIT-v1',
-  level TEXT NOT NULL CHECK (level IN ('ok','warn','fail','waived')),
+  level TEXT NOT NULL CHECK (level IN ('ok','warn','fail','waived','pending')),   -- 'pending': tiêu chí M chưa có máy đo (server/checks/to-db.js pass=null) — không chặn, không coi là đạt
   measured TEXT, detail TEXT,
   checker TEXT NOT NULL CHECK (checker IN ('system','gen','owner')),
   checker_ref TEXT,

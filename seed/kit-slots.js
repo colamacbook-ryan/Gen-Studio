@@ -186,8 +186,8 @@ const FONT = [
   ['font.comic', 'Chữ nổi', 'Comic lettering font'],
 ];
 
-function slot(code, group_code, title_vi, title_en) {
-  return { code, group_code, title_vi, title_en, added_in: 'v1' };
+function slot(code, group_code, title_vi, title_en, subject_rev) {
+  return { code, group_code, title_vi, title_en, added_in: 'v1', subject_rev: subject_rev || null };
 }
 function splitVE(s) { const i = s.indexOf('/'); return [s.slice(0, i), s.slice(i + 1)]; }
 function numbered(prefix, group, list) {
@@ -202,11 +202,12 @@ function templated(prefix, group, [viTpl, enTpl], n) {
 function buildSlots() {
   const out = [];
 
-  // NB-01..03 — nhân vật
+  // NB-01..03 — nhân vật; subject_rev = phiên bản mẫu gốc hiện hành (STANDARD-KIT-v1 §6, bản đầu 'r1' cho cả 3)
   for (const ch of CHARACTERS) {
-    for (const [suf, vi, en] of ID_SLOTS) out.push(slot(`${ch.prefix}.${suf}`, ch.group, `${ch.name} · ${vi}`, `${ch.name} · ${en}`));
-    for (const [suf, vi, en] of EXPR_SLOTS) out.push(slot(`${ch.prefix}.${suf}`, ch.group, `${ch.name} · ${vi}`, `${ch.name} · ${en}`));
-    for (const [suf, vi, en] of POSE_SLOTS) out.push(slot(`${ch.prefix}.${suf}`, ch.group, `${ch.name} · ${vi}`, `${ch.name} · ${en}`));
+    const rev = `${ch.prefix}@r1`;
+    for (const [suf, vi, en] of ID_SLOTS) out.push(slot(`${ch.prefix}.${suf}`, ch.group, `${ch.name} · ${vi}`, `${ch.name} · ${en}`, rev));
+    for (const [suf, vi, en] of EXPR_SLOTS) out.push(slot(`${ch.prefix}.${suf}`, ch.group, `${ch.name} · ${vi}`, `${ch.name} · ${en}`, rev));
+    for (const [suf, vi, en] of POSE_SLOTS) out.push(slot(`${ch.prefix}.${suf}`, ch.group, `${ch.name} · ${vi}`, `${ch.name} · ${en}`, rev));
   }
 
   // NB-04 — bối cảnh (56)

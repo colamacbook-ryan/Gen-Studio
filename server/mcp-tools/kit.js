@@ -8,6 +8,8 @@
 const fs = require('node:fs');
 const { kit } = require('./_kit.js');
 const pipeline = require('../pipeline.js');
+const queueMod = require('../queue.js');
+const { toDbResults } = require('../checks/to-db.js');
 
 const PAGE_MAX = 200;
 const page = (a) => Math.max(1, parseInt(a.page, 10) || 1);
@@ -23,18 +25,14 @@ function tools(ctx) {
     if (claimed) return 'claimed';
     const submitted = !!db.get("SELECT 1 AS x FROM asset_submissions WHERE kit_slot=? AND state='submitted' LIMIT 1", row.code);
     if (submitted) return 'submitted';
-    const rework = !!db.get("SELECT 1 AS x FROM asset_submissions WHERE kit_slot=? AND state='rework' LIMIT 1", row.code);
+    // 'blocked' (PR #33 review #5 — lần 3 liên tiếp, chờ Ryan áp dụng đề xuất) hiển thị gộp vào "rework" cho Muse:
+    // dù sao cũng không claim/nộp lại được cho tới khi Ryan quyết — chi tiết xem kit_get_input.rework.
+    const rework = !!db.get("SELECT 1 AS x FROM asset_submissions WHERE kit_slot=? AND state IN ('rework','blocked') LIMIT 1", row.code);
     if (rework) return 'rework';
     return 'free';
   };
 
   const slotText = (s) => `${s.code} [${s.status}] ${s.title_vi}`;
-
-  // checks[].level của runChecks là 'M'/'H' (STANDARD-KIT-v1); asset_checks.level là ok/warn/fail (DB-GK-0.1 §4.7).
-  const toCheckResults = (checks) => checks.map((ch) => ({
-    criterion: ch.code, level: ch.pass ? 'ok' : (ch.level === 'M' ? 'fail' : 'warn'),
-    measured: ch.measured || null, detail: ch.note_vi || null,
-  }));
 
   return [
     { name: 'kit_list', scope: 'assets.submit', description: 'Danh sách ô Bộ Neo theo trạng thái (free|claimed|submitted|rework|certified) và/hoặc nhóm (group_code NB-01..NB-10, dùng tạm thay "phiếu" — chưa có asset_requests). Phân trang.',
@@ -93,16 +91,16 @@ function tools(ctx) {
         if (tmpToClean) { try { fs.unlinkSync(tmpToClean); } catch { /* best-effort, tệp tạm không chặn luồng */ } }
         const sub = subRes.submission, asset = subRes.asset;
         const file = pipeline.assetFile(db, asset.id).file;
-        const checks = require('../checks/index.js');
-        let verdict = 'review', checkList = [];
+        // máy kiểm chạy qua tiến trình con (gói E, cli/check-kit.js — không chặn vòng lặp sự kiện của server).
+        let runResult;
         try {
-          const r = await checks.runChecks(file, a.kit_slot, {});
-          verdict = r.verdict; checkList = r.checks;
+          runResult = await queueMod.runAssetCheck(ctx, { file, slot: a.kit_slot });
         } catch (e) { throw fail('invalid', 'Máy kiểm lỗi khi đọc tệp: ' + ((e && e.message) || e)); }
+        const verdict = runResult.verdict, checkList = runResult.checks;
         const runId = `kit-${sub.display_id}-${Date.now()}`;
         // record_checks/auto_rework đòi quyền 'review' (system hoặc assets.review) — máy kiểm chạy thay mặt hệ thống, không phải Muse đang nộp.
         const sysActor = { type: 'system', entry: 'system' };
-        write(sysActor, 'submission.record_checks', { submission: sub.display_id, run_id: runId, results: toCheckResults(checkList) });
+        write(sysActor, 'submission.record_checks', { submission: sub.display_id, run_id: runId, results: toDbResults(runResult) });
         let state = 'submitted', reworkInfo = null;
         if (verdict === 'rework') {
           const rw = write(sysActor, 'submission.auto_rework', { submission: sub.display_id });

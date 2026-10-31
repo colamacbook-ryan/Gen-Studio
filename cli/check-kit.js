@@ -15,6 +15,7 @@ function args(argv) {
     else if (t === '--ref') a.ref = argv[++i];
     else if (t === '--mime') a.mime = argv[++i];
     else if (t === '--ffmpeg') a.ffmpeg = argv[++i];
+    else if (t === '--ground-y') a.groundY = Number(argv[++i]);
     else if (t === '--json') a.json = true;
     else a._.push(t);
   }
@@ -24,7 +25,7 @@ function args(argv) {
 function printTable(result, file) {
   console.log(`\nMáy kiểm — ${path.basename(file)}  [nhóm ô: ${result.group}]`);
   for (const c of result.checks) {
-    const mark = c.pass ? '✓' : '✗';
+    const mark = c.pass === null ? '…' : c.pass ? '✓' : '✗';
     console.log(`  ${mark} ${c.code.padEnd(8)} ${c.level.padEnd(2)} ${c.note_vi}`);
   }
   const vmark = result.verdict === 'pass' ? '✓ ĐẠT' : result.verdict === 'rework' ? '✗ LÀM LẠI' : '… CHỜ XÁC NHẬN';
@@ -35,13 +36,14 @@ async function main() {
   const a = args(process.argv.slice(2));
   const file = a._[0];
   if (!file || !a.slot) {
-    console.error('Dùng: node cli/check-kit.js <file> --slot <mã ô> [--ref <file>] [--mime <mime>] [--json]');
+    console.error('Dùng: node cli/check-kit.js <file> --slot <mã ô> [--ref <file>] [--mime <mime>] [--ground-y <n>] [--json]');
     process.exit(2);
   }
   const opts = {};
   if (a.ref) opts.referenceFile = a.ref;
   if (a.mime) opts.declaredMime = a.mime;
   if (a.ffmpeg) opts.ffmpegPath = a.ffmpeg;
+  if (Number.isFinite(a.groundY)) opts.groundY = a.groundY;
   let result;
   try {
     result = await runChecks(file, a.slot, opts);

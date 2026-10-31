@@ -21,7 +21,12 @@ const skip = (t) => { if (!hasFfmpeg) { t.skip('không có ffmpeg trên máy nà
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gs-k-'));
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 const ff = (...a) => execFileSync(FF, ['-hide_banner', '-loglevel', 'error', '-y', ...a]);
-function flatPng(file, { w, h, color = '0x00B140' }) { ff('-f', 'lavfi', '-i', `color=c=${color}:s=${w}x${h}`, '-frames:v', '1', file); }
+// PR-01/PR-02 (gói E, review #4/#7) đòi có VẬT thật trong khung (không chỉ nền phẳng) cách mép ≥64px — vẽ thêm một
+// hộp màu khác hẳn nền ở giữa khung làm "vật" (giống test/j-checks.test.js bgWithBoxes).
+function flatPng(file, { w, h, color = '0x00B140', withSubject = true }) {
+  const vf = withSubject ? ['-vf', `drawbox=x=${Math.round(w * 0.3)}:y=${Math.round(h * 0.3)}:w=${Math.round(w * 0.4)}:h=${Math.round(h * 0.4)}:color=0x336699:t=fill`] : [];
+  ff('-f', 'lavfi', '-i', `color=c=${color}:s=${w}x${h}`, ...vf, '-frames:v', '1', file);
+}
 
 const CLI = { type: 'cli', entry: 'cli' };
 async function museToken(ctx, { expires_at = null, revoke = false } = {}) {
@@ -95,8 +100,9 @@ test('k-kit-mcp: submit sai nền → rework lần 1, 2; lần 3 → chờ Ryan 
     assert.equal(d3.verdict, 'rework');
     assert.equal(d3.state, 'blocked_for_ryan', 'lần 3 liên tiếp ⇒ chờ Ryan, không tự rework nữa');
     assert.ok(d3.rework.blocked); assert.match(d3.rework.suggestion, /^SG-/);
-    // submission vẫn ở "submitted" (Gen không có quyền rework ở lần 3 — INT-GK-04)
-    assert.equal(b.app.ctx.db.get('SELECT state FROM asset_submissions WHERE display_id=?', d3.submission).state, 'submitted');
+    // submission chuyển sang "blocked" (cờ bền, PR #33 review #5) — Gen không có quyền rework/approve/reject ở lần 3,
+    // chỉ owner áp dụng đề xuất SG- (suggestion.apply) mới đổi tiếp được (INT-GK-04).
+    assert.equal(b.app.ctx.db.get('SELECT state FROM asset_submissions WHERE display_id=?', d3.submission).state, 'blocked');
   } finally { await b.clean(); }
 });
 
