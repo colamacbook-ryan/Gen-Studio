@@ -41,5 +41,8 @@ jobs:
         with:
           node-version: 22
       - name: Kiểm hàng trong inbox
+        # Chỉ báo (Ryan 2026-10-31): lỗi giấy tờ hiện trong Summary, không chặn PR — Gen chuẩn hoá khi nhận kho.
+        # Cổng chặn duy nhất còn lại là bước "Phạm vi sửa của Muse" ở trên.
+        continue-on-error: true
         shell: bash   # = bash -eo pipefail: lỗi của check-inbox không bị tee nuốt
         run: node library/tools/check-inbox.mjs --all | tee -a "$GITHUB_STEP_SUMMARY"
