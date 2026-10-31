@@ -6,6 +6,7 @@ const events = require('./events.js');
 const grids = require('./grids.js');
 const { localParts, wsTz } = require('./pipeline.js');
 const aspects = require('../render/aspects.js');
+const { SESSION_TTL_MS } = require('./ops/kit.js');
 
 const SYS = { type: 'system', id: 'scheduler', entry: 'system' };
 const MAX_ATTEMPTS = 3;
@@ -111,11 +112,31 @@ function sweepStalled(ctx, now = new Date(), stallMin = Number(process.env.GS_WO
 function tick(ctx, now = new Date()) {
   return { opened: openScheduled(ctx, now), stalled: sweepStalled(ctx, now) };
 }
-function start(ctx, { intervalMs = 60000 } = {}) {
+
+// Gói 0.3.0-B.2 (nợ review B): nhả claim Bộ Neo hết hạn + dọn phiên tải >24h TOÀN WORKSPACE, mỗi 10 phút.
+// `kit.claim_expired`/`upload.pruned` (server/ops/kit.js) là op system-only — ghi audit cùng tên, không qua MCP.
+// review Gen (PR #39 mục 2 [major]): đếm TRƯỚC bằng SELECT thuần (không audit) — chỉ write() khi thật sự có gì để
+// dọn. Trước đây gọi write() vô điều kiện mỗi 10 phút ⇒ audit_log (append-only) + SSE nhận ~288 dòng rác/ngày dù
+// không có claim/phiên nào hết hạn (đa số bản cài, đa số lần tick).
+function kitSweep(ctx) {
+  const { db, write } = ctx;
+  const now = db.now();
+  const out = { claims_expired: 0, uploads_pruned: 0 };
+  const pendingClaims = db.get('SELECT COUNT(*) AS n FROM kit_slots WHERE workspace_id=? AND claimed_by IS NOT NULL AND claim_expires_at IS NOT NULL AND claim_expires_at<=?', db.ws, now).n;
+  if (pendingClaims > 0) out.claims_expired = write(SYS, 'kit.claim_expired', {}).expired;
+  const cutoff = new Date(Date.now() - SESSION_TTL_MS).toISOString();
+  const pendingUploads = db.get("SELECT COUNT(*) AS n FROM upload_sessions WHERE workspace_id=? AND state='open' AND created_at<?", db.ws, cutoff).n;
+  if (pendingUploads > 0) out.uploads_pruned = write(SYS, 'upload.pruned', {}).pruned;
+  return out;
+}
+function start(ctx, { intervalMs = 60000, kitSweepMs = 10 * 60000 } = {}) {
   const t = setInterval(() => { try { tick(ctx); } catch (e) { events.logError('scheduler', e); } }, intervalMs);
   t.unref();
+  const kt = setInterval(() => { try { kitSweep(ctx); } catch (e) { events.logError('scheduler', e); } }, kitSweepMs);
+  kt.unref();
   try { tick(ctx); } catch (e) { events.logError('scheduler', e); }
-  return { stop: () => clearInterval(t), tick: now => tick(ctx, now) };
+  try { kitSweep(ctx); } catch (e) { events.logError('scheduler', e); }
+  return { stop: () => { clearInterval(t); clearInterval(kt); }, tick: now => tick(ctx, now), kitSweep: () => kitSweep(ctx) };
 }
 
-module.exports = { start, tick, openScheduled, sweepStalled, nextSlot, parseSchedule, slotAround, parseMix, expandMix };
+module.exports = { start, tick, kitSweep, openScheduled, sweepStalled, nextSlot, parseSchedule, slotAround, parseMix, expandMix };

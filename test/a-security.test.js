@@ -4,6 +4,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { tmpDb, basics, lessonBody, agent } = require('./a-helpers');
+const { bootTmp, mcpCall } = require('./d-helpers.js');
 
 const rejects = (fn, code) => assert.throws(fn, (e) => e.name === 'WriteError' && e.code === code);
 const svg = (body) => Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">${body}</svg>`);
@@ -74,4 +75,23 @@ test('events.mask che cả token gst_ lẫn gs_', () => {
   const tok = 'gst_' + 'A1b2C3d4E5f6G7h8I9j0K1l2';
   assert.ok(!mask('lỗi ' + tok).includes('A1b2C3d4'));
   assert.ok(!mask('gs_' + 'A1b2C3d4E5f6G7h8').includes('A1b2C3d4'));
+});
+
+// review Gen (PR #39 mục 1 [chặn]): repro — hợp lệ 200 → 31 yêu cầu sai token → hợp lệ VẪN 200 (trước đây 429, vì
+// peek() chạy trước xác thực nên một khi khoá IP đã đầy, nó khoá luôn request có token đúng).
+test('/mcp: trần 30 yêu cầu sai/thiếu token mỗi phút theo IP KHÔNG chặn token hợp lệ cùng IP', async () => {
+  const b = await bootTmp();
+  try {
+    const CLI = { type: 'cli', entry: 'cli' };
+    const muse = b.app.ctx.write(CLI, 'agent.create', { name: 'Muse test', scopes: ['assets.submit'], kind: 'token' });
+    const ok1 = await mcpCall(b.base, muse.token, 'kit_list', {});
+    assert.equal(ok1.status, 200, 'hợp lệ trước khi flood');
+
+    let last;
+    for (let i = 0; i < 31; i++) last = await mcpCall(b.base, 'token-sai-' + i, 'kit_list', {});
+    assert.equal(last.status, 429, 'yêu cầu sai token thứ 31 bị khoá theo IP');
+
+    const ok2 = await mcpCall(b.base, muse.token, 'kit_list', {});
+    assert.equal(ok2.status, 200, 'token hợp lệ cùng IP KHÔNG bị khoá bởi trần sai token');
+  } finally { await b.clean(); }
 });

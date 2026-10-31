@@ -21,6 +21,14 @@ const KIT_SLOTS_FILE = path.join(__dirname, '..', '..', 'seed', 'kit-slots.json'
 const SLOT_RE = /^[a-z]+(\.[a-z0-9-]+){1,3}$/;
 const KIT_SCOPES = ['assets.submit', 'assets.review'];
 const CLAIM_MS = 2 * 3600e3;
+// Gói 0.3.0-B.2 (nợ review B): trần claim sống/agent — GS_KIT_MAX_CLAIMS (mặc định 4), lần tiếp theo ⇒ 'conflict'.
+// review Gen (PR #39 mục 4 [nhỏ]): env sai/âm/không nguyên (vd "abc", "-1", "2.5") trước đây rơi về 4 qua `|| 4` CHỈ
+// khi NaN — "-1"/"0" vẫn lọt qua thành trần 0/âm (mọi claim mới đều bị chặn). Kiểm hữu hạn, nguyên, ≥1 tường minh.
+const KIT_MAX_CLAIMS_ENV = Number(process.env.GS_KIT_MAX_CLAIMS);
+const KIT_MAX_CLAIMS = Number.isFinite(KIT_MAX_CLAIMS_ENV) && KIT_MAX_CLAIMS_ENV >= 1 ? Math.floor(KIT_MAX_CLAIMS_ENV) : 4;
+// Gói 0.3.0-B.2: TTL phiên tải (upload_sessions 'open') — dùng cả ở upload.start (pruneStaleSessions theo agent) và
+// upload.pruned (dọn job nền toàn workspace, server/scheduler.js) — export để scheduler đếm trước khi write().
+const SESSION_TTL_MS = 24 * 3600e3;
 const MAX_CHUNK_BYTES = 1024 * 1024;
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 // Mở rộng từ EXT của write.js (ASSET_KINDS không có 'font' riêng — font/lottie dùng kind 'manifest', quyết định tự chọn gói B).
@@ -328,6 +336,17 @@ function register(op, ctx) {
     if (claimLive(slot, now) && slot.claimed_by !== c.a.id) {
       throw err('conflict', `Ô "${slot.code}" đang được agent khác giữ tới ${slot.claim_expires_at}.`, { kit_slot: slot.code, claimed_by: slot.claimed_by, claim_expires_at: slot.claim_expires_at });
     }
+    // nợ review B.2: trần KIT_MAX_CLAIMS ô sống/agent — chỉ áp khi nhận Ô MỚI (gia hạn ô đang giữ không tính thêm).
+    const alreadyMine = claimLive(slot, now) && slot.claimed_by === c.a.id;
+    if (!alreadyMine) {
+      // review Gen (PR #39 mục 5 [nhỏ]): loại ô đã retired khỏi đếm — ô bị retired SAU KHI đang giữ claim (hiếm, kit.sync
+      // chạy lại) không nên tính vào trần, Muse không nộp được vào ô đã rút khỏi danh mục nữa.
+      const mine = db.all('SELECT code, claim_expires_at FROM kit_slots WHERE workspace_id=? AND claimed_by=? AND claim_expires_at>? AND retired_in IS NULL', ws(), c.a.id, now);
+      if (mine.length >= KIT_MAX_CLAIMS) {
+        throw err('conflict', `Đã giữ ${mine.length} ô (tối đa ${KIT_MAX_CLAIMS}) — nộp hoặc report_blocked bớt trước khi nhận ô mới.`,
+          { kit_slot: slot.code, max_claims: KIT_MAX_CLAIMS, claims: mine.map((r) => ({ kit_slot: r.code, claim_expires_at: r.claim_expires_at })) });
+      }
+    }
     const expires = new Date(Date.now() + CLAIM_MS).toISOString();
     db.run('UPDATE kit_slots SET claimed_by=?, claimed_at=?, claim_expires_at=? WHERE workspace_id=? AND code=?', c.a.id, now, expires, ws(), slot.code);
     return { result: { kit_slot: slot.code, claimed_by: c.a.id, claim_expires_at: expires }, entity: ['kit_slots', slot.code],
@@ -353,7 +372,6 @@ function register(op, ctx) {
     if (row.agent_id !== agentId) throw err('forbidden', 'Phiên tải thuộc agent khác.', { session: id });
     return row;
   };
-  const SESSION_TTL_MS = 24 * 3600e3;
   const MAX_OPEN_SESSIONS = 3;
   // review Gen (0.3.0-B, mục 5 [nên]): upload.start trước đây không giới hạn số phiên/agent lẫn TTL — một agent (hay
   // bug lặp) có thể mở vô hạn phiên 'open', mỗi phiên giữ tới 50 MB đĩa mãi mãi. Dọn phiên quá hạn 24h CỦA AGENT GỌI
@@ -428,6 +446,28 @@ function register(op, ctx) {
     return { result: { session: row.id }, entity: ['upload_session', row.id], before: { state: 'open' }, after: { state: 'aborted' } };
   });
 
+  // ---- kit.claim_expired — job nền (server/scheduler.js, mỗi 10 phút): nhả TOÀN WORKSPACE mọi claim đã hết hạn 2h
+  // mà Muse chưa nộp/report_blocked. kit_list/kit_claim đã coi claim hết hạn như rảnh (claimLive), job này chỉ dọn
+  // cột cho sạch (và để lại dấu audit) — không đổi hành vi free/claimed đã có. system-only, không qua MCP.
+  op('kit.claim_expired', 'system', (c) => {
+    const now = db.now();
+    const rows = db.all('SELECT code, claimed_by, claim_expires_at FROM kit_slots WHERE workspace_id=? AND claimed_by IS NOT NULL AND claim_expires_at IS NOT NULL AND claim_expires_at<=?', ws(), now);
+    if (rows.length) db.run('UPDATE kit_slots SET claimed_by=NULL, claimed_at=NULL, claim_expires_at=NULL WHERE workspace_id=? AND claimed_by IS NOT NULL AND claim_expires_at IS NOT NULL AND claim_expires_at<=?', ws(), now);
+    return { result: { expired: rows.length, slots: rows.map((r) => r.code) }, entity: ['kit_slots', 'ALL'],
+      before: null, after: { expired: rows.length, slots: rows.map((r) => r.code) } };
+  });
+
+  // ---- upload.pruned — job nền (server/scheduler.js, mỗi 10 phút): dọn phiên tải 'open' quá 24h TOÀN WORKSPACE
+  // (không chỉ của 1 agent như pruneStaleSessions ở upload.start) — unlink tệp tạm, đánh 'aborted'. system-only.
+  op('upload.pruned', 'system', (c) => {
+    const cutoff = new Date(Date.now() - SESSION_TTL_MS).toISOString();
+    const stale = db.all("SELECT * FROM upload_sessions WHERE workspace_id=? AND state='open' AND created_at<?", ws(), cutoff);
+    for (const s of stale) { try { fs.unlinkSync(s.tmp_path); } catch { /* tệp đã mất — vẫn đánh dấu aborted */ } }
+    if (stale.length) db.run("UPDATE upload_sessions SET state='aborted', updated_at=? WHERE workspace_id=? AND state='open' AND created_at<?", db.now(), ws(), cutoff);
+    return { result: { pruned: stale.length, sessions: stale.map((s) => s.id) }, entity: ['upload_session', 'ALL'],
+      before: null, after: { pruned: stale.length, sessions: stale.map((s) => s.id) } };
+  });
+
   // ---- submission.submit — Muse nộp nội dung (kit_submit): magic bytes mở rộng Bộ Neo, lưu media, tạo asset + asset_submission ----
   // Khác `asset.put` lõi (composeOrSystem, MIME hẹp png/jpeg/webp/svg): Muse chỉ có scope assets.submit (không có 'compose'),
   // và Bộ Neo cần thêm wav/mp3/ogg/mp4/webm/ttf/otf/woff2/json-lottie (server/checks/magic.js, gói E) — quyết định tự chọn gói B.
@@ -473,4 +513,4 @@ function register(op, ctx) {
 
 function nonEmptyStr(s) { return typeof s === 'string' && s.trim().length > 0; }
 
-module.exports = { register, OWNER: '0.3.0-A', deriveSubject };
+module.exports = { register, OWNER: '0.3.0-A', deriveSubject, KIT_MAX_CLAIMS, SESSION_TTL_MS };
