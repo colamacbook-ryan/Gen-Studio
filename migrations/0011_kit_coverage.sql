@@ -11,6 +11,12 @@ ALTER TABLE asset_submissions ADD COLUMN quality_claimed TEXT CHECK (quality_cla
 -- `assets.superseded_by`/`family_id`/`version` (thu hẹp theo brief gói A, migrations/0006) nên điều 1 của
 -- STANDARD §5 ("gắn ô, HIỆN HÀNH, hạng A") ở đây chỉ còn "gắn ô, hạng A" — không có khái niệm phiên bản bị thay thế
 -- ở gói này; `kit_major` hiện hành = 1 (KIT-v1, chưa có bộ v2) — hardcode, sửa khi có major mới.
+-- review opus PR #38 mục 8 [minor]: biểu thức "quyền hiệu lực" (attested/exempt) xuất hiện 4 LẦN trong view dưới
+-- đây — SQL view không có hàm/macro để gọi lại một CTE tương quan theo `a` ở nhiều độ sâu subquery khác nhau mà
+-- không đổi kiến trúc truy vấn (rủi ro cao hơn lợi ích ở gói này). Nguồn sự thật DUY NHẤT của logic này vẫn là
+-- `server/rights.js` `RIGHTS_SQL`/`needsRights`/`statusOf` — 4 chỗ dưới đây CHÉP Y HỆT ý nghĩa đó (không phải
+-- chép nguyên văn chuỗi `RIGHTS_SQL` vì view cần dạng boolean `EXISTS`, `RIGHTS_SQL` trả chuỗi 'attested'/'pending'/
+-- 'exempt'). Đổi luật quyền dùng ở `rights.js` ⇒ PHẢI sửa cả 4 chỗ ở đây cho khớp (không có kiểm tra tự động).
 -- `đang làm` (STANDARD §5: "có phiếu MR nhắm ô chưa đóng") KHÔNG tính được ở gói này — chưa có bảng
 -- `asset_requests` (ngoài phạm vi gói A/C, xem migrations/0006 ghi chú đầu file) — nhánh này luôn rơi xuống `thiếu`.
 CREATE VIEW IF NOT EXISTS v_kit_coverage AS
@@ -48,6 +54,12 @@ SELECT
     SELECT s.checks_level FROM asset_submissions s WHERE s.kit_slot = ks.code
     ORDER BY s.updated_at DESC, s.id DESC LIMIT 1
   ) AS checks_level,
+  -- review opus PR #38 mục 6 [major]: `state` ưu tiên 'đạt' TRƯỚC nên CHE mất việc còn lần nộp MỞ của đường B
+  -- (Muse qua MCP, submission.submit) đang chờ xem xét cho CÙNG ô dù ô đã 'đạt' qua đường khác (vd import) —
+  -- Ryan nhìn "đạt" tưởng xong, không biết có bài đang chờ. Đếm riêng, không đổi logic `state`.
+  (
+    SELECT COUNT(*) FROM asset_submissions s WHERE s.kit_slot = ks.code AND s.state IN ('submitted','blocked')
+  ) AS competing,
   CASE
     -- đạt (điều 1-5 §5): tài sản gắn ô hiện hành hạng A + quyền hiệu lực (attested/exempt) + kit_certs khớp
     -- major hiện hành (1) và subject_rev hiện hành của ô.
