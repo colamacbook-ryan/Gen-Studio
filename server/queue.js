@@ -73,4 +73,34 @@ function cancelByRender(db, renderId) {
           WHERE render_id=? AND state IN ('queued','running','waiting_quota')`, db.now(), db.now(), renderId);
 }
 
-module.exports = { enqueue, lease, heartbeat, done, fail, waitQuota, cancelByRender };
+// Job 'asset.check' (gói E, 0.3.0 — máy kiểm thường trực): CHỈ chạy máy kiểm + phát sự kiện, KHÔNG ghi DB
+// (asset_checks/runs nối ở gói A sau, migration 0006+). Payload: {file, slot, referenceFile?, declaredMime?}.
+// Gọi trực tiếp (không qua enqueue/lease bảng runs) vì chưa có cột asset_check trong 'kind' của runs ở nhánh này.
+// Review #9: chạy qua tiến trình con (tái dùng cli/check-kit.js) thay vì chạy đồng bộ trên event loop chính
+// (máy kiểm PNG 2048×2048 tốn ~0,8s CPU/ảnh — chặn vòng lặp sự kiện của server nếu gọi trực tiếp tại đây).
+const { execFile } = require('node:child_process');
+const path = require('node:path');
+const CHECK_CLI = path.join(__dirname, '..', 'cli', 'check-kit.js');
+
+function runAssetCheck(ctx, { file, slot, referenceFile, declaredMime, ffmpegPath, groundY } = {}) {
+  if (!file || !slot) return Promise.reject(new Error("runAssetCheck: thiếu 'file' hoặc 'slot'."));
+  const args = [CHECK_CLI, file, '--slot', slot, '--json'];
+  if (referenceFile) args.push('--ref', referenceFile);
+  if (declaredMime) args.push('--mime', declaredMime);
+  if (ffmpegPath) args.push('--ffmpeg', ffmpegPath);
+  if (groundY != null) args.push('--ground-y', String(groundY));
+  return new Promise((resolve, reject) => {
+    execFile(process.execPath, args, { maxBuffer: 1 << 24 }, (err, stdout, stderr) => {
+      // cli/check-kit.js thoát mã 1 khi verdict='rework' (có chủ ý) — vẫn có JSON hợp lệ trên stdout; chỉ
+      // coi là lỗi thật khi không có stdout để đọc (crash/exception trước khi in).
+      if (err && !stdout) return reject(new Error('runAssetCheck: ' + String(stderr || err.message).trim().slice(0, 500)));
+      let result;
+      try { result = JSON.parse(stdout); } catch (e) { return reject(new Error('runAssetCheck: không đọc được JSON từ cli/check-kit.js: ' + e.message)); }
+      if (ctx && ctx.events && ctx.events.log) ctx.events.log('asset.check', slot, result.verdict);
+      if (ctx && ctx.bus) ctx.bus.emit('change', { entity: 'asset_check', id: slot, verdict: result.verdict });
+      resolve(result);
+    });
+  });
+}
+
+module.exports = { enqueue, lease, heartbeat, done, fail, waitQuota, cancelByRender, runAssetCheck };
