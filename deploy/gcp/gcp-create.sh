@@ -96,12 +96,22 @@ else
 fi
 if [ "$UPTIME_OK" = 1 ]; then
   ACCOUNT="$(gcloud config get-value account 2>/dev/null)"
-  if ! gcloud alpha monitoring channels list --project "$PROJECT" --filter="labels.email_address=$ACCOUNT" --format='value(name)' 2>/dev/null | grep -q .; then
-    gcloud alpha monitoring channels create --project "$PROJECT" --display-name "gs-alert-email" \
-      --type=email --channel-labels=email_address="$ACCOUNT" >/dev/null 2>&1 || UPTIME_OK=0
+  CHANNEL="$(gcloud alpha monitoring channels list --project "$PROJECT" --filter="labels.email_address=$ACCOUNT" --format='value(name)' 2>/dev/null | head -1)"
+  if [ -z "$CHANNEL" ]; then
+    CHANNEL="$(gcloud alpha monitoring channels create --project "$PROJECT" --display-name "gs-alert-email" \
+      --type=email --channel-labels=email_address="$ACCOUNT" --format='value(name)' 2>/dev/null)" || UPTIME_OK=0
   fi
   echo "  ✓ uptime check gs-uptime: https://$UPTIME_HOST/.well-known/oauth-authorization-server (5 phút/lần)"
-  [ "$UPTIME_OK" = 1 ] && echo "  ✓ kênh báo động email: $ACCOUNT (tạo policy nối kênh này trong console nếu gcloud CLI chưa tạo được alert policy tự động)"
+  if [ -n "$CHANNEL" ] && ! gcloud alpha monitoring policies list --project "$PROJECT" --filter='displayName="gs-uptime-down"' --format='value(name)' 2>/dev/null | grep -q .; then
+    gcloud alpha monitoring policies create --project "$PROJECT" \
+      --display-name "gs-uptime-down" --notification-channels="$CHANNEL" \
+      --condition-display-name="gs-uptime check failing" \
+      --condition-filter='metric.type="monitoring.googleapis.com/uptime_check/check_passed" AND resource.type="uptime_url"' \
+      --aggregation='{"alignmentPeriod":"300s","perSeriesAligner":"ALIGN_NEXT_OLDER","crossSeriesReducer":"REDUCE_COUNT_FALSE","groupByFields":["resource.label.host"]}' \
+      --if='< 1' --duration=0s --trigger-count=1 --combiner=OR >/dev/null 2>&1 \
+      && echo "  ✓ chính sách báo động gs-uptime-down → email $ACCOUNT" \
+      || echo "  ⚠ chưa tạo được chính sách báo động tự động — nối tay trong console (xem docs/OPS.md)"
+  fi
 else
   echo "  ⚠ gcloud CLI không tạo được uptime check/kênh báo động tự động — làm tay: console.cloud.google.com/monitoring/uptime (xem docs/OPS.md)"
 fi
