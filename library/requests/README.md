@@ -1,5 +1,7 @@
 # Phiếu sản xuất tài nguyên (MR-xxx)
 
+> **Thay thế từ 01/11/2026:** đường nộp hàng chính thức của Muse chuyển sang Google Sheet + Drive — xem [`docs/MUSE-CONNECT.md`](../../docs/MUSE-CONNECT.md). Nội dung dưới đây (quy trình GitHub/PR cũ) được **giữ nguyên** làm tham chiếu tiêu chí và phiếu mẫu, không còn là đường nộp hàng chính.
+
 - Mỗi phiếu là một file `MR-xxx-<tên>.md`, có `status` ghi ở phần đầu file.
 - Trạng thái đi theo thứ tự: `todo` → `in-progress` → `review` → `done`. Ngoài ra có `blocked`.
 - Muse nhận và làm phiếu theo `library/MUSE.md`. Gen soát phiếu và nhận hàng vào kho.

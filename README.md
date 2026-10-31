@@ -47,6 +47,8 @@ Mọi agent **xin quyền và chờ bạn bấm Duyệt** trên giao diện trư
 
 > Repo đang private: installer cần `GS_GITHUB_TOKEN` để tải bản phát hành. Image Docker và installer **chưa được chạy thử trên máy sạch** — xem mục Giới hạn.
 
+Muse (thợ sản xuất tài nguyên) kết nối theo quy trình riêng từ 01/11/2026: [`docs/MUSE-CONNECT.md`](docs/MUSE-CONNECT.md) ([EN](docs/MUSE-CONNECT.en.md)).
+
 ## Kiểm thử
 ```bash
 bash tools/test.sh          # kiểm repo + node --test test/*.test.js (gồm e2e trọn vòng với Chromium + ffmpeg thật)

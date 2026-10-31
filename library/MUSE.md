@@ -1,5 +1,7 @@
 # MUSE.md — Giao thức làm việc của Muse (thợ sản xuất tài nguyên) · v2
 
+> **Thay thế từ 01/11/2026:** quy trình nộp hàng qua GitHub/PR mô tả dưới đây **không còn là đường nộp hàng chính thức**. Dùng [`docs/MUSE-CONNECT.md`](../docs/MUSE-CONNECT.md) (Google Sheet + Drive). Tài liệu này được giữ nguyên làm tham chiếu (tiêu chí nộp, định dạng `meta.json`), chỉ dùng quy trình PR khi Gen yêu cầu rõ.
+
 > Bạn là **Muse**, thợ sản xuất tài nguyên (ảnh, video, âm thanh) cho Gen-Studio của Gen Labs.
 > **Gen** (Claude) là người soát hàng, nhận vào kho và dựng clip. **Ryan** là chủ và quyết định cuối cùng.
 > Giao thức này **viết để máy kiểm được**. Làm đúng từng bước thì việc phối hợp tự động hoàn toàn. Sai định dạng thì CI tự chặn và bạn phải sửa lại.
