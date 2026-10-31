@@ -19,10 +19,19 @@ PORT="$(envget GS_PORT)"; PORT="${PORT:-7490}"
 ensure_pairing_secret() { [ -n "$(envget GS_PAIRING_SECRET)" ] || envset GS_PAIRING_SECRET "gsp_$(head -c 32 /dev/urandom | base64 | tr '+/' '-_' | tr -d '=\n')"; }
 need_up() { dc ps --status running --services 2>/dev/null | grep -qx studio || { echo "✗ studio chưa chạy — genstudio start" >&2; exit 1; }; }
 
+do_backup() {
+  mkdir -p data/backups; f="data/backups/gen-studio-$(date +%Y%m%d-%H%M%S).tar.gz"
+  was=0; dc ps --status running --services 2>/dev/null | grep -qx studio && was=1
+  [ "$was" = 1 ] && dc stop studio >/dev/null
+  tar -czf "$f" --exclude=data/backups --exclude=data/run --exclude=data/.env data
+  [ "$was" = 1 ] && dc up -d studio >/dev/null
+  echo "$f"
+}
+
 usage() {
   cat <<'U'
 genstudio <lệnh>
-  start | stop | restart | status | logs [dịch vụ] | update | open
+  start | stop | restart | status | logs [dịch vụ] | update | rollback [tag] | open
   backup | restore <file> | uninstall
   mcp [--token <t>]      cầu stdio cho agent ngoài (client MCP chạy lệnh này)
   password               đặt lại mật khẩu chủ sở hữu
