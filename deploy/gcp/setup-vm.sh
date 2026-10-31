@@ -150,6 +150,17 @@ if [ "$WORKSHOP" = 1 ]; then
     fi
     mv "$GHOME/genlabs" "$DEVHOME/genlabs"
     chown -R "$DEVUSER:$DEVUSER" "$DEVHOME/genlabs"
+    # .env dev cũ ghi uid/gid của genstudio (chủ cũ) — sửa lại đúng uid/gid gsdev rồi mới cho chạy lại, không thì EACCES /data
+    if [ -f "$DEVHOME/genlabs/Gen-Studio/.env" ]; then
+      DEV_UID="$(id -u "$DEVUSER")"; DEV_GID="$(id -g "$DEVUSER")"
+      if grep -q '^GS_UID=' "$DEVHOME/genlabs/Gen-Studio/.env"; then
+        sed -i "s|^GS_UID=.*|GS_UID=$DEV_UID|; s|^GS_GID=.*|GS_GID=$DEV_GID|" "$DEVHOME/genlabs/Gen-Studio/.env"
+      else
+        { echo "GS_UID=$DEV_UID"; echo "GS_GID=$DEV_GID"; } >> "$DEVHOME/genlabs/Gen-Studio/.env"
+      fi
+      (cd "$DEVHOME/genlabs/Gen-Studio" && sudo -u "$DEVUSER" -H docker compose up -d studio >/dev/null 2>&1) \
+        || echo "⚠ dev stack chưa lên sau khi chuyển xưởng — kiểm tay: sudo -u $DEVUSER -H bash -c 'cd ~/genlabs/Gen-Studio && docker compose logs studio'"
+    fi
   fi
   echo "› Xưởng (user $DEVUSER): kho mã làm việc + dev stack cổng 7491"
   mkdir -p "$DEVHOME/genlabs" && chown "$DEVUSER:$DEVUSER" "$DEVHOME/genlabs"
