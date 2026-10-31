@@ -15,6 +15,20 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.woff': 'font/woff', '.txt': 'text/plain; charset=utf-8', '.webmanifest': 'application/manifest+json' };
 const CSP = "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
 
+// IP client cho khoá trần theo nguồn (nợ review B.2, PR #39 review mục 1): CHỈ tin header chuyển tiếp khi
+// GS_TRUST_PROXY=1 (đứng sau Caddy/tunnel của chính chủ xưởng) — cf-connecting-ip, hoặc bước nhảy PHẢI NHẤT của
+// X-Forwarded-For (do proxy của mình thêm vào, không phải client tự xưng); không tin cậy thì luôn là socket thật.
+// Giống oauth.js sourceOf() nhưng không có khái niệm "kênh" (internal/loopback/public) ở /mcp.
+function clientIp(req, config) {
+  if (config.trustProxy) {
+    const h = req.headers;
+    const hops = String(h['x-forwarded-for'] || '').split(',').map(x => x.trim()).filter(Boolean);
+    const ip = String(h['cf-connecting-ip'] || hops[hops.length - 1] || '').trim();
+    if (ip) return ip.slice(0, 64);
+  }
+  return req.socket.remoteAddress || '?';
+}
+
 function allowedHosts(config, port) {
   const s = new Set();
   // trong Docker cổng trình duyệt thấy (GS_HOST_PORT, từ GS_PORT của .env) khác cổng trong container
@@ -39,8 +53,7 @@ async function start(ctx) {
   const mcpLim = auth.limiter();
   // nợ review B.2: /mcp sai/thiếu token trước đây không giới hạn theo IP — dò token vô hạn (brute force) không bị chặn
   // (trần 60/phút ở trên chỉ tính SAU KHI xác thực, khoá theo agent.id — không có agent.id thì không đếm được).
-  // Khoá theo địa chỉ socket (không tin header proxy ở đây — đơn giản, đủ cho một bản cài; GS_TRUST_PROXY đã có ở oauth.js
-  // cho kênh public nếu cần nâng cấp sau).
+  // Khoá theo clientIp() (tôn trọng GS_TRUST_PROXY như oauth.js); CHỈ đếm/áp dụng ở nhánh xác thực THẤT BẠI (xem handleMcp).
   const mcpAuthFailLim = auth.limiter();
   const MCP_AUTH_FAIL_MAX = 30;
   const baseHeaders = { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY' };
@@ -55,13 +68,16 @@ async function start(ctx) {
   async function handleMcp(req, res) {
     if (req.headers.origin && !originOk(req.headers.origin, req.headers.host)) return apiMod.send(res, 403, { error: { code: 'forbidden', text_human: 'Origin không được phép.', detail: null } });
     if (req.method !== 'POST') return text(res, 405, 'Dùng POST.', 'text/plain; charset=utf-8', { Allow: 'POST' });
-    const ip = req.socket.remoteAddress || '?';
-    if (mcpAuthFailLim.peek('mcp-authfail:' + ip, MCP_AUTH_FAIL_MAX)) {
-      return apiMod.send(res, 429, { error: { code: 'rate_limited', text_human: `Quá nhiều yêu cầu /mcp sai/thiếu token từ địa chỉ này (tối đa ${MCP_AUTH_FAIL_MAX}/phút).`, detail: null } }, { 'Retry-After': '60' });
-    }
+    // review Gen (PR #39 review mục 1 [chặn]): xác thực TRƯỚC — token hợp lệ không bao giờ bị khoá bởi trần IP này
+    // (trước đây peek() chạy trước auth ⇒ sau Caddy/GS_TRUST_PROXY=1 mọi IP gom 1 khoá, 30 yêu cầu sai token của BẤT KỲ
+    // ai cũng khoá luôn Muse hợp lệ cùng mạng). Trần IP chỉ tính/áp dụng ở nhánh !who, không chạm nhánh có token đúng.
     const tok = auth.bearer(req);
     const who = tok && auth.verifyAgentToken(db, tok, { audience: oauth.serverId() });
     if (!who) {
+      const ip = clientIp(req, config);
+      if (mcpAuthFailLim.peek('mcp-authfail:' + ip, MCP_AUTH_FAIL_MAX)) {
+        return apiMod.send(res, 429, { error: { code: 'rate_limited', text_human: `Quá nhiều yêu cầu /mcp sai/thiếu token từ địa chỉ này (tối đa ${MCP_AUTH_FAIL_MAX}/phút).`, detail: null } }, { 'Retry-After': '60' });
+      }
       mcpAuthFailLim.hit('mcp-authfail:' + ip, MCP_AUTH_FAIL_MAX, 60e3);
       // RFC 9728: trỏ client tới metadata để tự xin quyền (Claude Code, claude.ai Connectors)
       const md = oauth.metadataUrl(req);   // chỉ khi Host hợp lệ; scope="…" để client MCP xin đủ phạm vi (chủ xưởng hạ bớt khi duyệt)

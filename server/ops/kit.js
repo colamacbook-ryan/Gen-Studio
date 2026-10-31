@@ -22,7 +22,13 @@ const SLOT_RE = /^[a-z]+(\.[a-z0-9-]+){1,3}$/;
 const KIT_SCOPES = ['assets.submit', 'assets.review'];
 const CLAIM_MS = 2 * 3600e3;
 // Gói 0.3.0-B.2 (nợ review B): trần claim sống/agent — GS_KIT_MAX_CLAIMS (mặc định 4), lần tiếp theo ⇒ 'conflict'.
-const KIT_MAX_CLAIMS = Number(process.env.GS_KIT_MAX_CLAIMS) || 4;
+// review Gen (PR #39 mục 4 [nhỏ]): env sai/âm/không nguyên (vd "abc", "-1", "2.5") trước đây rơi về 4 qua `|| 4` CHỈ
+// khi NaN — "-1"/"0" vẫn lọt qua thành trần 0/âm (mọi claim mới đều bị chặn). Kiểm hữu hạn, nguyên, ≥1 tường minh.
+const KIT_MAX_CLAIMS_ENV = Number(process.env.GS_KIT_MAX_CLAIMS);
+const KIT_MAX_CLAIMS = Number.isFinite(KIT_MAX_CLAIMS_ENV) && KIT_MAX_CLAIMS_ENV >= 1 ? Math.floor(KIT_MAX_CLAIMS_ENV) : 4;
+// Gói 0.3.0-B.2: TTL phiên tải (upload_sessions 'open') — dùng cả ở upload.start (pruneStaleSessions theo agent) và
+// upload.pruned (dọn job nền toàn workspace, server/scheduler.js) — export để scheduler đếm trước khi write().
+const SESSION_TTL_MS = 24 * 3600e3;
 const MAX_CHUNK_BYTES = 1024 * 1024;
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 // Mở rộng từ EXT của write.js (ASSET_KINDS không có 'font' riêng — font/lottie dùng kind 'manifest', quyết định tự chọn gói B).
@@ -333,7 +339,9 @@ function register(op, ctx) {
     // nợ review B.2: trần KIT_MAX_CLAIMS ô sống/agent — chỉ áp khi nhận Ô MỚI (gia hạn ô đang giữ không tính thêm).
     const alreadyMine = claimLive(slot, now) && slot.claimed_by === c.a.id;
     if (!alreadyMine) {
-      const mine = db.all('SELECT code, claim_expires_at FROM kit_slots WHERE workspace_id=? AND claimed_by=? AND claim_expires_at>?', ws(), c.a.id, now);
+      // review Gen (PR #39 mục 5 [nhỏ]): loại ô đã retired khỏi đếm — ô bị retired SAU KHI đang giữ claim (hiếm, kit.sync
+      // chạy lại) không nên tính vào trần, Muse không nộp được vào ô đã rút khỏi danh mục nữa.
+      const mine = db.all('SELECT code, claim_expires_at FROM kit_slots WHERE workspace_id=? AND claimed_by=? AND claim_expires_at>? AND retired_in IS NULL', ws(), c.a.id, now);
       if (mine.length >= KIT_MAX_CLAIMS) {
         throw err('conflict', `Đã giữ ${mine.length} ô (tối đa ${KIT_MAX_CLAIMS}) — nộp hoặc report_blocked bớt trước khi nhận ô mới.`,
           { kit_slot: slot.code, max_claims: KIT_MAX_CLAIMS, claims: mine.map((r) => ({ kit_slot: r.code, claim_expires_at: r.claim_expires_at })) });
@@ -364,7 +372,6 @@ function register(op, ctx) {
     if (row.agent_id !== agentId) throw err('forbidden', 'Phiên tải thuộc agent khác.', { session: id });
     return row;
   };
-  const SESSION_TTL_MS = 24 * 3600e3;
   const MAX_OPEN_SESSIONS = 3;
   // review Gen (0.3.0-B, mục 5 [nên]): upload.start trước đây không giới hạn số phiên/agent lẫn TTL — một agent (hay
   // bug lặp) có thể mở vô hạn phiên 'open', mỗi phiên giữ tới 50 MB đĩa mãi mãi. Dọn phiên quá hạn 24h CỦA AGENT GỌI
@@ -506,4 +513,4 @@ function register(op, ctx) {
 
 function nonEmptyStr(s) { return typeof s === 'string' && s.trim().length > 0; }
 
-module.exports = { register, OWNER: '0.3.0-A', deriveSubject, KIT_MAX_CLAIMS };
+module.exports = { register, OWNER: '0.3.0-A', deriveSubject, KIT_MAX_CLAIMS, SESSION_TTL_MS };

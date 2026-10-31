@@ -66,7 +66,7 @@ function tools(ctx) {
         const out = { kit_slot: slot.code, group_code: slot.group_code, title_vi: slot.title_vi, title_en: slot.title_en, spec: slot.spec ? JSON.parse(slot.spec) : null };
         // nợ review B.2: claim_expires_at (chỉ khi CHÍNH agent này đang giữ, còn sống) + claims_left (trần KIT_MAX_CLAIMS, kit.claim).
         if (slot.claimed_by === c.agent.id && slot.claim_expires_at && slot.claim_expires_at > now) out.claim_expires_at = slot.claim_expires_at;
-        const mine = db.get('SELECT COUNT(*) AS n FROM kit_slots WHERE workspace_id=? AND claimed_by=? AND claim_expires_at>?', db.ws, c.agent.id, now).n;
+        const mine = db.get('SELECT COUNT(*) AS n FROM kit_slots WHERE workspace_id=? AND claimed_by=? AND claim_expires_at>? AND retired_in IS NULL', db.ws, c.agent.id, now).n;
         out.claims_left = Math.max(0, KIT_MAX_CLAIMS - mine);
         // tham chiếu tốt nhất hiện có: asset đã chứng nhận cho CHÍNH ô này (nếu có)
         const cert = db.get('SELECT asset_id FROM kit_certs WHERE kit_slot=? ORDER BY at DESC LIMIT 1', slot.code);
